@@ -69,7 +69,48 @@ class StatePackApprovalTest {
         PostgresConnectionFactory approvalConnections() {
             return TestDatabase.freshMigrated();
         }
+
+        @Bean
+        RecordingStatePackService statePackService() {
+            return new RecordingStatePackService();
+        }
     }
+
+    /** statepack-service as the Studio sees it (MSA): every publication and decision, in order. */
+    static class RecordingStatePackService extends gov.uddp.core.events.StatePackPublisher {
+        final List<String> calls = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        RecordingStatePackService() {
+            super("http://statepack-service.invalid");
+        }
+
+        @Override
+        public JsonNode publish(String maker, java.util.Map<String, String> files) {
+            String manifest = files.get("state.yaml");
+            calls.add("publish " + maker + " " + manifest.lines().filter(l -> l.startsWith("packId:")).findFirst()
+                    .orElseThrow().substring(7).trim().replace("\"", ""));
+            return new ObjectMapper().createObjectNode();
+        }
+
+        @Override
+        public JsonNode approveAndActivate(String packId, String version, String checker) {
+            calls.add("activate " + packId + " " + version + " " + checker);
+            return new ObjectMapper().createObjectNode();
+        }
+
+        @Override
+        public JsonNode reject(String packId, String version, String checker, String reason) {
+            calls.add("reject " + packId + " " + version + " " + checker + " " + reason);
+            return new ObjectMapper().createObjectNode();
+        }
+
+        List<String> about(String packId) {
+            return calls.stream().filter(c -> c.contains(" " + packId)).toList();
+        }
+    }
+
+    @Autowired
+    RecordingStatePackService statePackService;
 
     @DynamicPropertySource
     static void locations(DynamicPropertyRegistry registry) {
@@ -149,6 +190,9 @@ class StatePackApprovalTest {
         assertEquals(1, sql.count("select count(*) from state_pack_document where pack_id = 'approve-pack'"));
         assertEquals("ACTIVE", sql.text("select status from state_pack_lifecycle where pack_id = 'approve-pack'"));
         as(post("/api/studio/approvals/" + approval + "/approve"), APPROVER).andExpect(status().isConflict());
+        assertEquals(List.of("publish eve.engineer approve-pack", "publish eve.engineer approve-pack",
+                "activate approve-pack 1.0.0 sam.admin"), statePackService.about("approve-pack"),
+                "statepack-service records the maker's version and the checker's approval");
 
         assertEquals(1, audits("STUDIO_PUBLISH_SUBMIT", "SUCCESS", "eve.engineer", id));
         assertEquals(1, audits("STUDIO_PUBLISH_SUBMIT", "FAILURE", "eve.engineer", id), "the refused resubmission");
@@ -173,6 +217,8 @@ class StatePackApprovalTest {
         assertEquals("Wrong district codes", rejected.path("approval").path("decisionReason").asText());
         assertEquals(0, sql.count("select count(*) from state_pack_document where pack_id = 'reject-pack'"));
         as(post("/api/studio/drafts/" + id + "/onboard"), ENGINEER).andExpect(status().isConflict());
+        assertEquals("reject reject-pack 1.0.0 sam.admin Wrong district codes",
+                statePackService.about("reject-pack").getLast());
 
         // Editable again, and it can be submitted once more.
         as(put("/api/studio/drafts/" + id + "/details").contentType(MediaType.APPLICATION_JSON)

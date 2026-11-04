@@ -549,6 +549,20 @@ public class StudioService {
         return new GeneratedPack(draft.packId(), version, generate(draft, version));
     }
 
+    private gov.uddp.core.events.StatePackPublisher statePackService;
+
+    /** MSA: with statepack-service every publication and decision is also recorded there, its system of record. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setStatePackService(gov.uddp.core.events.StatePackPublisher statePackService) {
+        this.statePackService = statePackService;
+    }
+
+    private Map<String, String> fileMap(Draft draft, String version) {
+        Map<String, String> files = new java.util.LinkedHashMap<>();
+        generate(draft, version).forEach(file -> files.put(file.path(), file.content()));
+        return files;
+    }
+
     /** Enables auto-approval of routine pack edits (Track C3); without it every publication needs a checker. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setAutoApproval(gov.uddp.core.gates.AutoApprovalPolicy autoApproval) {
@@ -605,6 +619,9 @@ public class StudioService {
         }
         Approval approval = approvals.submit(draft.draftId(), draft.packId(), draft.stateCode(), version, persisted,
                 paths, actor());
+        if (statePackService != null) {
+            statePackService.publish(approval.submittedBy(), fileMap(draft, version));
+        }
         Draft submitted = draft.withApproval(DraftStatus.PENDING_APPROVAL, approval, now());
         workspace.save(submitted);
         log.info("Studio submitted {} {} for approval", draft.packId(), version);
@@ -647,6 +664,10 @@ public class StudioService {
         }
         String approver = requireOtherUser(pending);
         Draft draft = draft(pending.draftId());
+        if (statePackService != null) {
+            statePackService.publish(pending.submittedBy(), fileMap(draft, pending.version()));
+            statePackService.reject(pending.packId(), pending.version(), approver, reason.strip());
+        }
         Approval decided = approvals.decide(approvalId, StatePackApprovalStore.REJECTED, approver, reason.strip());
         DraftStatus previous = draft.published() == null ? DraftStatus.DRAFT
                 : draft.lastRunId() != null ? DraftStatus.ONBOARDED : DraftStatus.PUBLISHED;
@@ -659,6 +680,12 @@ public class StudioService {
     /** Persists, registers and activates an approved (or, without maker-checker, a validated) version. */
     private Draft applyPublication(Draft draft, String version, List<String> paths, LoadedStatePack persisted,
                                    Approval approval) {
+        if (statePackService != null && approval != null) {
+            statePackService.publish(approval.submittedBy(), fileMap(draft, version));
+            statePackService.approveAndActivate(draft.packId(), version, approval.decidedBy());
+        } else if (statePackService != null) {
+            statePackService.publishActive(actor(), fileMap(draft, version));
+        }
         databasePacks.save(draft.displayName(), persisted);
         if (draft.published() != null && !draft.published().version().equals(version)) {
             retire(draft.packId(), draft.published().version());
