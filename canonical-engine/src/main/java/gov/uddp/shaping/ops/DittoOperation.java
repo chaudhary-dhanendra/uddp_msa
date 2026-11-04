@@ -35,7 +35,7 @@ public class DittoOperation implements LayoutOperation, gov.uddp.shaping.admin.W
 
     /** Default tokens from {@code reference-data/shaping/ditto-tokens.yaml}, when that file exists. */
     @org.springframework.beans.factory.annotation.Autowired
-    public DittoOperation(@org.springframework.beans.factory.annotation.Value("${uddp.platform-directory:../platform}")
+    public DittoOperation(@org.springframework.beans.factory.annotation.Value("${uddp.platform-directory:../../platform}")
                           String platformDirectory) {
         this.tokensFile = java.nio.file.Path.of(platformDirectory, "reference-data", "shaping", "ditto-tokens.yaml");
         reloadWordLists();

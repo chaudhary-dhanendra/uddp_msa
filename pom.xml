@@ -4,9 +4,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <!--
-    UDDP microservices build (docs/msa-design.md). common-core is the imported monolith; it keeps its own
-    spring-boot-starter-parent so its build and tests are unchanged, and is only aggregated here. The contracts
-    module and the service modules inherit this POM.
+    UDDP microservices build (docs/msa-design.md): the contracts and messaging modules, the engine modules shared by
+    the services, the six services (api-stewardship-service is the edge for the UI) and the cross-service e2e test.
   -->
   <parent>
     <groupId>org.springframework.boot</groupId>
@@ -26,7 +25,6 @@
     <module>golden-engine</module>
     <module>matching-engine</module>
     <module>studio-engine</module>
-    <module>common-core</module>
     <module>contracts</module>
     <module>messaging</module>
     <module>services/ingestion-service</module>

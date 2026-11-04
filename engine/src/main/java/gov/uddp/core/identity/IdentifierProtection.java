@@ -39,7 +39,7 @@ public class IdentifierProtection {
     }
 
     static Path defaultSeed() {
-        return Path.of(System.getProperty("uddp.platform-directory", "../platform"), "identity", "identifier-types.yaml");
+        return Path.of(System.getProperty("uddp.platform-directory", "../../platform"), "identity", "identifier-types.yaml");
     }
 
     @Autowired(required = false)

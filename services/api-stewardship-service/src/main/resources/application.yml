@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: uddp-common-core
+  servlet:
+    multipart:
+      # The Studio enforces uddp.studio.upload-limit-bytes itself; this only bounds the request.
+      max-file-size: 50MB
+      max-request-size: 50MB
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+server:
+  servlet:
+    session:
+      # Server-side sessions (ADR-0017): idle timeout, and a cookie scripts cannot read.
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+        name: UDDP_SESSION
+uddp:
+  state-pack-directory: ../../state-packs
+  processing:
+    # Rows per canonical-processing chunk (one transaction each); a failed run resumes after its last committed chunk.
+    chunk-size: 5000
+  platform-directory: ../../platform
+  # Tracks A6/D2: model-assisted drafting is off unless enabled with a provider URL and model; the API key is read
+  # from the environment variable named by api-key-env. Only GO text or masked column shapes are ever sent.
+  # Track F: the LGD geography master is loaded only through the LGD adapter (a CSV or JSON snapshot file); empty means
+  # no source. A master older than stale-after-hours is reported stale; the sync schedule is set through the API.
+  geography:
+    lgd:
+      source-file: ""
+      stale-after-hours: 720
+      # Largest snapshot file an administrator may upload on the Geography master page.
+      max-upload-mb: 50
+  ai:
+    enabled: false
+    api-key-env: UDDP_AI_API_KEY
+springdoc:
+  api-docs:
+    # OpenAPI 3.0: nullable values are marked nullable: true (see api/v1/RecordSchemaConverter).
+    version: openapi_3_0
+  default-produces-media-type: application/json
+  writer-with-order-by-keys: true
+  paths-to-match: /api/**, /health
+  swagger-ui:
+    path: /swagger-ui.html
