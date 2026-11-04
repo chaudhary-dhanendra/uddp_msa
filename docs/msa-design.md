@@ -365,6 +365,20 @@ that every baseline Golden ID is unchanged in the incremental run.
 3. **registry-service.** Move survivorship, golden lifecycle, family builder, UDDP ID, benefits, eligibility.
    Build `canonical_observation` and `link_constraint`. Golden build starts from `match-run-completed`; history and
    carry-forward stay exactly as ADR-0001/0006.
+   *As built (Phase 3c, 2026-11-04):* registry-service V2 holds the monolith's end-state Golden tables (generated
+   from a V114 schema, FKs to other services' rows dropped), V3 the projections with the monolith's names
+   (`canonical_resident`, `canonical_resident_version`, `canonical_family_*`, matching tables,
+   `stewardship_link_constraint`/`stewardship_decision`, and the views `canonical_resident_current`,
+   `canonical_family_membership_current`, `stewardship_link_constraint_effective`), `lineage.lineage_event`, and the
+   outbox. The Golden engine is the monolith's own code, reused from its plain jar (the executable jar now has the
+   `exec` classifier) and wired as the application wires it; it moves into the module when canonical and statepack
+   leave the monolith. Canonical processing now also publishes `canonical.family-observed`. Proven from events
+   alone: 5 Golden Residents, 6 Golden Families, UDDP IDs, Ram Singh in one identity, and an unchanged rebuild keeps
+   every Golden ID. **Not switched over yet:** the monolith still builds its own Golden records, because its read
+   APIs, stewardship, scheme eligibility and benefits read the Golden tables in-process; that read side moves with
+   api-stewardship-service (step 5). Also open: stewardship decision events (so registry's link constraints stay
+   empty), identity policy and DMN survivorship rules in registry-service (both optional in the monolith and not
+   wired here), and an automatic build on match-run-completed (builds are commanded).
 4. **canonical + statepack last, together** (per the brief). Split what remains into canonical-service and
    statepack-service; packs are then fetched by digest over HTTP.
 5. **api-stewardship-service.** What is left of the monolith (API controllers, security, onboarding saga,

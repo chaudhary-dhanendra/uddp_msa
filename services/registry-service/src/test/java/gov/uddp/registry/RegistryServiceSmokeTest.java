@@ -32,7 +32,7 @@ class RegistryServiceSmokeTest {
     void migratesOnlyItsOwnSchemas() {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from registry.flyway_schema_history where success and type = 'SQL'", Integer.class);
-        assertThat(applied).isEqualTo(1);
+        assertThat(applied).isEqualTo(3);
 
         var schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata"

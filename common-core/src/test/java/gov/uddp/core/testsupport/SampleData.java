@@ -80,8 +80,10 @@ public final class SampleData {
             StatePackLoader loader, gov.uddp.core.events.PlatformEvents events) {
         var service = processingWithoutFamilies(connections, loader, events);
         var json = new ObjectMapper().findAndRegisterModules();
-        service.setFamilyProcessor(new gov.uddp.core.canonical.CanonicalFamilyProcessor(connections,
-                new gov.uddp.core.mapping.FamilyMappingEngine(new RawCsvRecordParser(json)), json));
+        var families = new gov.uddp.core.canonical.CanonicalFamilyProcessor(connections,
+                new gov.uddp.core.mapping.FamilyMappingEngine(new RawCsvRecordParser(json)), json);
+        families.setEvents(events);
+        service.setFamilyProcessor(families);
         return service;
     }
 

@@ -23,10 +23,18 @@ public class CanonicalFamilyProcessor {
     private final FamilyMappingEngine mapper;
     private final ObjectMapper json;
 
+    private gov.uddp.core.events.PlatformEvents events;
+
     public CanonicalFamilyProcessor(PostgresConnectionFactory connections, FamilyMappingEngine mapper, ObjectMapper json) {
         this.connections = connections;
         this.mapper = mapper;
         this.json = json;
+    }
+
+    /** MSA Phase 2/3: with events enabled, each observation also writes its family-observed event atomically. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEvents(gov.uddp.core.events.PlatformEvents events) {
+        this.events = events;
     }
 
     /** Outcome of observing one raw record. */
@@ -63,6 +71,9 @@ public class CanonicalFamilyProcessor {
                 Map<String, Object> householdIds = householdIdentifiers(c, canonicalResidentId);
                 for (String familyId : mapped.get().sourceFamilyIds()) {
                     insertMembership(c, observation, raw, familyId, mapped.get(), householdIds);
+                }
+                if (events != null) {
+                    events.familyObserved(c, observation);
                 }
                 c.commit();
                 return Outcome.OBSERVED;
