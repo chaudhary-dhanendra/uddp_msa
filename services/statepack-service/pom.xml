@@ -22,6 +22,11 @@
       <artifactId>uddp-messaging</artifactId>
     </dependency>
     <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-studio-engine</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>

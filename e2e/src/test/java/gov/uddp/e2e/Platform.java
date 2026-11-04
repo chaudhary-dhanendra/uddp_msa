@@ -50,7 +50,13 @@ final class Platform implements AutoCloseable {
             }
         }
         statepack = start(gov.uddp.statepack.StatepackServiceApplication.class, "statepack-service", "uddp_platform",
-                "statepack", "classpath:db/statepack", Map.of());
+                "statepack", "classpath:db/statepack", Map.of(
+                        "uddp.studio.repository-root", ROOT.toString(),
+                        "uddp.studio.workspace-directory", work.resolve("statepack-studio").toString(),
+                        "uddp.studio.settings-directory", work.resolve("statepack-settings").toString(),
+                        "uddp.shaping.plugins-dir", work.resolve("plugins").toString(),
+                        "uddp.shaping.approved-plugins-file",
+                        ROOT.resolve("platform/shaping/approved-plugins.yaml").toString()));
         String statepackUrl = "http://127.0.0.1:" + port(statepack);
         ingestion = start(gov.uddp.ingestion.IngestionServiceApplication.class, "ingestion-service", "uddp_raw",
                 "ingestion", "classpath:db/ingestion", Map.of("uddp.ingestion.repository-root", ROOT.toString()),

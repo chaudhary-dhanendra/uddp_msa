@@ -690,6 +690,7 @@ public class StudioService {
 
     /** Records a Studio-started run's end; a COMPLETED run marks the draft ONBOARDED. */
     public synchronized void runFinished(String draftId, String run, String status) {
+        onboarding.recorded(draftId, run, status);
         Draft draft = draft(draftId);
         if (run.equals(draft.lastRunId()) && "COMPLETED".equals(status)) {
             workspace.save(draft.withRun(run, DraftStatus.ONBOARDED, now()));
@@ -698,10 +699,24 @@ public class StudioService {
 
     /** Records a run of the draft's published version started by the edge, where the Studio runs elsewhere (MSA). */
     public synchronized Draft runStarted(String draftId, String run) {
+        onboarding.recorded(draftId, run, "RUNNING");
         Draft draft = draft(draftId);
         Draft running = draft.withRun(run, draft.status(), now());
         workspace.save(running);
         return running;
+    }
+
+    /** The content of the draft's uploaded source file (where the Studio runs elsewhere, the edge onboards a copy). */
+    public byte[] sourceFile(String draftId) {
+        Source source = requireSource(draft(draftId));
+        if (!"file".equals(source.sourceType()) || source.location() == null) {
+            throw new StudioConflictException("The draft's source is not an uploaded file");
+        }
+        try {
+            return Files.readAllBytes(Path.of(source.location()));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public boolean goldenDataExists() {
