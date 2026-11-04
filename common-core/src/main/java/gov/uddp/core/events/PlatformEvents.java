@@ -47,8 +47,16 @@ public class PlatformEvents {
 
     private boolean remoteIdentity;
 
+    private boolean remoteIngestion;
+
     public boolean enabled() {
         return enabled;
+    }
+
+    /** With ingestion-service (MSA Phase 3) Raw events are its events; this service must not republish them. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setRemoteIngestion(@Value("${uddp.ingestion.remote:false}") boolean remoteIngestion) {
+        this.remoteIngestion = remoteIngestion;
     }
 
     /** With identity-service (MSA Phase 3) matching runs are its events; this service must not republish them. */
@@ -59,7 +67,7 @@ public class PlatformEvents {
 
     /** ingestion: one raw-record-received per landed row of the batch, then batch-completed. Idempotent. */
     public void rawBatchLanded(UUID batchId) {
-        if (!enabled) {
+        if (!enabled || remoteIngestion) {
             return;
         }
         try (var c = connections.open()) {

@@ -108,6 +108,38 @@ public class ProcessHopRunner implements HopRunner {
         }
     }
 
+    /** A generic template and its Hop parameters, for a runner that executes Hop elsewhere (ingestion-service). */
+    public record Invocation(String template, Map<String, String> parameters) {
+    }
+
+    /**
+     * The template and parameters {@link #ingest} would run for a file or workbook source, without running Hop. A
+     * database source is refused: its connection is resolved where its credentials live.
+     */
+    public Invocation fileInvocation(SourceDefinition source, String stateCode, String packVersion, UUID batchId)
+            throws java.io.IOException {
+        if (source.database()) {
+            throw new IllegalArgumentException("Database sources are ingested by the local Hop runner only");
+        }
+        boolean excel = "xlsx".equals(source.formatOrDefault());
+        Map<String, String> parameters = new LinkedHashMap<>();
+        if (excel) {
+            parameters.put("FILE", sourceFile(source).toString());
+            parameters.put("SHEETS", sheets(source));
+        } else {
+            Path sourceFile = sourceFile(source);
+            parameters.put("SOURCE_FILE", sourceFile.toString());
+            parameters.put("CSV_HEADER", Files.readAllLines(sourceFile, StandardCharsets.UTF_8).getFirst());
+        }
+        parameters.put("STATE_CODE", stateCode);
+        parameters.put("SOURCE_SYSTEM", source.sourceId());
+        parameters.put("SOURCE_ENTITY", source.sourceId());
+        parameters.put("SOURCE_SCHEMA_VERSION", source.sourceSchemaVersion());
+        parameters.put("STATE_PACK_VERSION", packVersion);
+        parameters.put("BATCH_ID", batchId.toString());
+        return new Invocation(excel ? EXCEL_TEMPLATE : source.hopTemplate(), parameters);
+    }
+
     /** The source file as an absolute path; a relative {@code location} is relative to the repository root. */
     Path sourceFile(SourceDefinition source) {
         return repositoryRoot.resolve(source.location()).toAbsolutePath().normalize();

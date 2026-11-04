@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/cmd.ingestion.ingest-requested.v1.schema.json",
+  "title": "Ingest requested v1: run one generic Hop template with an allow-listed parameter set (ARCHITECTURE.md A)",
+  "type": "object",
+  "required": ["batchId", "sourceSystem", "sourceType", "statePackVersion", "pipelineTemplate", "parameters"],
+  "properties": {
+    "batchId": { "type": "string", "format": "uuid" },
+    "sourceSystem": { "type": "string", "minLength": 1 },
+    "sourceType": { "type": "string", "minLength": 1 },
+    "sourceSchemaVersion": { "type": ["string", "null"] },
+    "statePackVersion": { "type": "string", "minLength": 1 },
+    "pipelineTemplate": {
+      "type": "string",
+      "enum": ["generic-file-ingest.hpl", "generic-excel-ingest.hpl"],
+      "description": "Database sources stay with the local runner until source connectors move to ingestion-service."
+    },
+    "parameters": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["SOURCE_FILE", "CSV_HEADER", "FILE", "SHEETS", "STATE_CODE", "SOURCE_SYSTEM", "SOURCE_ENTITY",
+                 "SOURCE_SCHEMA_VERSION", "STATE_PACK_VERSION", "BATCH_ID"]
+      },
+      "additionalProperties": { "type": ["string", "null"] }
+    }
+  }
+}

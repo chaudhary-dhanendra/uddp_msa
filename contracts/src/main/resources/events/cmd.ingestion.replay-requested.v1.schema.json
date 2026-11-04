@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/cmd.ingestion.replay-requested.v1.schema.json",
+  "title": "Replay requested v1: re-publish a batch's immutable Raw records for processing with a chosen pack version",
+  "type": "object",
+  "required": ["batchId", "replayRunId", "statePackVersion"],
+  "properties": {
+    "batchId": { "type": "string", "format": "uuid" },
+    "replayRunId": { "type": "string", "format": "uuid" },
+    "statePackVersion": { "type": "string", "minLength": 1 }
+  }
+}

@@ -352,6 +352,16 @@ that every baseline Golden ID is unchanged in the incremental run.
 2. **ingestion-service.** Move Hop runner, connectors, schedules, delivery change detection and Raw tables. Point
    Hop's logical connection at `uddp_raw`. canonical consumes `raw-record-received` instead of reading
    `raw_record`; `RawRecordRepository` becomes an in-memory view of the received batch.
+   *As built (Phase 3b, 2026-11-04):* ingestion-service V2 owns `ingestion_batch` and an append-only `raw_record`
+   (trigger; only a one-time privacy purge may change a row). The three generic Hop templates take a generic
+   `RAW_SCHEMA` parameter (default `public`, so the monolith and the e2e scripts are unchanged; ingestion-service
+   passes `ingestion`). `Ingestions` runs `cmd.ingestion.ingest-requested` (template + allow-listed parameters,
+   validated by its JSON Schema), publishes raw-record-received per row then batch-completed, and runs
+   `cmd.ingestion.replay-requested` as raw-record-replayed without touching Raw. The monolith, with
+   `uddp.ingestion.remote=true`, uses `RemoteHopRunner` (parameters from `ProcessHopRunner.fileInvocation`) and
+   `RemoteRawProjection` (V114) so canonical processing reads the same raw ids. Still local: database-table sources
+   (their credentials are not sent over Kafka), source connectors, schedules, landing folders and delivery change
+   detection; source files are passed as paths, so both services must see the same filesystem for now.
 3. **registry-service.** Move survivorship, golden lifecycle, family builder, UDDP ID, benefits, eligibility.
    Build `canonical_observation` and `link_constraint`. Golden build starts from `match-run-completed`; history and
    carry-forward stay exactly as ADR-0001/0006.
