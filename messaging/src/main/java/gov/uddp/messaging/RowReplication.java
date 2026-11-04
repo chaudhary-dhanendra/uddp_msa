@@ -1,10 +1,8 @@
-package gov.uddp.core.events;
+package gov.uddp.messaging;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.uddp.messaging.Inbox;
-import gov.uddp.messaging.Outbox;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;

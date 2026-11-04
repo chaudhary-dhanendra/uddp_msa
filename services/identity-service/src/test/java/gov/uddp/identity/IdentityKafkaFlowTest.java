@@ -116,8 +116,11 @@ class IdentityKafkaFlowTest {
             String command = """
                     {"eventId":"%s","eventType":"uddp.cmd.identity.matching-requested","schemaVersion":1,
                      "occurredAt":"2026-11-04T00:00:00Z","producer":"test","partitionKey":"k",
-                     "correlationId":"%s","payload":{"mode":"FULL"}}
-                    """.formatted(UUID.randomUUID(), correlation);
+                     "correlationId":"%s","payload":{"mode":"FULL","settings":{"matching_profile":[
+                       {"profile_id":"%s","name":"resident","version":1,"status":"APPROVED",
+                        "config":{"thresholds":{"autoMatch":0.9}},"created_by":"maker",
+                        "created_at":"2026-11-04T00:00:00Z"}],"identity_policy":[]}}}
+                    """.formatted(UUID.randomUUID(), correlation, UUID.randomUUID());
             producer.send(new ProducerRecord<>(Topics.CMD_MATCHING_REQUESTED, "k", command)).get();
             producer.send(new ProducerRecord<>(Topics.CMD_MATCHING_REQUESTED, "k", command)).get();
 
@@ -128,6 +131,8 @@ class IdentityKafkaFlowTest {
         assertThat(jdbc.queryForObject("select count(*) from candidate_resident", Integer.class)).isEqualTo(7);
         assertThat(jdbc.queryForObject("select count(*) from processed_event", Integer.class)).isEqualTo(9);
         assertThat(RUNS.get()).as("a redelivered command runs matching once").isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from matching_profile where status = 'APPROVED'",
+                Integer.class)).as("the edge's settings were applied before the run").isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from golden_resident_membership where effective_to is null",
                 Integer.class)).isEqualTo(1);
     }

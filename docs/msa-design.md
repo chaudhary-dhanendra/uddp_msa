@@ -419,8 +419,10 @@ Not done yet, in priority order:
    benefit, application, asset, DQ and processing-error rows as `canonical.batch-observed` in ordered chunks of at
    most 500 rows before batch-processed; the edge applies them row for row and the MAPPED stage waits for them, V116).
    registry-service does not consume them yet (scheme eligibility and benefit reads are computed at the edge).
-3. **Matching profiles, labels, training and identity policy** are still managed at the edge and not sent to
-   identity-service, which uses its defaults in remote mode.
+3. ~~Matching profiles and identity policy~~ (done 2026-11-04: every matching-requested command carries the edge's
+   `matching_profile` and `identity_policy` rows, APPROVED ones last, and identity-service applies them row for row
+   before the run, so the Splink adapter uses the approved profile and policy). Profile training, steward labels and
+   threshold proposals still run at the edge against its own read models.
 4. **The common-core module still exists**: canonical-service and registry-service reuse its engines as a library and
    api-stewardship-service is its application. The next step is to move each engine into its service module and drop
    what each service does not use.

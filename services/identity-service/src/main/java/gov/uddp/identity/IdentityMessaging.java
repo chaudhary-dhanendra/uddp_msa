@@ -75,9 +75,33 @@ public class IdentityMessaging implements DisposableBean {
      * on the run's events so the requester can recognise its run.
      */
     private void matchingRequested(JsonNode envelope) {
+        applySettings(envelope.path("payload").path("settings"));
         boolean incremental = "INCREMENTAL".equals(envelope.path("payload").path("mode").asText("FULL"));
         String correlation = envelope.path("correlationId").asText(null);
         runs.run(incremental, correlation == null ? null : UUID.fromString(correlation));
+    }
+
+    /**
+     * The edge's matching profiles and identity policies, replicated row for row (APPROVED ones last) and committed
+     * before the run, because the Python adapter reads them on its own connection.
+     */
+    private void applySettings(JsonNode settings) {
+        if (!settings.isObject()) {
+            return;
+        }
+        try (var c = dataSource.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                gov.uddp.messaging.RowReplication.apply(c, settings, java.util.List.of("matching_profile",
+                        "identity_policy"), Map.of());
+                c.commit();
+            } catch (Exception e) {
+                c.rollback();
+                throw e;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot apply the matching settings", e);
+        }
     }
 
     @Override
