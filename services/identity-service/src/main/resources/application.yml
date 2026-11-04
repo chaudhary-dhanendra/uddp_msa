@@ -13,6 +13,8 @@ spring:
       # Unqualified SQL (and the Python adapter, through PGOPTIONS) resolves to the service's own schema.
       schema: identity
   flyway:
+    # Own location: in one JVM (the e2e test) every service's migrations are on the classpath.
+    locations: classpath:db/identity
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: identity
     default-schema: identity
@@ -33,4 +35,6 @@ uddp:
     # Root of the repository that holds matching/ (the Python adapter) and the default State Pack directory.
     repository-root: ${UDDP_REPOSITORY_ROOT:../..}
     state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:}
+    # When set, each run reads the ACTIVE packs from statepack-service (verified by digest) instead of the directory.
+    statepack-url: ${UDDP_STATEPACK_URL:}
     python: ${UDDP_PYTHON:python}

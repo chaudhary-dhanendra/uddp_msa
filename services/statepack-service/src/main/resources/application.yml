@@ -12,6 +12,8 @@ spring:
     hikari:
       schema: statepack
   flyway:
+    # Own location: in one JVM (the e2e test) every service's migrations are on the classpath.
+    locations: classpath:db/statepack
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: statepack
     default-schema: statepack

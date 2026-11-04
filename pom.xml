@@ -30,6 +30,7 @@
     <module>services/registry-service</module>
     <module>services/statepack-service</module>
     <module>services/api-stewardship-service</module>
+    <module>e2e</module>
   </modules>
 
   <properties>

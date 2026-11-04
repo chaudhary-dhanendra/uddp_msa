@@ -25,15 +25,33 @@ public class PythonSplinkEngine implements MatchingEngine {
     private final Path repositoryRoot;
     private final String statePackDirectory;
     private final String python;
+    private final String statePackUrl;
 
     public PythonSplinkEngine(JdbcConnectionDetails database,
                               @Value("${uddp.identity.repository-root:../..}") String repositoryRoot,
                               @Value("${uddp.identity.state-pack-directory:}") String statePackDirectory,
-                              @Value("${uddp.identity.python:python}") String python) {
+                              @Value("${uddp.identity.python:python}") String python,
+                              @Value("${uddp.identity.statepack-url:}") String statePackUrl) {
         this.database = database;
         this.repositoryRoot = Path.of(repositoryRoot).toAbsolutePath().normalize();
         this.statePackDirectory = statePackDirectory;
         this.python = python;
+        this.statePackUrl = statePackUrl;
+    }
+
+    /**
+     * The directory the adapter reads thresholds from: with statepack-service configured, a fresh directory holding
+     * exactly the ACTIVE pack versions, each verified by digest; otherwise the configured directory.
+     */
+    private String packDirectory() throws java.io.IOException {
+        if (statePackUrl == null || statePackUrl.isBlank()) {
+            return statePackDirectory;
+        }
+        Path dir = java.nio.file.Files.createTempDirectory("uddp-identity-packs-");
+        for (var pack : new gov.uddp.contracts.StatePackClient(statePackUrl).active()) {
+            gov.uddp.contracts.StatePackClient.materialize(pack, dir);
+        }
+        return dir.toString();
     }
 
     @Override
@@ -54,8 +72,9 @@ public class PythonSplinkEngine implements MatchingEngine {
             env.put("UDDP_POSTGRES_USER", database.getUsername());
             env.put("UDDP_POSTGRES_PASSWORD", password == null ? "" : password);
             env.put("PGOPTIONS", "-c search_path=identity");
-            if (!statePackDirectory.isBlank()) {
-                env.put("UDDP_STATE_PACK_DIRECTORY", statePackDirectory);
+            String packs = packDirectory();
+            if (packs != null && !packs.isBlank()) {
+                env.put("UDDP_STATE_PACK_DIRECTORY", packs);
             }
             Process process = builder.start();
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);

@@ -10,6 +10,8 @@ spring:
     username: ${UDDP_STEWARDSHIP_POSTGRES_USER:uddp_stewardship}
     password: ${UDDP_STEWARDSHIP_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
   flyway:
+    # Own location: in one JVM (the e2e test) every service's migrations are on the classpath.
+    locations: classpath:db/stewardship
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: stewardship
     default-schema: stewardship
