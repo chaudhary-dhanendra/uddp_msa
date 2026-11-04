@@ -65,11 +65,42 @@ public class ConnectorService {
         this.stagingDirectory = Path.of(staging);
     }
 
+    private gov.uddp.core.events.IngestionClient remote;
+
+    /** MSA: with ingestion-service owning connectors, every call goes there and no credential stays at the edge. */
+    @Autowired(required = false)
+    public void setRemote(gov.uddp.core.events.IngestionClient remote) {
+        this.remote = remote;
+    }
+
+    private String path(String stateCode, String sourceSystem) {
+        return "api/ingestion/connectors/" + gov.uddp.core.events.IngestionClient.encode(stateCode) + "/"
+                + gov.uddp.core.events.IngestionClient.encode(sourceSystem);
+    }
+
+    private Saved saved(com.fasterxml.jackson.databind.JsonNode node) {
+        return new Saved(node.path("type").asText(), json.convertValue(node.path("config"), STRINGS));
+    }
+
+    private Table table(com.fasterxml.jackson.databind.JsonNode node) {
+        List<String> header = json.convertValue(node.path("header"), new TypeReference<List<String>>() { });
+        List<Map<String, String>> rows = json.convertValue(node.path("rows"),
+                new TypeReference<List<Map<String, String>>>() { });
+        return new Table(header, rows, node.path("totalRows").asLong(rows.size()));
+    }
+
     public List<String> types() {
+        if (remote != null) {
+            return json.convertValue(remote.get("api/ingestion/connectors/types").orElseThrow(),
+                    new TypeReference<List<String>>() { });
+        }
         return byType.keySet().stream().sorted().toList();
     }
 
     public Optional<Saved> find(String stateCode, String sourceSystem) {
+        if (remote != null) {
+            return remote.get(path(stateCode, sourceSystem)).map(this::saved);
+        }
         try (var c = connections.open();
                 var s = c.prepareStatement("select connector_type,config::text from source_connector"
                         + " where state_code=? and source_system=?")) {
@@ -89,6 +120,10 @@ public class ConnectorService {
      */
     public Saved save(String stateCode, String sourceSystem, String type, Map<String, String> settings,
                       Map<String, String> credentials) {
+        if (remote != null) {
+            return saved(remote.put(path(stateCode, sourceSystem), Map.of("type", type, "settings", settings,
+                    "credentials", credentials)));
+        }
         connector(type);
         Map<String, String> values = new LinkedHashMap<>();
         settings.forEach((key, value) -> {
@@ -127,16 +162,28 @@ public class ConnectorService {
     }
 
     public void test(String stateCode, String sourceSystem) {
+        if (remote != null) {
+            remote.post(path(stateCode, sourceSystem) + "/test", Map.of());
+            return;
+        }
         var saved = require(stateCode, sourceSystem);
         connector(saved.type()).test(config(saved));
     }
 
     public Table preview(String stateCode, String sourceSystem, int rows) {
+        if (remote != null) {
+            return table(remote.get(path(stateCode, sourceSystem) + "/preview?rows=" + Math.max(1, Math.min(rows, 200)))
+                    .orElseThrow(() -> new IllegalArgumentException("The source has no connector yet")));
+        }
         var saved = require(stateCode, sourceSystem);
         return connector(saved.type()).preview(config(saved), Math.max(1, Math.min(rows, 200)));
     }
 
     public Profile profile(String stateCode, String sourceSystem) {
+        if (remote != null) {
+            return profiler.profile(table(remote.get(path(stateCode, sourceSystem) + "/preview?rows=1000")
+                    .orElseThrow(() -> new IllegalArgumentException("The source has no connector yet"))));
+        }
         var saved = require(stateCode, sourceSystem);
         return profiler.profile(connector(saved.type()).preview(config(saved), 1000));
     }
@@ -146,6 +193,9 @@ public class ConnectorService {
      * source has no connector (it reads its configured file or database as before).
      */
     public Optional<Staged> stage(String stateCode, SourceDefinition source) {
+        if (remote != null) {
+            return Optional.empty(); // ingestion-service stages its own deliveries
+        }
         var saved = find(stateCode, source.sourceId());
         if (saved.isEmpty()) {
             return Optional.empty();

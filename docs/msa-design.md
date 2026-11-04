@@ -449,8 +449,17 @@ Not done yet, in priority order:
      repository's `metadata/`): `mvn test -pl services/ingestion-service -Dtest=RealHopIngestionTest -Dmsa.hop=true`
      lands the sample file and a database table in the `ingestion` schema (passed on 2026-11-04).
 
-   Still at the edge by design: source connector management screens, schedules and landing-folder watching, Studio,
-   profile training and steward labels. Known pre-existing failures unrelated to the MSA work:
+   - **Source connectors and landing folders moved to ingestion-service (2026-11-04):** connectors (JDBC, SFTP,
+     REST, Excel) are saved, tested, previewed and staged there (`/api/ingestion/connectors/**`, V3
+     `source_connector` and AES-GCM encrypted `connector_secret`); landing folders live under
+     `uddp.ingestion.landing-folders-root` (`/api/ingestion/landing/waiting`). An ingest command with
+     `delivery: auto` lets ingestion-service take the delivery (connector, uploaded file, landing folder, path, in
+     that order) and SOURCE_TESTED runs there (`/api/ingestion/sources/test`). With `uddp.ingestion.url` the edge's
+     ConnectorService and LandingFolder delegate to it and keep no source credential. Schedules stay with the edge's
+     onboarding orchestration: a schedule starts an onboarding run, which the edge drives.
+
+   Still at the edge, to move next: the Studio (to statepack-service) and matching-profile training, steward labels
+   and threshold suggestions (to identity-service). Known pre-existing failures unrelated to the MSA work:
    StudioDatabaseSourceTest and StudioEquivalenceTest (LGD district not resolved; they fail on the untouched import).
 
 ### Phase 4: cross-service portability proof

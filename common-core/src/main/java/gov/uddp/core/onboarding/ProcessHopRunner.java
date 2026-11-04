@@ -141,12 +141,12 @@ public class ProcessHopRunner implements HopRunner {
     }
 
     /** The source file as an absolute path; a relative {@code location} is relative to the repository root. */
-    Path sourceFile(SourceDefinition source) {
+    public Path sourceFile(SourceDefinition source) {
         return repositoryRoot.resolve(source.location()).toAbsolutePath().normalize();
     }
 
     /** The declared sheet names, comma separated, or {@code *} (every sheet) when the source names none. */
-    static String sheets(SourceDefinition source) {
+    public static String sheets(SourceDefinition source) {
         return source.sheets() == null || source.sheets().isEmpty() ? "*" : String.join(",", source.sheets().keySet());
     }
 

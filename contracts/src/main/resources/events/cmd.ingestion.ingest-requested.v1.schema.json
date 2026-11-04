@@ -23,6 +23,12 @@
       "type": ["string", "null"],
       "description": "A database source's connection name, configured (with its credentials) only in ingestion-service."
     },
+    "delivery": {
+      "type": ["string", "null"],
+      "enum": ["auto", null],
+      "description": "auto: ingestion-service takes the delivery from the source's connector, the uploaded file, the source's landing folder or its file path, in that order."
+    },
+    "location": { "type": ["string", "null"], "description": "The source's file or landing-folder location." },
     "table": { "type": ["string", "null"] },
     "query": { "type": ["string", "null"] },
     "parameters": {

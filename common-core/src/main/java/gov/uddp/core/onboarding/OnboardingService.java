@@ -54,6 +54,11 @@ public class OnboardingService {
         this(connections, lifecycle, packs, null, null, null, null);
     }
 
+    /** True when ingestion-service takes deliveries (connectors, landing folders) and tests sources itself. */
+    private boolean remoteDeliveries() {
+        return hop != null && hop.stagesDeliveries();
+    }
+
     /** MSA Phase 2: with events enabled, a completed matching stage publishes its run's events. */
     @Autowired(required = false)
     public void setPlatformEvents(gov.uddp.core.events.PlatformEvents platformEvents) {
@@ -396,6 +401,10 @@ public class OnboardingService {
                 yield StageResult.empty();
             }
             case SOURCE_TESTED -> {
+                if (remoteDeliveries()) {
+                    hop.testSource(source, row.stateCode());
+                    yield StageResult.empty();
+                }
                 if (connectors != null && connectors.find(row.stateCode(), source.sourceId()).isPresent()) {
                     connectors.test(row.stateCode(), source.sourceId());
                     yield StageResult.empty();
@@ -446,9 +455,10 @@ public class OnboardingService {
             throw new IllegalStateException("Cannot create ingestion batch", e);
         }
         try {
-            var staged = connectors == null ? java.util.Optional.<gov.uddp.core.connector.ConnectorService.Staged>empty()
+            var staged = connectors == null || remoteDeliveries()
+                    ? java.util.Optional.<gov.uddp.core.connector.ConnectorService.Staged>empty()
                     : connectors.stage(row.stateCode(), source);
-            if (staged.isEmpty() && landing != null && landing.isLandingFolder(source)) {
+            if (staged.isEmpty() && !remoteDeliveries() && landing != null && landing.isLandingFolder(source)) {
                 var intake = landing.next(source).orElseThrow(
                         () -> new IllegalStateException("No file is waiting in the landing folder " + source.location()));
                 staged = java.util.Optional.of(new gov.uddp.core.connector.ConnectorService.Staged(intake.source(),

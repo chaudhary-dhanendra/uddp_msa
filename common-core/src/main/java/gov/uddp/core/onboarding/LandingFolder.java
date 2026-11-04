@@ -35,8 +35,24 @@ public class LandingFolder {
         this.root = Path.of(root);
     }
 
+    private gov.uddp.core.events.IngestionClient remote;
+
+    /** MSA: with ingestion-service owning landing folders, the folder is looked at there, not on this machine. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setRemote(gov.uddp.core.events.IngestionClient remote) {
+        this.remote = remote;
+    }
+
     public boolean isLandingFolder(SourceDefinition source) {
+        if (remote != null) {
+            return "file".equals(source.sourceType()) && source.location() != null
+                    && remote.get(waitingPath(source)).isPresent();
+        }
         return "file".equals(source.sourceType()) && source.location() != null && Files.isDirectory(folder(source));
+    }
+
+    private static String waitingPath(SourceDefinition source) {
+        return "api/ingestion/landing/waiting?location=" + gov.uddp.core.events.IngestionClient.encode(source.location());
     }
 
     public Path folder(SourceDefinition source) {
@@ -45,6 +61,11 @@ public class LandingFolder {
 
     /** The files waiting in the folder, oldest name first; empty when the folder is missing. */
     public List<Path> waiting(SourceDefinition source) {
+        if (remote != null) {
+            List<Path> names = new java.util.ArrayList<>();
+            remote.get(waitingPath(source)).ifPresent(list -> list.forEach(name -> names.add(Path.of(name.asText()))));
+            return names;
+        }
         Path folder = folder(source);
         if (!Files.isDirectory(folder)) {
             return List.of();
