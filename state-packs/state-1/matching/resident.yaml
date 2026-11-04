@@ -1,0 +1,3 @@
+entity: Resident
+fields: [name, dateOfBirth, gender, mobile, address.districtLGD]
+thresholds: { autoMatch: 0.95, possibleMatch: 0.75 }

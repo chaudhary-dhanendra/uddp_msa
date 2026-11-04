@@ -1,0 +1,4 @@
+beneficiary_nm,dob,sex_cd,dist_cd,ration_no,mobile,card_type,card_status,card_issued_on,monthly_grain_kg,last_lifted_on,last_lifted_kg
+Ram Singh,12-03-1980,M,101,R1001,9876543210,PHH,A,01-04-2015,25,05-10-2026,25
+Sita Singh,14-07-1984,F,101,R1001,9876543211,PHH,A,01-04-2015,25,05-10-2026,25
+Ramesh Kumar,01-01-1975,M,102,R1002,9876543220,AAY,A,15-06-2012,35,07-10-2026,35

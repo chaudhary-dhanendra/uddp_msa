@@ -1,0 +1,7 @@
+sourceId: pension
+sourceType: file
+hopTemplate: generic-file-ingest.hpl
+connectionRef: local-demo-files
+location: sample-data/state-2/pension.csv
+recordIdField: family_ref
+sourceSchemaVersion: 1.0

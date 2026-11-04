@@ -1,0 +1,10 @@
+mappingVersion: 1.0.0
+sourceId: welfare
+entities:
+  Resident:
+    - { sourceField: person, target: name, required: true }
+    - { sourceField: dob, target: dateOfBirth, conversion: date:YYYY-MM-DD }
+    - { sourceField: gender, target: gender, crosswalk: gender }
+    - { sourceField: district, target: address.districtLGD, crosswalk: district }
+    - { sourceField: family, target: extensions.familyReference }
+    - { sourceField: phone, target: mobile }

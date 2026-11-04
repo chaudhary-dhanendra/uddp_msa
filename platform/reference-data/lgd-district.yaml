@@ -1,0 +1,8 @@
+referenceSet: lgd-district
+version: 1.0.0
+description: Minimal MVP LGD district reference values used by the demo State Packs.
+values:
+  - code: '100001'
+    displayName: Patna
+  - code: '100002'
+    displayName: Gaya

@@ -1,0 +1,7 @@
+sourceId: registry
+sourceType: file
+hopTemplate: generic-file-ingest.hpl
+connectionRef: local-demo-files
+location: tests/fixtures/source-files/fx-alpha/registry.csv
+recordIdField: record_no
+sourceSchemaVersion: 1.0

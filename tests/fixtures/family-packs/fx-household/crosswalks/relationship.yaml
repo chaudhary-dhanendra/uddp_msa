@@ -1,0 +1,3 @@
+# Z deliberately maps outside the platform relationship list (a Family processing error, not a Resident one).
+id: relationship
+values: { H: HEAD, W: SPOUSE, S: CHILD, D: CHILD, P: PARENT, Z: COUSIN }

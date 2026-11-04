@@ -1,0 +1,5 @@
+entity: Resident
+rules:
+  - { field: name, required: true, severity: error }
+  - { field: gender, allowedValues: [MALE, FEMALE, UNKNOWN], severity: error }
+  - { field: mobile, required: true, severity: warning }

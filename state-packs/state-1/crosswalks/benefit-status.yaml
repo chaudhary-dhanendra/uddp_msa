@@ -1,0 +1,2 @@
+id: benefit-status
+values: { A: ACTIVE, S: SUSPENDED, C: CLOSED }

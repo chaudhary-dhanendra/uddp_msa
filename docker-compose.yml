@@ -1,0 +1,15 @@
+# All settings come from the UDDP_POSTGRES_* environment variables; there are no defaults.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${UDDP_POSTGRES_DB:?Set UDDP_POSTGRES_DB}
+      POSTGRES_USER: ${UDDP_POSTGRES_USER:?Set UDDP_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${UDDP_POSTGRES_PASSWORD:?Set UDDP_POSTGRES_PASSWORD}
+    ports:
+      - "${UDDP_POSTGRES_PORT:?Set UDDP_POSTGRES_PORT}:5432"
+    volumes:
+      - uddp-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  uddp-postgres-data:

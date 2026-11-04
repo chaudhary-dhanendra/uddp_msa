@@ -1,0 +1,3 @@
+person_name,dob,gender,district,family_id,mobile,blood_group,disability_pct,welfare_scheme,welfare_id,welfare_status,welfare_since,monthly_amount,last_paid_on,last_paid_amount
+Ram Singh,1980-03-12,M,Patna,F9001,9876543210,B+,20,OAP,OAP-9001,ACTIVE,2025-06-01,1200,2026-10-03,1200
+Sunita Devi,1985-05-15,F,Gaya,F9002,9876543222,O+,0,,,,,,,

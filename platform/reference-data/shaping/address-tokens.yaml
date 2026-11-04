@@ -1,0 +1,8 @@
+# Free-text address clean-up for free-address@1.0. Prefixes are leading words dropped from a segment; suffixes are
+# case-insensitive regexes removed wherever they occur.
+prefixes: ["Vill", "Village", "Teh", "Tehsil", "Distt", "District", "PO"]
+suffixes:
+  - "\\(\\s*CT\\s*\\)"
+  - "\\(\\s*MC\\s*\\)"
+  - "\\(\\s*Part\\s*-?\\s*(?:I{1,3}|IV|V|\\d)\\s*\\)"
+  - "(?<![\\p{L}\\p{N}])TR(?![\\p{L}\\p{N}])"

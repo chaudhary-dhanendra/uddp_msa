@@ -1,0 +1,6 @@
+[
+  {"sheet": "section", "row": 1, "cells": ["Name", "Amount"], "carried": {}},
+  {"sheet": "section", "row": 3, "cells": ["Asha Test", "10"], "carried": {"DISTRICT": "District A"}},
+  {"sheet": "section", "row": 4, "cells": ["Ravi Sample", "20"], "carried": {"DISTRICT": "District A"}},
+  {"sheet": "section", "row": 6, "cells": ["Meena Demo", "30"], "carried": {"DISTRICT": "District B"}}
+]

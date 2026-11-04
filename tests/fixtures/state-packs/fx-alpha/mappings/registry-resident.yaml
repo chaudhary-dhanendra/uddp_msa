@@ -1,0 +1,9 @@
+mappingVersion: 1.0.0
+sourceId: registry
+entities:
+  Resident:
+    - { sourceField: full_name, target: name }
+    - { sourceField: birth_date, target: dateOfBirth, conversion: date:DD-MM-YYYY }
+    - { sourceField: sex, target: gender, crosswalk: gender }
+    - { sourceField: district_code, target: address.districtLGD, crosswalk: district }
+    - { sourceField: mobile, target: mobile }

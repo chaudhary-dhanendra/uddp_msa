@@ -1,0 +1,3 @@
+# Test-only dependencies: integration tests start disposable PostgreSQL containers.
+-r requirements.txt
+testcontainers[postgres]>=4.8,<5

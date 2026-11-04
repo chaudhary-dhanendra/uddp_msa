@@ -1,0 +1,11 @@
+packId: fx-beta
+stateCode: FXB
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/welfare.yaml]
+mappings: [mappings/welfare-resident.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

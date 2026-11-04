@@ -1,0 +1,68 @@
+# Platform identifier types (Track E1). Seeded into the identifier_type registry when it is first read; later changes
+# go through the identity admin API (maker-checker). The code treats every type alike: Aadhaar is one entry here.
+#   subject: PERSON | HOUSEHOLD        scope: NATIONAL | ISSUER (the protected key includes the issuer)
+#   trust: STRONG | MEDIUM | WEAK      storage: KEYED_HASH | VAULT_REF | PLAIN
+#   usage: DETERMINISTIC_MATCH, MATCH_EVIDENCE, FAMILY_ANCHOR, DISPLAY_ONLY
+#   normalisation: TRIM, REMOVE_SEPARATORS, UPPERCASE, LOWERCASE, STRIP_LEADING_ZEROS (applied in order)
+#   unique: one value per subject, so two different values never merge
+#   partialOf: the full type this type is a fragment of (last four digits, a masked number)
+#   sensitivePattern + detection: the leak guard rejects canonical text that holds a valid value of this type
+identifierTypes:
+  - code: AADHAAR
+    label: Aadhaar number
+    subject: PERSON
+    scope: NATIONAL
+    trust: STRONG
+    validation: { pattern: "[2-9][0-9]{11}", minLength: 12, maxLength: 12, checksum: VERHOEFF }
+    normalisation: [TRIM, REMOVE_SEPARATORS]
+    storage: KEYED_HASH
+    usage: [DETERMINISTIC_MATCH, MATCH_EVIDENCE]
+    unique: true
+    displayLast4: true
+    sensitivePattern: true
+    detection: "(?<![0-9A-Za-z-])[2-9][0-9]{3}([ -]?)[0-9]{4}\\1[0-9]{4}(?![0-9A-Za-z-])"
+  - code: RATION_CARD
+    label: Ration card number
+    subject: HOUSEHOLD
+    scope: ISSUER
+    trust: MEDIUM
+    validation: { pattern: "[A-Z0-9]{6,20}", minLength: 6, maxLength: 20 }
+    normalisation: [TRIM, REMOVE_SEPARATORS, UPPERCASE]
+    storage: KEYED_HASH
+    usage: [FAMILY_ANCHOR]
+    unique: false
+    displayLast4: true
+    sensitivePattern: false
+  - code: VOTER_ID
+    label: Voter ID (EPIC)
+    subject: PERSON
+    scope: NATIONAL
+    trust: MEDIUM
+    validation: { pattern: "[A-Z]{3}[0-9]{7}", minLength: 10, maxLength: 10 }
+    normalisation: [TRIM, REMOVE_SEPARATORS, UPPERCASE]
+    storage: KEYED_HASH
+    usage: [MATCH_EVIDENCE]
+    unique: true
+    displayLast4: true
+    sensitivePattern: false
+  - code: AADHAAR_LAST4
+    label: Aadhaar last four digits
+    subject: PERSON
+    scope: NATIONAL
+    trust: WEAK
+    validation: { pattern: "[0-9]{4}", minLength: 4, maxLength: 4 }
+    normalisation: [TRIM, REMOVE_SEPARATORS]
+    storage: PLAIN
+    usage: [MATCH_EVIDENCE]
+    unique: false
+    partialOf: AADHAAR
+  - code: MOBILE_MASKED
+    label: Masked mobile number
+    subject: PERSON
+    scope: NATIONAL
+    trust: WEAK
+    validation: { pattern: "[0-9X*]{10}", minLength: 10, maxLength: 10 }
+    normalisation: [TRIM, REMOVE_SEPARATORS, UPPERCASE]
+    storage: PLAIN
+    usage: [MATCH_EVIDENCE]
+    unique: false

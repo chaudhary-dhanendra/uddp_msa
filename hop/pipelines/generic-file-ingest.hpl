@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <capture_transform_performance>N</capture_transform_performance>
+    <transform_performance_capturing_delay>1000</transform_performance_capturing_delay>
+    <transform_performance_capturing_size_limit>100</transform_performance_capturing_size_limit>
+    <pipeline_type>Normal</pipeline_type>
+    <pipeline_status>0</pipeline_status>
+    <parameters>
+      <parameter>
+        <name>SOURCE_FILE</name>
+        <description>raw source</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>CSV_HEADER</name>
+        <description>source CSV header preserved with each raw record</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>STATE_CODE</name>
+        <description>state pack state code</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>SOURCE_SYSTEM</name>
+        <description>source system identifier</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>SOURCE_ENTITY</name>
+        <description>source entity identifier retained in source metadata</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>SOURCE_SCHEMA_VERSION</name>
+        <description>source schema version</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>STATE_PACK_VERSION</name>
+        <description>state pack version</description>
+        <default_value/>
+      </parameter>
+      <parameter>
+        <name>BATCH_ID</name>
+        <description>existing ingestion_batch UUID</description>
+        <default_value/>
+      </parameter>
+    </parameters>
+    <name>generic-file-ingest</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <created_user>-</created_user>
+    <modified_user>-</modified_user>
+    <created_date>2026/10/23 14:43:12.758</created_date>
+    <modified_date>2026/10/23 14:43:12.758</modified_date>
+  </info>
+  <transform>
+    <type>TextFileInput2</type>
+    <name>Raw line input</name>
+    <file_type>CSV</file_type>
+    <compression>None</compression>
+    <separator>|</separator>
+    <enclosure>"</enclosure>
+    <enclosure_breaks>N</enclosure_breaks>
+    <escapechar/>
+    <null_if_not_enclosed>N</null_if_not_enclosed>
+    <header>Y</header>
+    <prependFileName>N</prependFileName>
+    <nr_headerlines>1</nr_headerlines>
+    <footer>N</footer>
+    <nr_footerlines>1</nr_footerlines>
+    <line_wrapped>N</line_wrapped>
+    <nr_wraps>1</nr_wraps>
+    <layout_paged>N</layout_paged>
+    <nr_lines_per_page>80</nr_lines_per_page>
+    <nr_lines_doc_header>0</nr_lines_doc_header>
+    <noempty>N</noempty>
+    <include>N</include>
+    <include_field/>
+    <rownum>Y</rownum>
+    <rownum_field>data_line</rownum_field>
+    <rownumByFile>N</rownumByFile>
+    <format>MIXED</format>
+    <encoding>UTF-8</encoding>
+    <limit>0</limit>
+    <date_format_lenient>Y</date_format_lenient>
+    <date_format_locale>en_US</date_format_locale>
+    <length>Characters</length>
+    <filters/>
+    <error_count_field/>
+    <error_fields_field/>
+    <error_text_field/>
+    <error_line_skipped>N</error_line_skipped>
+    <schema_definition/>
+    <ignore_fields>N</ignore_fields>
+    <shortFileFieldName>short_filename</shortFileFieldName>
+    <extensionFieldName>extension</extensionFieldName>
+    <pathFieldName>path</pathFieldName>
+    <sizeFieldName>size</sizeFieldName>
+    <hiddenFieldName>hidden</hiddenFieldName>
+    <lastModificationTimeFieldName>last_modified</lastModificationTimeFieldName>
+    <uriNameFieldName>uri</uriNameFieldName>
+    <rootUriNameFieldName>root_uri</rootUriNameFieldName>
+    <files>
+      <file>
+        <name>${SOURCE_FILE}</name>
+        <filemask/>
+        <exclude_filemask/>
+        <file_required>Y</file_required>
+        <include_subfolders>N</include_subfolders>
+      </file>
+    </files>
+    <accept_filenames>N</accept_filenames>
+    <accept_transform_name/>
+    <passing_through_fields>N</passing_through_fields>
+    <accept_field/>
+    <add_to_result_filenames>N</add_to_result_filenames>
+    <error_ignored>N</error_ignored>
+    <file_error_field/>
+    <file_error_message_field/>
+    <skip_bad_files>N</skip_bad_files>
+    <bad_line_files_destination_directory/>
+    <bad_line_files_extension>warning</bad_line_files_extension>
+    <error_line_files_destination_directory/>
+    <error_line_files_extension>error</error_line_files_extension>
+    <line_number_files_destination_directory/>
+    <line_number_files_extension>line</line_number_files_extension>
+    <fields>
+      <field>
+        <name>raw_source_line</name>
+        <position>-1</position>
+        <length>-1</length>
+        <type>String</type>
+        <ignore>N</ignore>
+        <format/>
+        <trim_type>none</trim_type>
+        <precision>-1</precision>
+        <currency>$</currency>
+        <decimal>.</decimal>
+        <group>,</group>
+        <repeat>N</repeat>
+        <null_string/>
+        <if_null_value/>
+      </field>
+    </fields>
+    <distribute>Y</distribute>
+    <copies>1</copies>
+    <GUI>
+      <xloc>96</xloc>
+      <yloc>128</yloc>
+    </GUI>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <attributes/>
+  </transform>
+  <transform>
+    <type>ScriptValueMod</type>
+    <name>Source line</name>
+    <description>Numbers each physical line of the file (the header is line 1) and marks blank lines, which are not landed.</description>
+    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <compatible>N</compatible>
+    <optimizationLevel>9</optimizationLevel>
+    <jsScripts>
+      <jsScript>
+        <jsScript_type>0</jsScript_type>
+        <jsScript_name>line</jsScript_name>
+        <jsScript_script><![CDATA[// Blank lines are read (so the count matches the file) but not landed. Nothing is interpreted.
+var source_line = Number(data_line) + 1;
+var keep = (raw_source_line == null || String(raw_source_line).replace(/\s+/g, "") === "") ? "N" : "Y";
+]]></jsScript_script>
+      </jsScript>
+    </jsScripts>
+    <fields>
+      <field><name>source_line</name><rename>source_line</rename><type>Integer</type><length>-1</length><precision>-1</precision><replace>N</replace></field>
+      <field><name>keep</name><rename>keep</rename><type>String</type><length>-1</length><precision>-1</precision><replace>N</replace></field>
+    </fields>
+    <attributes/>
+    <GUI><xloc>96</xloc><yloc>240</yloc></GUI>
+  </transform>
+  <transform>
+    <type>FilterRows</type>
+    <name>Non-blank lines</name>
+    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <send_true_to/><send_false_to/>
+    <compare>
+      <condition>
+        <negated>N</negated>
+        <leftvalue>keep</leftvalue>
+        <function>=</function>
+        <rightvalue/>
+        <value><name>constant</name><type>String</type><text>Y</text><length>-1</length><precision>-1</precision><isnull>N</isnull></value>
+      </condition>
+    </compare>
+    <attributes/>
+    <GUI><xloc>208</xloc><yloc>240</yloc></GUI>
+  </transform>
+  <transform>
+    <type>GetVariable</type>
+    <name>Technical metadata</name>    <description>Adds runtime provenance without interpreting source fields.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <name>batch_id</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${BATCH_ID}</variable>
+      </field>
+      <field>
+        <name>state_code</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${STATE_CODE}</variable>
+      </field>
+      <field>
+        <name>source_system</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${SOURCE_SYSTEM}</variable>
+      </field>
+      <field>
+        <name>state_pack_version</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${STATE_PACK_VERSION}</variable>
+      </field>
+      <field>
+        <name>source_schema_version</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${SOURCE_SCHEMA_VERSION}</variable>
+      </field>
+      <field>
+        <name>pipeline_template</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>generic-file-ingest.hpl</variable>
+      </field>
+      <field>
+        <name>csv_header</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${CSV_HEADER}</variable>
+      </field>
+      <field>
+        <name>source_entity</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <variable>${SOURCE_ENTITY}</variable>
+      </field>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>320</xloc>
+      <yloc>128</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <type>Constant</type>
+    <name>JSON fragments</name>
+    <description>Static JSON punctuation only; source values remain opaque strings.</description>
+    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <fields>
+      <field><name>payload_prefix</name><type>String</type><format/><currency/><decimal/><group/><nullif>{"csvHeader":"</nullif><set_empty_string>N</set_empty_string></field>
+      <field><name>header_line_separator</name><type>String</type><format/><currency/><decimal/><group/><nullif>","rawLine":"</nullif><set_empty_string>N</set_empty_string></field>
+      <field><name>payload_suffix</name><type>String</type><format/><currency/><decimal/><group/><nullif>"}</nullif><set_empty_string>N</set_empty_string></field>
+      <field><name>metadata_prefix</name><type>String</type><format/><currency/><decimal/><group/><nullif>{"sourceEntity":"</nullif><set_empty_string>N</set_empty_string></field>
+      <field><name>metadata_suffix</name><type>String</type><format/><currency/><decimal/><group/><nullif>"}</nullif><set_empty_string>N</set_empty_string></field>
+    </fields>
+    <attributes/>
+    <GUI><xloc>512</xloc><yloc>128</yloc></GUI>
+  </transform>
+  <transform>
+    <type>ConcatFields</type>
+    <name>Build raw payload</name>
+    <description>Builds source-faithful JSON text from the configured header and opaque physical line.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <ConcatFields>
+      <removeSelectedFields>Y</removeSelectedFields>
+      <targetFieldLength>0</targetFieldLength>
+      <targetFieldName>raw_payload</targetFieldName>
+    </ConcatFields>
+    <enclosure/>
+    <separator/>
+    <fields>
+      <field><name>payload_prefix</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>csv_header</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>header_line_separator</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>raw_source_line</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>payload_suffix</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+    </fields>
+    <attributes/>
+    <GUI><xloc>544</xloc><yloc>128</yloc></GUI>
+  </transform>
+  <transform>
+    <type>ConcatFields</type>
+    <name>Build source metadata</name>
+    <description>Builds technical source metadata without source-field interpretation.</description>
+    <distribute>Y</distribute><custom_distribution/><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <ConcatFields><removeSelectedFields>Y</removeSelectedFields><targetFieldLength>0</targetFieldLength><targetFieldName>source_metadata</targetFieldName></ConcatFields>
+    <enclosure/><separator/>
+    <fields>
+      <field><name>metadata_prefix</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>source_entity</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+      <field><name>metadata_suffix</name><type>String</type><format/><currency/><decimal/><group/><length>-1</length><nullif/><precision>-1</precision><trim_type>none</trim_type></field>
+    </fields>
+    <attributes/><GUI><xloc>736</xloc><yloc>128</yloc></GUI>
+  </transform>
+  <transform>
+    <type>TableOutput</type>
+    <name>PostgreSQL raw_record</name>
+    <description>Persists raw source records only.</description>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <commit>1000</commit>
+    <connection>uddp-postgres</connection>
+    <fields>
+      <field><column_name>batch_id</column_name><stream_name>batch_id</stream_name></field>
+      <field><column_name>state_code</column_name><stream_name>state_code</stream_name></field>
+      <field><column_name>source_system</column_name><stream_name>source_system</stream_name></field>
+      <field><column_name>raw_payload</column_name><stream_name>raw_payload</stream_name></field>
+      <field><column_name>source_metadata</column_name><stream_name>source_metadata</stream_name></field>
+      <field><column_name>state_pack_version</column_name><stream_name>state_pack_version</stream_name></field>
+      <field><column_name>source_schema_version</column_name><stream_name>source_schema_version</stream_name></field>
+      <field><column_name>pipeline_template</column_name><stream_name>pipeline_template</stream_name></field>
+      <field><column_name>source_line</column_name><stream_name>source_line</stream_name></field>
+    </fields>
+    <ignore_errors>N</ignore_errors>
+    <partitioning_daily>N</partitioning_daily>
+    <partitioning_enabled>N</partitioning_enabled>
+    <partitioning_monthly>Y</partitioning_monthly>
+    <return_keys>N</return_keys>
+    <specify_fields>Y</specify_fields>
+    <schema>public</schema>
+    <table>raw_record</table>
+    <tablename_in_field>N</tablename_in_field>
+    <tablename_in_table>Y</tablename_in_table>
+    <truncate>N</truncate>
+    <use_batch>Y</use_batch>
+    <attributes/>
+    <GUI><xloc>960</xloc><yloc>128</yloc></GUI>
+  </transform>
+  <order>
+    <hop>
+      <from>Raw line input</from>
+      <to>Source line</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Source line</from>
+      <to>Non-blank lines</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Non-blank lines</from>
+      <to>Technical metadata</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Technical metadata</from>
+      <to>JSON fragments</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>JSON fragments</from>
+      <to>Build raw payload</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Build raw payload</from>
+      <to>Build source metadata</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Build source metadata</from>
+      <to>PostgreSQL raw_record</to>
+      <enabled>Y</enabled>
+    </hop>
+  </order>
+  <notepads/>
+  <attributes/>
+  <transform_error_handling/>
+</pipeline>

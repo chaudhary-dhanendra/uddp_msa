@@ -1,0 +1,11 @@
+packId: fx-household
+stateCode: FXH
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/household-register.yaml]
+mappings: [mappings/household-register.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml, crosswalks/relationship.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

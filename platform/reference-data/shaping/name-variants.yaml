@@ -1,0 +1,4 @@
+# canonical spelling -> spellings folded into it (compared ignoring case and dots)
+variants:
+  MOHAMMED: ["Mohd", "Mohd.", "Mohammed", "Mohammad", "Muhammad", "Md", "Md."]
+  GHULAM: ["Gh", "Gh.", "Ghulam"]

@@ -1,0 +1,3 @@
+# GHOST maps to a scheme the platform catalogue does not have (a Benefit processing error).
+id: scheme
+values: { OAP: OLD-AGE-PENSION, DIS: DISABILITY-PENSION, PDS: PDS-RATION, GHOST: GHOST-SCHEME }

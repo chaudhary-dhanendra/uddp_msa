@@ -1,0 +1,15 @@
+# Onboarding Studio rule defaults (platform metadata, ADR-0015): every new draft starts with these Resident
+# validation rules, matching configuration and survivorship policy; the Rules step can change them per state.
+# `<sourceId>` in survivorship is replaced by the draft's own source. Nothing here names a state.
+version: 1.0.0
+validation:
+  - { field: name, required: true, severity: error }
+  - { field: gender, allowedValues: [MALE, FEMALE, OTHER, UNKNOWN], severity: error }
+  - { id: mobile-pattern, type: PATTERN, field: mobile, pattern: '^[0-9]{10}$', severity: warning }
+  - { id: district-reference, type: REFERENCE_LIST, field: address.districtLGD, referenceSet: lgd-district, severity: warning }
+matching:
+  # One matching run compares residents across states, so every pack must use the same thresholds.
+  fields: [name, dateOfBirth, gender, mobile, address.districtLGD]
+  thresholds: { autoMatch: 0.95, possibleMatch: 0.75 }
+survivorship:
+  fieldPriority: { name: ['<sourceId>'], mobile: ['<sourceId>'], address.districtLGD: ['<sourceId>'] }

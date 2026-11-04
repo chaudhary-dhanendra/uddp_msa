@@ -1,0 +1,13 @@
+# Platform matching settings for Residents (no state names). Blocking applies only to larger runs; small runs compare
+# every pair. Blocking is always on above minRecords (override: uddp.matching.blocking-threshold / env
+# UDDP_MATCHING_BLOCKING_THRESHOLD). The run prints the estimated candidate pairs. Each rule lists columns that must be equal and non-empty; a rule whose column is absent is skipped.
+blocking:
+  minRecords: 5000
+  rules:
+    - [village_lgd, first_name_phonetic]
+    - [aadhaar_last4, district_lgd]
+    - [mobile]
+# DuckDB limits for the Splink run (omit for DuckDB defaults).
+duckdb:
+  memoryLimit: 8GB
+  threads: 4

@@ -1,0 +1,20 @@
+mappingVersion: 1.0.0
+sourceId: pension
+entities:
+  Resident:
+    - { sourceField: ben_name, target: name, required: true }
+    - { sourceField: birth_dt, target: dateOfBirth, conversion: date:YYYYMMDD }
+    - { sourceField: gender, target: gender, crosswalk: gender }
+    - { sourceField: district_name, target: address.districtLGD, crosswalk: district }
+    - { sourceField: family_ref, target: extensions.familyReference }
+    - { sourceField: phone, target: mobile }
+  Family:
+    - { sourceField: family_ref, target: "sourceFamilyIds[]" }
+  Benefit:
+    - { sourceField: pension_type, target: schemeCode, crosswalk: scheme }
+    - { sourceField: pension_order_no, target: sourceBenefitId }
+    - { sourceField: pension_status, target: status, crosswalk: benefit-status }
+    - { sourceField: sanctioned_on, target: startDate, conversion: date:YYYYMMDD }
+    - { sourceField: monthly_amount, target: entitlement.amount }
+    - { sourceField: last_paid_on, target: disbursement.date, conversion: date:YYYYMMDD }
+    - { sourceField: last_paid_amount, target: disbursement.amount }

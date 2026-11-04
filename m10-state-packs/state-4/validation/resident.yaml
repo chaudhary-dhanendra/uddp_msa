@@ -1,0 +1,5 @@
+entity: Resident
+rules:
+  - { field: name, required: true, severity: error }
+  - { id: mobile-pattern, type: PATTERN, field: mobile, pattern: '^[0-9]{10}$', severity: error }
+  - { id: district-reference, type: REFERENCE_LIST, field: address.districtLGD, referenceSet: lgd-district, severity: error }

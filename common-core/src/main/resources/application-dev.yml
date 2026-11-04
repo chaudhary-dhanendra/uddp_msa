@@ -1,0 +1,3 @@
+# Local development (the Vite dev server and scripts/run-demo): localhost only, CORS for the dev server.
+server:
+  address: 127.0.0.1

@@ -1,0 +1,5 @@
+[
+  {"stateCode": "FXA", "sourceSystem": "registry", "resident": {"name": "Meera Joshi", "dateOfBirth": "1990-06-21", "gender": "FEMALE", "mobile": "9300000001", "address": {"districtLGD": "100001"}}},
+  {"stateCode": "FXB", "sourceSystem": "welfare", "resident": {"name": "Meera Joshi", "dateOfBirth": "1990-06-21", "gender": "FEMALE", "mobile": "9300000002", "address": {"districtLGD": "100002"}}},
+  {"stateCode": "FXB", "sourceSystem": "welfare", "resident": {"name": "Arjun Mehta", "dateOfBirth": "1970-01-09", "gender": "MALE", "mobile": "9300000003", "address": {"districtLGD": "100003"}}}
+]

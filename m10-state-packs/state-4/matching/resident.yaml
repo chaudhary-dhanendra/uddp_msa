@@ -1,0 +1,2 @@
+entity: Resident
+thresholds: { autoMatch: 0.95, possibleMatch: 0.75 }

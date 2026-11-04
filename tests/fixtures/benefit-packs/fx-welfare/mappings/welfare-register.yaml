@@ -1,0 +1,20 @@
+# M15 Benefit fixture: a multi-scheme welfare register; one benefit per row, with deliberate Benefit errors.
+mappingVersion: 1.0.0
+sourceId: welfare-register
+entities:
+  Resident:
+    - { sourceField: member_name, target: name, required: true }
+    - { sourceField: birth_date, target: dateOfBirth, conversion: date:DD-MM-YYYY }
+    - { sourceField: sex, target: gender, crosswalk: gender }
+    - { sourceField: district_code, target: address.districtLGD, crosswalk: district }
+  Family:
+    - { sourceField: household_no, target: "sourceFamilyIds[]" }
+  Benefit:
+    - { sourceField: scheme_cd, target: schemeCode, crosswalk: scheme }
+    - { sourceField: benefit_no, target: sourceBenefitId }
+    - { sourceField: household_no, target: sourceFamilyId }
+    - { sourceField: status_cd, target: status, crosswalk: benefit-status }
+    - { sourceField: amount, target: entitlement.amount }
+    - { sourceField: paid_on, target: disbursement.date, conversion: date:DD-MM-YYYY }
+    - { sourceField: amount, target: disbursement.amount }
+    - { sourceField: paid_ref, target: disbursement.reference }

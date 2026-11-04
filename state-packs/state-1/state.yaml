@@ -1,0 +1,12 @@
+packId: state-1
+stateCode: ST1
+departmentCode: DEPT-1
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/pds.yaml]
+mappings: [mappings/pds-resident.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml, crosswalks/scheme.yaml, crosswalks/benefit-status.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]
