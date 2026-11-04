@@ -135,9 +135,9 @@ class StudioEquivalenceTest {
         assertEquals(0, json.readTree(get("/api/state-packs")).size(), "no pack is loaded before the Studio publishes");
         StringBuilder report = new StringBuilder("# Studio-generated packs compared with the hand-written packs\n\n");
 
-        onboard("state-1", "ST1", "State 1", "sample-data/state-1/pds.csv", report);
-        onboard("state-2", "ST2", "State 2", "sample-data/state-2/pension.csv", report);
-        onboard("state-3", "ST3", "State 3", "sample-data/state-3/beneficiaries.csv", report);
+        onboard("state-1", "ST1", "State 1", "services/ingestion-service/seed/sample-data/state-1/pds.csv", report);
+        onboard("state-2", "ST2", "State 2", "services/ingestion-service/seed/sample-data/state-2/pension.csv", report);
+        onboard("state-3", "ST3", "State 3", "services/ingestion-service/seed/sample-data/state-3/beneficiaries.csv", report);
 
         Map<String, Integer> afterThree = counts();
         report.append("## Counts after States 1-3\n\n").append(afterThree).append("\n\n");
@@ -149,7 +149,7 @@ class StudioEquivalenceTest {
         assertEquals(5, afterThree.get("benefits"));
         String ramBefore = ramGoldenId();
 
-        onboard("state-4", "ST4", "State 4", "sample-data/state-4/citizen-register.csv", report);
+        onboard("state-4", "ST4", "State 4", "services/ingestion-service/seed/sample-data/state-4/citizen-register.csv", report);
 
         Map<String, Integer> afterFour = counts();
         report.append("## Counts after State 4 (incremental)\n\n").append(afterFour).append("\n\n");
@@ -245,8 +245,8 @@ class StudioEquivalenceTest {
     }
 
     private static Path reference(String packId) {
-        Path hand = SampleData.REPOSITORY_ROOT.resolve("state-packs").resolve(packId);
-        return Files.isDirectory(hand) ? hand : SampleData.REPOSITORY_ROOT.resolve("m10-state-packs").resolve(packId);
+        Path hand = SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/state-packs").resolve(packId);
+        return Files.isDirectory(hand) ? hand : SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs").resolve(packId);
     }
 
     private JsonNode waitFor(String run) throws Exception {

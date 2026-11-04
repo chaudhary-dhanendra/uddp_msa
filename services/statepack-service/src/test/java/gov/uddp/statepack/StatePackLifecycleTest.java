@@ -52,7 +52,7 @@ class StatePackLifecycleTest {
 
     @Test
     void publishApproveActivateServeAndRetireByDigest() throws Exception {
-        Map<String, String> files = packFiles(Path.of("../../state-packs/state-2"));
+        Map<String, String> files = packFiles(Path.of("../../services/statepack-service/seed/state-packs/state-2"));
         var published = http.postForEntity("/api/statepacks", Map.of("maker", "asha", "files", files), Map.class);
         assertThat(published.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(published.getBody().get("status")).isEqualTo("PENDING_APPROVAL");

@@ -34,5 +34,5 @@ uddp:
     # Platform survivorship policy (platform/survivorship/resident.yaml) and State Packs, until statepack-service
     # serves them by version and digest.
     platform-directory: ${UDDP_PLATFORM_DIRECTORY:../../platform}
-    state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:../../state-packs}
+    state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:../../services/statepack-service/seed/state-packs}
     build-wait: PT10M

@@ -25,7 +25,7 @@ class OnboardingPersistenceTest {
 
     @Test
     void fullRunPersistsEveryStageInOrderWithCountsTimestampsAndIdentifiers() {
-        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate(PACK, VERSION);
+        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate(PACK, VERSION);
         UUID run = harness.onboarding.start(PACK, VERSION, SOURCE);
         var stages = OnboardingStage.values();
 

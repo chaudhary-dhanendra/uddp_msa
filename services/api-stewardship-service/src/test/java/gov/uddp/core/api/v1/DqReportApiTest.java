@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
  * DQ report endpoints over the bad-data fixture pack fx-alpha (one error-severity allowedValues finding, one
  * warning-severity mobile finding; see BadDataFixtureTest), served through its own context and database.
  */
-@SpringBootTest(properties = "uddp.state-pack-directory=../../tests/fixtures/state-packs")
+@SpringBootTest(properties = "uddp.state-pack-directory=../../services/api-stewardship-service/src/test/fixtures/state-packs")
 @AutoConfigureMockMvc
 class DqReportApiTest {
     @TestConfiguration

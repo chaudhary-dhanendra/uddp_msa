@@ -1,11 +1,13 @@
 # UDDP microservices infrastructure (docs/msa-design.md).
 #
 #   docker compose up -d kafka kafka-init   Kafka for the services (single KRaft broker, dev only) and its topics
-#   docker compose up -d postgres           the monolith's throwaway Postgres for the e2e scripts (profile "postgres")
+#   docker compose --profile postgres up -d postgres
+#                                           a PostgreSQL with the four service databases, roles and schemas
+#                                           (deploy/postgres, run on its first start; profile "postgres")
 #
-# The four service databases (uddp_raw, uddp_identity, uddp_registry, uddp_platform) live in the developer's local
-# PostgreSQL; run scripts/msa-db-setup.ps1 once to create the service roles and schemas. All Postgres settings come
-# from the UDDP_POSTGRES_* environment variables; there are no defaults and no credentials in this file.
+# With an existing PostgreSQL instead, run the two deploy/postgres/*.sql files once with psql as a superuser. All
+# Postgres settings come from the UDDP_POSTGRES_* environment variables (the service roles' password from
+# UDDP_MSA_SERVICE_PASSWORD, else UDDP_POSTGRES_PASSWORD); there are no defaults and no credentials in this file.
 services:
   kafka:
     image: apache/kafka:3.9.1
@@ -22,7 +24,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      # Topics are created explicitly (scripts/msa-kafka-topics.sh), never by a typo in a producer.
+      # Topics are created explicitly (deploy/kafka/create-topics.sh), never by a typo in a producer.
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_MESSAGE_MAX_BYTES: 2097152
@@ -42,8 +44,8 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./scripts/msa-kafka-topics.sh:/msa-kafka-topics.sh:ro
-    entrypoint: ["/bin/bash", "/msa-kafka-topics.sh", "kafka:29092"]
+      - ./deploy/kafka/create-topics.sh:/create-topics.sh:ro
+    entrypoint: ["/bin/bash", "/create-topics.sh", "kafka:29092"]
     restart: "no"
 
   postgres:
@@ -53,10 +55,12 @@ services:
       POSTGRES_DB: ${UDDP_POSTGRES_DB:?Set UDDP_POSTGRES_DB}
       POSTGRES_USER: ${UDDP_POSTGRES_USER:?Set UDDP_POSTGRES_USER}
       POSTGRES_PASSWORD: ${UDDP_POSTGRES_PASSWORD:?Set UDDP_POSTGRES_PASSWORD}
+      UDDP_MSA_SERVICE_PASSWORD: ${UDDP_MSA_SERVICE_PASSWORD:-${UDDP_POSTGRES_PASSWORD}}
     ports:
       - "${UDDP_POSTGRES_PORT:?Set UDDP_POSTGRES_PORT}:5432"
     volumes:
       - uddp-postgres-data:/var/lib/postgresql/data
+      - ./deploy/postgres:/docker-entrypoint-initdb.d:ro
 
 volumes:
   uddp-kafka-data:

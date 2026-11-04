@@ -201,7 +201,7 @@ class OnboardingFailureResumeTest {
     }
 
     private static OnboardingHarness harness() {
-        return new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate(PACK, VERSION);
+        return new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate(PACK, VERSION);
     }
 
     /** Runs PACK_VALIDATED..DQ_CHECKED, then fails MATCHED through the generic matching-boundary hook. */

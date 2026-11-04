@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.ResultActions;
  * Part 3: the onboarding REST contract through the full Spring stack against a disposable database. Only the Hop
  * and Python process boundaries are replaced (by what they write); the service, lifecycle and persistence are real.
  */
-@SpringBootTest(properties = "uddp.state-pack-directory=../../m10-state-packs")
+@SpringBootTest(properties = "uddp.state-pack-directory=../../services/statepack-service/seed/m10-state-packs")
 @AutoConfigureMockMvc
 class OnboardingControllerTest {
     private static final String START = "{\"packId\":\"state-4\",\"version\":\"1.0.0\",\"sourceSystem\":\"citizen-register\"%s}";

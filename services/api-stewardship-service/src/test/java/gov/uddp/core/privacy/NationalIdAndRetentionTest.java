@@ -35,7 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NationalIdAndRetentionTest {
-    private static final Path PACKS = SampleData.REPOSITORY_ROOT.resolve("tests/fixtures/national-id-packs");
+    private static final Path PACKS = SampleData.REPOSITORY_ROOT.resolve("services/api-stewardship-service/src/test/fixtures/national-id-packs");
     private static final String KEY = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
 

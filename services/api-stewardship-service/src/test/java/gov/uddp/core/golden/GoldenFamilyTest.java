@@ -149,7 +149,7 @@ class GoldenFamilyTest {
     @Test
     void stateFourHouseholdsAreOnboardedByConfigurationAlone() throws Exception {
         Path packs = Redelivery.copyPacks(Files.createDirectories(work.resolve("packs")),
-                SampleData.STATE_PACKS, SampleData.REPOSITORY_ROOT.resolve("m10-state-packs"));
+                SampleData.STATE_PACKS, SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs"));
         var harness = new OnboardingHarness(packs);
         var sql = new Sql(harness.connections);
         var processing = SampleData.processing(harness.connections, harness.packs);

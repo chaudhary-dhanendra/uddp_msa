@@ -207,8 +207,9 @@ class M10PortabilityGuardTest {
     /** Pack IDs, state codes and their compact forms (state-4 -> state4) from every State Pack directory. */
     private static Set<String> configuredStateNames() throws IOException {
         Set<String> names = new LinkedHashSet<>();
-        for (String directory : List.of("state-packs", "m10-state-packs", "studio-packs", "tests/fixtures/state-packs",
-                "tests/fixtures/family-packs", "tests/fixtures/benefit-packs")) {
+        for (String directory : List.of("services/statepack-service/seed/state-packs",
+                "services/statepack-service/seed/m10-state-packs", "studio-packs", "services/api-stewardship-service/src/test/fixtures/state-packs",
+                "services/api-stewardship-service/src/test/fixtures/family-packs", "services/api-stewardship-service/src/test/fixtures/benefit-packs")) {
             Path packs = ROOT.resolve(directory);
             if (!Files.isDirectory(packs)) {
                 continue;

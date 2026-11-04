@@ -50,8 +50,8 @@ class ShapingEngineXlsxTest {
 
     private LoadedStatePack pack() {
         StatePackProperties properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
-        LoadedStatePack pack = new StatePackLoader(properties).load(Path.of("../../state-packs/state-1"));
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
+        LoadedStatePack pack = new StatePackLoader(properties).load(Path.of("../../services/statepack-service/seed/state-packs/state-1"));
         SourceDefinition base = pack.sources().getFirst();
         SourceDefinition excel = new SourceDefinition(base.sourceId(), base.sourceType(), base.hopTemplate(),
                 base.connectionRef(), base.location(), base.recordIdField(), base.sourceSchemaVersion(),

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class OnboardingLifecycleTest {
     @Test void lifecycleGatesRunsAndPersistsCompletedPrerequisiteStages() {
         var connections = TestDatabase.freshMigrated();
-        var packs = SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs"));
+        var packs = SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs"));
         var lifecycle = new StatePackLifecycleService(connections, packs);
         var onboarding = new OnboardingService(connections, lifecycle, packs);
         lifecycle.register("state-4");
@@ -29,7 +29,7 @@ class OnboardingLifecycleTest {
 
     @Test void persists_stage_attempts_and_resumes_only_the_failed_stage() {
         var connections = TestDatabase.freshMigrated();
-        var packs = SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs"));
+        var packs = SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs"));
         var lifecycle = new StatePackLifecycleService(connections, packs);
         lifecycle.register("state-4");
         lifecycle.transition("state-4", "1.0.0", "VALIDATED");

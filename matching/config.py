@@ -17,7 +17,7 @@ MODEL_VERSION = "resident-match-v1"
 # 1 for records an incremental run must compare (new or changed), 0 for existing ones.
 NEW_RECORD_COLUMN = "is_new_record"
 STATE_PACK_DIRECTORY_VARIABLE = "UDDP_STATE_PACK_DIRECTORY"
-DEFAULT_STATE_PACK_DIRECTORY = Path(__file__).resolve().parent.parent / "state-packs"
+DEFAULT_STATE_PACK_DIRECTORY = Path(__file__).resolve().parent.parent / "services" / "statepack-service" / "seed" / "state-packs"
 
 
 @dataclass(frozen=True)

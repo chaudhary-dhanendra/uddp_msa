@@ -34,7 +34,7 @@ class CanonicalFixtureContractTest {
             }
         }
         Set<String> fixture = new HashSet<>();
-        var file = SampleData.REPOSITORY_ROOT.resolve("tests/fixtures/canonical/sample-residents.json");
+        var file = SampleData.REPOSITORY_ROOT.resolve("services/api-stewardship-service/src/test/fixtures/canonical/sample-residents.json");
         for (JsonNode entry : JSON.readTree(Files.readString(file))) {
             fixture.add(key(entry.get("stateCode").asText(), entry.get("sourceSystem").asText(), entry.get("resident")));
         }

@@ -46,7 +46,7 @@ class QualityGateReleaseTest {
 
     @Test
     void newSourceNeedsAHumanThenRoutineRedeliveriesAutoApproveUntilAGateFails() {
-        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate(PACK, "1.0.0");
+        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate(PACK, "1.0.0");
         var sql = new Sql(harness.connections);
         var audit = new AuditService(harness.connections, new ObjectMapper());
         harness.onboarding.setDeliveryChanges(new DeliveryChangeService(harness.connections,

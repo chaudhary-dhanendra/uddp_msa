@@ -80,7 +80,7 @@ final class Platform implements AutoCloseable {
         registry = start(gov.uddp.registry.RegistryServiceApplication.class, "registry-service", "uddp_registry",
                 "registry,lineage", "classpath:db/registry", Map.of(
                         "uddp.registry.platform-directory", ROOT.resolve("platform").toString(),
-                        "uddp.registry.state-pack-directory", ROOT.resolve("state-packs").toString(),
+                        "uddp.registry.state-pack-directory", ROOT.resolve("services/statepack-service/seed/state-packs").toString(),
                         "uddp.registry.build-wait", "PT5M"));
     }
 

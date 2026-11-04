@@ -1,9 +1,0 @@
-sourceId: pds
-sourceType: file
-hopTemplate: generic-file-ingest.hpl
-connectionRef: local-demo-files
-location: sample-data/state-1/pds.csv
-recordIdField: ration_no
-# ration_no is a family number shared by several residents; these fields identify one resident row (M11).
-recordKeyFields: [ration_no, beneficiary_nm]
-sourceSchemaVersion: 1.0

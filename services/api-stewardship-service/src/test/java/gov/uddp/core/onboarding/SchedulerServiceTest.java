@@ -52,7 +52,7 @@ class SchedulerServiceTest {
     private final TestClock clock = new TestClock();
 
     private OnboardingHarness harness() {
-        return new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate(PACK, "1.0.0");
+        return new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate(PACK, "1.0.0");
     }
 
     private SchedulerService scheduler(OnboardingHarness harness) {

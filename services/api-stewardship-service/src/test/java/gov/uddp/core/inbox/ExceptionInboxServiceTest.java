@@ -72,7 +72,7 @@ class ExceptionInboxServiceTest {
 
     @Test
     void platformSourcesReadPausedAndFailedRunsFromTheDatabase() {
-        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate("state-4", "1.0.0");
+        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate("state-4", "1.0.0");
         var sql = new Sql(harness.connections);
         UUID paused = harness.onboarding.start("state-4", "1.0.0", "citizen-register");
         UUID failed = harness.onboarding.start("state-4", "1.0.0", "citizen-register");

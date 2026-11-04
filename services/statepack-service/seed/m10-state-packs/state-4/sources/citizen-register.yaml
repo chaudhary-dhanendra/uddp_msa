@@ -1,0 +1,7 @@
+sourceId: citizen-register
+sourceType: file
+hopTemplate: generic-file-ingest.hpl
+connectionRef: local-demo-files
+location: services/ingestion-service/seed/sample-data/state-4/citizen-register.csv
+recordIdField: household_token
+sourceSchemaVersion: 1.0

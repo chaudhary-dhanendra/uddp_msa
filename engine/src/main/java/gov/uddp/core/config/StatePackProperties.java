@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "uddp")
 public class StatePackProperties {
-    private String statePackDirectory = "../../state-packs";
+    private String statePackDirectory = "../../services/statepack-service/seed/state-packs";
     /** Explicit bootstrap/test-only permission to load YAML packs into the operational registry. */
     private boolean fixtureStatePacksEnabled;
     private String platformDirectory = "../../platform";

@@ -61,8 +61,9 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
   cross-service: `mvn test -pl e2e -Dmsa.e2e=true`; real Hop: `mvn test -pl services/ingestion-service
   -Dtest=RealHopIngestionTest -Dmsa.hop=true`
 - Python tests: `pip install -r matching/requirements-dev.txt && python -m pytest matching` (integration tests need Docker)
-- Databases and roles: `scripts/msa-db-setup.ps1` (`scripts/msa-db-roles.sql`); Kafka: `docker compose up -d kafka`
-  (topics from `scripts/msa-kafka-topics.sh`)
+- Infrastructure: `docker compose up -d kafka kafka-init` (topics from `deploy/kafka/create-topics.sh`);
+  `docker compose --profile postgres up -d postgres` creates the service databases and roles from `deploy/postgres/`
+  (or run those two SQL files with psql against an existing server)
 - Build Golden: `POST /api/golden-residents/build {"matchingRunId": "<uuid>"}` (carries Golden IDs forward;
   history at `GET /api/golden-residents/{id}/history`)
 

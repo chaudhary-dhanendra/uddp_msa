@@ -133,7 +133,7 @@ class CanonicalResidentProcessingServiceTest {
 
     private static StatePackProperties properties() {
         StatePackProperties properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
         properties.setFixtureStatePacksEnabled(true);
         return properties;
     }

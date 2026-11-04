@@ -71,7 +71,7 @@ class RealHopIngestionTest {
 
     @Test
     void theGenericFileTemplateLandsTheSampleFileInTheIngestionSchema() throws Exception {
-        Path csv = ROOT.resolve("sample-data/state-1/pds.csv");
+        Path csv = ROOT.resolve("services/ingestion-service/seed/sample-data/state-1/pds.csv");
         List<String> lines = Files.readAllLines(csv, StandardCharsets.UTF_8);
         UUID batch = UUID.randomUUID();
         ObjectNode request = request(batch, "generic-file-ingest.hpl", "pds");

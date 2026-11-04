@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
  * deletion; and a snapshot that fails validation leaves the active master untouched.
  */
 class LgdMasterImportTest {
-    static final Path FIXTURE = Path.of("../../tests/fixtures/lgd/lgd-snapshot-v1.csv");
+    static final Path FIXTURE = Path.of("../../services/api-stewardship-service/src/test/fixtures/lgd/lgd-snapshot-v1.csv");
 
     private final PostgresConnectionFactory db = TestDatabase.freshMigrated();
     private final LgdImportService imports = new LgdImportService(db, new ObjectMapper());

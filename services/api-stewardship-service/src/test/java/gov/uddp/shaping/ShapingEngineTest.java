@@ -46,8 +46,8 @@ class ShapingEngineTest {
 
     private LoadedStatePack state1() {
         StatePackProperties properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
-        return new StatePackLoader(properties).load(Path.of("../../state-packs/state-1"));
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
+        return new StatePackLoader(properties).load(Path.of("../../services/statepack-service/seed/state-packs/state-1"));
     }
 
     private LoadedStatePack withParse(LoadedStatePack pack, double minConfidence) {

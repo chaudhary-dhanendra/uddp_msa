@@ -57,7 +57,7 @@ class CanonicalServiceFlowTest {
     @Container
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.9.1");
 
-    static final Path PACKS = Path.of("../../state-packs").toAbsolutePath().normalize();
+    static final Path PACKS = Path.of("../../services/statepack-service/seed/state-packs").toAbsolutePath().normalize();
     static HttpServer statepack;
     static final List<String> RESOLVED = new ArrayList<>();
 
