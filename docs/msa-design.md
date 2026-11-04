@@ -488,6 +488,15 @@ Not done yet, in priority order:
      the edge answers only the status and onboarding: "onboard" installs the approved version (digest verified),
      copies the uploaded file to the location the pack names, starts the run and reports its start and end.
 
+   - **common-core dissolved (2026-11-04):** its remaining code (the edge: security, read APIs, stewardship,
+     onboarding orchestration, schedules, the remote adapters) moved into `services/api-stewardship-service`, and
+     the `common-core` folder is gone. The service starts only through `ApiStewardshipServiceApplication`
+     (api-stewardship.yml: every stage remote, both Studios forwarded, service URLs from UDDP_*_URL); the in-process
+     Hop and Python runners are test fixtures now. The edge's tests still run the engines in-process on
+     application.yml alone, as the engines' regression net. Every module sits two levels below the repository root,
+     so relative defaults are `../../`. The monolith's demo and e2e scripts, the Hop project file and empty
+     placeholder folders were removed; the e2e module is the end-to-end proof.
+
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, but the geography master still has to be loaded or
    replicated from canonical-service (until then, previews here resolve no geography). Studio preview connections

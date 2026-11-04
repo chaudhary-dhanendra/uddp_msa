@@ -2,9 +2,10 @@
 
 UDDP is a configuration-driven interoperability platform for onboarding government data sources without creating a new application or state-specific ETL pipeline for each state.
 
-The Common Core is a Java 21/Spring Boot modular monolith. Apache Hop, PostgreSQL, Python/Splink, and the React UI retain their distinct responsibilities.
-
-The Java package root is `gov.uddp.core`. It is one deployable application; its packages express module boundaries rather than separate services.
+This repository is the microservices (MSA) version of UDDP ([docs/msa-design.md](docs/msa-design.md)): six Java 21 /
+Spring Boot services that exchange Kafka events through an outbox and idempotent consumers, each with its own database
+schema, sharing engine modules. Apache Hop, PostgreSQL, Python/Splink and the React UI keep their responsibilities.
+The milestone history below was achieved in the modular monolith this code was imported from.
 
 ## Baseline status
 
@@ -12,14 +13,13 @@ Milestones M1–M11 are complete for the Resident-domain MVP. M8 establishes a r
 
 M10 is complete only as recorded in [docs/milestones/M10_ACCEPTANCE.md](docs/milestones/M10_ACCEPTANCE.md):
 persisted onboarding orchestration (State Pack lifecycle, eight stages with failure/resume, `/api/onboarding`)
-and the State 4 portability proof (`scripts/reset-and-run-m10-e2e.ps1`). See
+and the State 4 portability proof (now `mvn test -pl e2e -Dmsa.e2e=true`). See
 [docs/m10-onboarding.md](docs/m10-onboarding.md).
 
 M11 adds the Golden record lifecycle (see [docs/golden-lifecycle.md](docs/golden-lifecycle.md) and
 [docs/milestones/M11_ACCEPTANCE.md](docs/milestones/M11_ACCEPTANCE.md)): stable Golden IDs carried forward across
 builds, versions with history (`GET /api/golden-residents/{id}/history`), merges and splits with pointers,
-canonical versions per source record, and incremental matching and onboarding
-(`scripts/reset-and-run-incremental-e2e.ps1`). Design decisions are in [docs/decisions/](docs/decisions/).
+canonical versions per source record, and incremental matching and onboarding. Design decisions are in [docs/decisions/](docs/decisions/).
 
 M14 adds the Family domain ([docs/family-domain.md](docs/family-domain.md),
 [docs/milestones/M14_ACCEPTANCE.md](docs/milestones/M14_ACCEPTANCE.md)): households observed from each State Pack's
@@ -35,7 +35,7 @@ M15 adds the Scheme and Benefit domains ([docs/benefit-domain.md](docs/benefit-d
 (`platform/schemes/catalogue.yaml`) that State Packs crosswalk their scheme codes onto, benefits observed from each
 pack's `Benefit:` mapping rules (PDS ration and old age pension in the sample), Resident 360 benefits across
 departments and states (`/api/v1/golden-residents/{id}/benefits`), and duplicate-benefit and
-eligible-but-not-enrolled reports (`/api/v1/reports/...`). The e2e scripts assert them through the read API.
+eligible-but-not-enrolled reports (`/api/v1/reports/...`).
 
 The shaping layer ([docs/decisions/0020-shaping-layer.md](docs/decisions/0020-shaping-layer.md), [docs/shaping-operations.md](docs/shaping-operations.md)) turns messy Excel/CSV rows into tidy records from State Pack `layout`/`parse` steps; unit and Studio tests prove it on synthetic workbooks built in the tests.
 
@@ -52,12 +52,17 @@ The portability proof will run State 1 PDS and State 2 Pension through the same 
 
 ## Layout
 
-- `common-model/` — versioned JSON Schema canonical contracts
-- `state-packs/` — human-readable state configuration and crosswalks
-- `hop/` — future source-type generic templates only
-- `common-core/` — Java 21/Spring Boot modular monolith
-- `sample-data/` — two deliberately different source samples
-- `docs/` — architecture and implementation contracts
+- `services/` — the six services: `ingestion-service` (Hop, connectors, landing folders), `canonical-service`,
+  `identity-service` (Splink matching and the Matching Studio), `registry-service` (Golden records),
+  `statepack-service` (State Pack versions and the Onboarding Studio) and `api-stewardship-service` (the edge for the
+  UI: security, read APIs, stewardship, onboarding orchestration)
+- `engine/`, `canonical-engine/`, `golden-engine/`, `matching-engine/`, `studio-engine/` — engine modules the
+  services share; `contracts/` (event schemas) and `messaging/` (outbox, inbox, Kafka loop)
+- `e2e/` — the cross-service test (`mvn test -pl e2e -Dmsa.e2e=true`)
+- `state-packs/`, `m10-state-packs/` — state configuration; `sample-data/` — the sample source files
+- `platform/` — mapping targets, scheme catalogue, reference data; `common-model/` — JSON Schema contracts
+- `hop/`, `metadata/` — the generic Hop pipelines and Hop metadata; `matching/` — the Python Splink adapter
+- `web/onboarding-ui/` — the React UI; `scripts/` — database roles and Kafka topics; `docs/` — design and ADRs
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md), [MVP_SCOPE.md](MVP_SCOPE.md), and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) before implementation.
 

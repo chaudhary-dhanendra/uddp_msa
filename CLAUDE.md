@@ -39,11 +39,14 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 `ARCHITECTURE.md`, `MVP_SCOPE.md`, `IMPLEMENTATION_PLAN.md` and `docs/` before larger changes.
 
 ## Layout
-- `common-core/` — Java 21 / Spring Boot 3.5 modular monolith, package root `gov.uddp.core`
+- `services/api-stewardship-service/` — the edge (formerly `common-core/`), package root `gov.uddp.core`; the other
+  services are in `services/` and the shared engines in `engine/`, `canonical-engine/`, `golden-engine/`,
+  `matching-engine/`, `studio-engine/` (docs/msa-design.md)
   - `statepack/` loader, `mapping/` engine, `canonical/` persistence, `golden/` survivorship, `api/` controllers
 - `matching/` — Python Splink 4.0.17 adapter (`resident-match-v1`)
   - `scheme/` platform scheme catalogue and declarative eligibility (M15); `read/Benefit*Service` benefit reads and reports
-  - `common-core/src/main/resources/db/migration/` — the one Flyway path, V1–V13 (applied at app startup); V1–V12 are frozen
+  - `services/api-stewardship-service/src/main/resources/db/migration/` — the edge's Flyway path; each service has
+    its own `db/<schema>` location
 - `state-packs/state-{1,2,3}/` — YAML: sources, mappings, crosswalks, validation, matching, survivorship
 - `m10-state-packs/state-4/` — State 4 portability fixture (combined with `state-packs/` only by the M10 e2e)
 - `hop/pipelines/generic-file-ingest.hpl` and `generic-db-ingest.hpl` — the ONLY ingest pipelines (generic)
@@ -54,24 +57,12 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 
 ## Commands
 - Start DB: `docker compose up -d postgres`
-- Java tests: `cd common-core && mvn test` (needs Docker: Postgres proofs use Testcontainers, never your DB)
+- Java tests: `mvn test -pl services/<service>` (needs Docker: Postgres proofs use Testcontainers, never your DB);
+  cross-service: `mvn test -pl e2e -Dmsa.e2e=true`; real Hop: `mvn test -pl services/ingestion-service
+  -Dtest=RealHopIngestionTest -Dmsa.hop=true`
 - Python tests: `pip install -r matching/requirements-dev.txt && python -m pytest matching` (integration tests need Docker)
-- Flyway against the `UDDP_POSTGRES_*` DB: `scripts/db-migrate.ps1 migrate|info|validate`
-  (`baseline-existing` adopts a DB whose V2–V7 were applied by hand; the local dev DB was baselined at 7 on 2026-10-24)
-- End to end on a throwaway DB: `scripts/reset-and-run-e2e.ps1` (or `.sh`; 7 raw/7 canonical/3 AUTO_MATCH/5 golden)
-  and `scripts/reset-and-run-m10-e2e.ps1` (adds State 4: 9/9/6/6, 8 families) and `scripts/reset-and-run-incremental-e2e.ps1`
-  (3-state baseline, then State 4 incrementally: 9/9/6, 8 families, every baseline Golden ID unchanged); the 3-state run
-  also asserts 6 active Golden Families and runs a REST split/merge stewardship smoke on Ram Singh; every run asserts
-  benefits through the read API (5 benefits, Ram Singh's 3 across states, 1 duplicate, 1 eligible not enrolled); needs Docker and `HOP_HOME`
-  (local Hop: `D:	oolspache-hop-2.19.0`, registered as Hop project `uddp-mvp`)
-- `mvn spring-boot:run` PKIX errors: set user `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT` (see `docs/dev-setup.md`)
-- Run matching: `python -m matching.run` (reads the `UDDP_POSTGRES_*` variables); `--incremental` matches only
-  records that are not yet current Golden members
-- Local DB to the current schema and the clean 7 -> 5 demo, with a verified pg_dump into `backups/` first:
-  `scripts/clean-local-golden.ps1`
-- Demo: `scripts/run-demo.ps1` (backend 8081 in setup mode, UI 4173; `-Stop`); rehearsal with real Hop/Splink and
-  screenshots: `scripts/run-studio-acceptance.ps1`; `/api/onboarding` with real Hop/Splink:
-  `scripts/reset-and-run-onboarding-api-e2e.ps1`
+- Databases and roles: `scripts/msa-db-setup.ps1` (`scripts/msa-db-roles.sql`); Kafka: `docker compose up -d kafka`
+  (topics from `scripts/msa-kafka-topics.sh`)
 - Build Golden: `POST /api/golden-residents/build {"matchingRunId": "<uuid>"}` (carries Golden IDs forward;
   history at `GET /api/golden-residents/{id}/history`)
 
@@ -123,7 +114,7 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 - Incremental matching does not re-score existing pairs; a model change needs a FULL run. A name correction in a
   source keyed by name (state-1 `recordKeyFields`) appears as a new source record. Pre-V10 state-1 canonicals were
   backfilled with the default key, so re-ingesting state-1 into a migrated DB creates new source records.
-- `database/seed/` is empty. Older M12 views in `web/onboarding-ui/src/features/simple` still use untyped `any`.
+- Older M12 views in `web/onboarding-ui/src/features/simple` still use untyped `any`.
 - Onboarding (`docs/m10-onboarding.md`) is synchronous and in-process. A stage left RUNNING by a crashed
   process blocks its run (no recovery yet); resume retries only the failed stage. The API path with the real
   `ProcessHopRunner`/`PythonMatchingRunner` is not covered by automated tests (the e2e scripts call Hop and

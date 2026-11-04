@@ -77,3 +77,4 @@
 - 2026-11-04 MSA: Matching Studio moved to identity-service; the edge keeps permission checks, audit and masking and forwards by an aspect around its unchanged controller, so the UI contract and the security tests stay as they were.
 - 2026-11-04 MSA: statepack-service is the State Pack system of record; the Studio records maker and checker there and the edge installs activated versions from pack-activated events (digest verified), instead of the edge's own table being the only copy.
 - 2026-11-04 MSA: the Studio is hosted by statepack-service behind two ports; the edge forwards StudioService operations (not its controller), so permission checks, state scope and audit stay at the edge unchanged, and onboarding stays with the edge's orchestration.
+- 2026-11-04 MSA: common-core dissolved into api-stewardship-service; production starts remote-only, the in-process Hop/Python runners became test fixtures, and the engines run in-process only in the edge's tests.

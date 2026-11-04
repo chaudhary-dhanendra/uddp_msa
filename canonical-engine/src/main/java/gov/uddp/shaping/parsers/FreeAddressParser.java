@@ -75,7 +75,7 @@ public class FreeAddressParser implements FieldParser, gov.uddp.shaping.admin.Wo
 
     @Autowired
     public FreeAddressParser(GeographyService geography,
-                             @Value("${uddp.platform-directory:../platform}") String platformDirectory) {
+                             @Value("${uddp.platform-directory:../../platform}") String platformDirectory) {
         this(geography, Path.of(platformDirectory));
     }
 

@@ -12,7 +12,7 @@ import psycopg
 import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
-MIGRATIONS = REPOSITORY_ROOT / "common-core" / "src" / "main" / "resources" / "db" / "migration"
+MIGRATIONS = REPOSITORY_ROOT / "services" / "api-stewardship-service" / "src" / "main" / "resources" / "db" / "migration"
 FIXTURES = REPOSITORY_ROOT / "tests" / "fixtures"
 CONNECTION_VARIABLES = ("UDDP_POSTGRES_URL", "UDDP_POSTGRES_HOST", "UDDP_POSTGRES_PORT", "UDDP_POSTGRES_DB",
                         "UDDP_POSTGRES_USER", "UDDP_POSTGRES_PASSWORD")

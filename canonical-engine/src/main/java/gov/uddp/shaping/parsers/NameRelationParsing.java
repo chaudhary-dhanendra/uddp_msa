@@ -49,7 +49,7 @@ public class NameRelationParsing implements gov.uddp.shaping.admin.WordListConsu
     private volatile Map<String, String> variants = Map.of();
 
     @org.springframework.beans.factory.annotation.Autowired
-    public NameRelationParsing(@Value("${uddp.platform-directory:../platform}") String platformDirectory) {
+    public NameRelationParsing(@Value("${uddp.platform-directory:../../platform}") String platformDirectory) {
         this(Path.of(platformDirectory));
     }
 

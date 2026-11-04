@@ -1,4 +1,4 @@
-# api-stewardship-service on top of the monolith's application.yml (docs/msa-design.md, section 10, step 5).
+# api-stewardship-service's production settings on top of application.yml (docs/msa-design.md, section 10, step 5).
 # Database: UDDP_POSTGRES_URL=jdbc:postgresql://<host>:<port>/uddp_platform?currentSchema=stewardship with the
 # uddp_stewardship role (scripts/msa-db-setup.ps1); the monolith's StartupMigration migrates that schema. Its tables
 # for Raw, canonical, matching and Golden data are read models filled from events; it owns stewardship, onboarding,
@@ -9,7 +9,6 @@ spring:
 server:
   port: 8106
 uddp:
-  # The monolith resolves these from common-core/; this service runs from services/api-stewardship-service/.
   repository-root: ${UDDP_REPOSITORY_ROOT:../..}
   platform-directory: ${UDDP_PLATFORM_DIRECTORY:../../platform}
   state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:../../state-packs}
@@ -17,11 +16,19 @@ uddp:
     enabled: true
     kafka:
       bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  # Every stage runs in its service: commands and events on Kafka, and the calls the edge makes directly (uploads,
+  # connectors and landing folders; the Matching Studio; State Pack versions and the Onboarding Studio).
   ingestion:
     remote: true
+    url: ${UDDP_INGESTION_URL:http://127.0.0.1:8101}
   canonical:
     remote: true
   identity:
     remote: true
+    url: ${UDDP_IDENTITY_URL:http://127.0.0.1:8103}
   registry:
+    remote: true
+  statepack:
+    url: ${UDDP_STATEPACK_URL:http://127.0.0.1:8105}
+  studio:
     remote: true

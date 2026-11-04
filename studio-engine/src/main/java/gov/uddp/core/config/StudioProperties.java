@@ -7,9 +7,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "uddp.studio")
 public class StudioProperties {
     /** Where published Studio packs are written; demo mode points uddp.state-pack-directory here too. */
-    private String packsDirectory = "../studio-packs";
+    private String packsDirectory = "../../studio-packs";
     /** Drafts and uploaded source files (the landing folder). */
-    private String workspaceDirectory = "../studio-workspace";
+    private String workspaceDirectory = "../../studio-workspace";
     private long uploadLimitBytes = 10L * 1024 * 1024;
     /** Git ref the portability evidence compares platform code against. */
     private String baselineRef = "master";

@@ -49,7 +49,7 @@ public final class NationalIdLeakGuard {
     public static NationalIdLeakGuard platform() {
         var guard = platform;
         if (guard == null) {
-            Path seed = Path.of(System.getProperty("uddp.platform-directory", "../platform"), "identity",
+            Path seed = Path.of(System.getProperty("uddp.platform-directory", "../../platform"), "identity",
                     "identifier-types.yaml");
             guard = new NationalIdLeakGuard(IdentifierTypeRegistry.fromSeed(seed));
             platform = guard;

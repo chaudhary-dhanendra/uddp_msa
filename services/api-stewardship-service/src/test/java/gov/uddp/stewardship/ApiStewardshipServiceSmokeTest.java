@@ -18,8 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 
 /**
- * The edge starts as the monolith's application with api-stewardship.yml: every pipeline stage boundary is the remote
- * one (ingestion, canonical processing, matching and Golden builds are other services'), and it answers health.
+ * The edge starts only with api-stewardship.yml: every pipeline stage boundary is the remote
+ * one (ingestion, canonical processing, matching and Golden builds are other services', as are the Matching
+ * and Onboarding Studios), and it answers health.
  * Started without database settings, it comes up in setup mode, as the monolith does.
  */
 class ApiStewardshipServiceSmokeTest {
@@ -34,6 +35,9 @@ class ApiStewardshipServiceSmokeTest {
             assertThat(context.getBean(CanonicalBatchProcessor.class)).isInstanceOf(RemoteCanonicalProcessor.class);
             assertThat(context.getBean(MatchingRunner.class)).isInstanceOf(RemoteMatchingRunner.class);
             assertThat(context.getBean(GoldenBuildRunner.class)).isInstanceOf(RemoteGoldenBuilder.class);
+            // Both Studios run in their services; the edge forwards after its own checks.
+            assertThat(context.getBeansOfType(gov.uddp.core.events.RemoteStudioService.class)).hasSize(1);
+            assertThat(context.getBeansOfType(gov.uddp.core.events.RemoteStudioDelegation.class)).hasSize(1);
             assertThat(context.getEnvironment().getProperty("spring.application.name"))
                     .isEqualTo("api-stewardship-service");
 

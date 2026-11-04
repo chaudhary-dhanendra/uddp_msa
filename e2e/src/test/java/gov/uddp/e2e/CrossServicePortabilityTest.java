@@ -118,6 +118,9 @@ class CrossServicePortabilityTest {
             try (Stream<Path> files = Files.walk(root)) {
                 for (Path file : files.filter(Files::isRegularFile)
                         .filter(f -> f.toString().contains("src" + java.io.File.separator + "main"))
+                        // The edge's historical Flyway migrations are immutable upgrade records of the monolith; some
+                        // name legacy sample states to migrate old installations (as the portability guard allows).
+                        .filter(f -> !f.toString().contains("db" + java.io.File.separator + "migration"))
                         .filter(f -> f.toString().matches(".*\\.(java|sql|yml|yaml|json|py)$")).toList()) {
                     String text = Files.readString(file, StandardCharsets.UTF_8);
                     if (state.matcher(text).find() || state.matcher(file.getFileName().toString()).find()) {

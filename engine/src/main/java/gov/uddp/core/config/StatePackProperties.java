@@ -5,12 +5,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "uddp")
 public class StatePackProperties {
-    private String statePackDirectory = "../state-packs";
+    private String statePackDirectory = "../../state-packs";
     /** Explicit bootstrap/test-only permission to load YAML packs into the operational registry. */
     private boolean fixtureStatePacksEnabled;
-    private String platformDirectory = "../platform";
+    private String platformDirectory = "../../platform";
     /** The repository root: relative source locations, Hop templates and the Python module resolve against it. */
-    private String repositoryRoot = "..";
+    private String repositoryRoot = "../..";
     /** Local settings saved from the Setup screen (outside the repository; ADR-0014). */
     private String settingsDirectory = Path.of(System.getProperty("user.home"), ".uddp").toString();
 
