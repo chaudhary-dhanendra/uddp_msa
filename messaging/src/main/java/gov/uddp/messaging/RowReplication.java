@@ -23,6 +23,43 @@ public final class RowReplication {
     private RowReplication() {
     }
 
+    /**
+     * The rows split into chunks of at most {@code maxRows} rows, in table order, so one event never exceeds a Kafka
+     * message; published with one key they stay ordered (parents before children). A table in {@code whole} is never
+     * split (its rows reference each other), so a chunk may exceed the limit by that table. Always at least one chunk.
+     */
+    public static java.util.List<com.fasterxml.jackson.databind.node.ObjectNode> chunks(
+            com.fasterxml.jackson.databind.JsonNode rows, java.util.List<String> order, int maxRows,
+            java.util.Set<String> whole) {
+        var out = new java.util.ArrayList<com.fasterxml.jackson.databind.node.ObjectNode>();
+        var current = Outbox.json().createObjectNode();
+        int size = 0;
+        for (String table : order) {
+            var tableRows = rows.path(table);
+            if (whole.contains(table) && tableRows.size() > 0) {
+                if (size > 0 && size + tableRows.size() > maxRows) {
+                    out.add(current);
+                    current = Outbox.json().createObjectNode();
+                    size = 0;
+                }
+                current.set(table, tableRows.deepCopy());
+                size += tableRows.size();
+                continue;
+            }
+            for (var row : tableRows) {
+                if (size >= maxRows) {
+                    out.add(current);
+                    current = Outbox.json().createObjectNode();
+                    size = 0;
+                }
+                (current.has(table) ? (ArrayNode) current.get(table) : current.putArray(table)).add(row);
+                size++;
+            }
+        }
+        out.add(current);
+        return out;
+    }
+
     /** One table and the condition (with its parameters) selecting the rows to replicate. */
     public record Selection(String table, String where, List<Object> parameters) {
     }

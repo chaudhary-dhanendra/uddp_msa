@@ -62,7 +62,27 @@ public final class GoldenReplica {
                         List.of(build, build, build, build, build, build))));
     }
 
+    /** At most this many rows per golden-replica event (golden_resident rows are never split: they reference each other). */
+    static final int CHUNK_ROWS = 1000;
+
+    /** The build's rows in ordered chunks; the last one marks the build as replicated. */
+    public static List<com.fasterxml.jackson.databind.node.ObjectNode> chunks(ObjectNode rows) {
+        return RowReplication.chunks(rows, ORDER, CHUNK_ROWS, SELF_REFERENCES.keySet());
+    }
+
+    /** Applies one golden-replica chunk; the last chunk records that the whole build is here. */
     public static void apply(Connection c, JsonNode envelope) throws SQLException {
-        RowReplication.apply(c, envelope.path("payload").path("rows"), ORDER, SELF_REFERENCES);
+        JsonNode p = envelope.path("payload");
+        RowReplication.apply(c, p.path("rows"), ORDER, SELF_REFERENCES);
+        if (!p.path("last").asBoolean(true)) {
+            return;
+        }
+        try (var s = c.prepareStatement("insert into remote_golden_replicated (golden_build_id, matching_run_id)"
+                + " values (?, ?) on conflict do nothing")) {
+            s.setObject(1, UUID.fromString(p.path("goldenBuildId").asText()));
+            String run = p.path("matchingRunId").asText(null);
+            s.setObject(2, run == null ? null : UUID.fromString(run));
+            s.executeUpdate();
+        }
     }
 }
