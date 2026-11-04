@@ -467,7 +467,17 @@ Not done yet, in priority order:
      since profiles are owned by identity-service. Steward link constraints reach identity from
      `stewardship.decision-recorded`.
 
-   Still at the edge, to move next: the Studio (to statepack-service). Known pre-existing failures unrelated to the MSA work:
+   - **statepack-service is the State Pack system of record (2026-11-04, Studio stage 1):** with
+     `uddp.statepack.url` every Studio submission is published there by its maker, and the checker's approval
+     (approve, then activate) or rejection is recorded there too (`StatePackPublisher`; without a human checker the
+     checker is `platform-auto-approval`). The edge installs every version statepack-service activates
+     (`statepack.pack-activated`: fetched by digest, verified, loaded, stored as the pack document and registered
+     ACTIVE, the previous version retired; `RemoteStatePackMessaging`), so packs published straight into
+     statepack-service are onboardable as well.
+
+   Still at the edge, to move next (Studio stages 2 and 3): draft authoring (drafts, uploads, profiling,
+   suggestions, shaping, preview) to statepack-service behind the same forwarding aspect; "onboard this draft"
+   stays with the edge's onboarding orchestration, and database previews go through ingestion-service. Known pre-existing failures unrelated to the MSA work:
    StudioDatabaseSourceTest and StudioEquivalenceTest (LGD district not resolved; they fail on the untouched import).
 
 ### Phase 4: cross-service portability proof
