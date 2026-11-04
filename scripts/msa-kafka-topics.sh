@@ -27,6 +27,7 @@ for t in resident-created family-observed benefit-observed application-observed 
 done
 create uddp.canonical.record-held.v1 1 "retention.ms=$((30 * DAY))"
 create uddp.canonical.batch-processed.v1 1 "retention.ms=$((30 * DAY))"
+create uddp.canonical.batch-observed.v1 3 "retention.ms=$((30 * DAY))"
 create uddp.canonical.dlq.v1 1 "retention.ms=$((90 * DAY))"
 
 create uddp.identity.match-decided.v1 3 "retention.ms=$((30 * DAY))"
@@ -69,6 +70,6 @@ dlt registry-service-projections uddp.canonical.family-observed.v1 uddp.identity
 dlt registry-service-commands uddp.cmd.registry.golden-build-requested.v1
 dlt api-stewardship-golden-replica uddp.registry.golden-replica.v1
 dlt common-core-canonical-residents uddp.canonical.resident-created.v1
-dlt common-core-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1
+dlt common-core-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1   uddp.canonical.batch-observed.v1
 
 echo "UDDP topics ready on $BOOTSTRAP"

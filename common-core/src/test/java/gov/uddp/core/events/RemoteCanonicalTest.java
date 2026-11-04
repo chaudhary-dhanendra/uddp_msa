@@ -55,8 +55,9 @@ class RemoteCanonicalTest {
                 new StringSerializer(), new StringSerializer())) {
             for (int delivery = 0; delivery < 2; delivery++) {
                 for (var row : sourceSql.column("select topic || chr(1) || partition_key || chr(1) || payload::text"
-                        + " from outbox_event where topic in (?, ?, ?) order by created_at", String.class,
-                        Topics.RESIDENT_CREATED, Topics.FAMILY_OBSERVED, Topics.BATCH_PROCESSED)) {
+                        + " from outbox_event where topic in (?, ?, ?, ?) order by created_at", String.class,
+                        Topics.RESIDENT_CREATED, Topics.FAMILY_OBSERVED, Topics.BATCH_OBSERVED,
+                        Topics.BATCH_PROCESSED)) {
                     String[] parts = row.split(String.valueOf((char) 1), 3);
                     producer.send(new ProducerRecord<>(parts[0], parts[1], parts[2])).get();
                 }
@@ -85,6 +86,12 @@ class RemoteCanonicalTest {
             messaging.destroy();
         }
         assertEquals(7, targetSql.count("select count(*) from canonical_resident_current"));
+        // Benefits, DQ and the rows behind the rejected-record reports arrive with batch-observed.
+        assertEquals(5, targetSql.count("select count(*) from benefit"));
+        for (String table : CanonicalBatchRows.ORDER) {
+            assertEquals(sourceSql.count("select count(*) from " + table), targetSql.count("select count(*) from "
+                    + table), table);
+        }
         var golden = SampleData.golden(target, SampleData.loader(SampleData.STATE_PACKS));
         golden.build(MatchingRunFixture.completed(target, List.of(Set.copyOf(targetSql.canonicalsNamed("Ram Singh")))));
         assertEquals(5, targetSql.count("select count(*) from golden_resident where status='ACTIVE'"));
@@ -92,8 +99,8 @@ class RemoteCanonicalTest {
     }
 
     private static long expected(Sql sql) {
-        return sql.count("select count(*) from outbox_event where topic in (?, ?, ?)", Topics.RESIDENT_CREATED,
-                Topics.FAMILY_OBSERVED, Topics.BATCH_PROCESSED);
+        return sql.count("select count(*) from outbox_event where topic in (?, ?, ?, ?)", Topics.RESIDENT_CREATED,
+                Topics.FAMILY_OBSERVED, Topics.BATCH_OBSERVED, Topics.BATCH_PROCESSED);
     }
 
     /** ingestion-service's Raw, as RemoteRawProjection would have projected it: the same batches and raw ids. */

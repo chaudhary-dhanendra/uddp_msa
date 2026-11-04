@@ -15,6 +15,8 @@ public final class Topics {
     public static final String ASSET_OBSERVED = "uddp.canonical.asset-observed.v1";
     public static final String RECORD_HELD = "uddp.canonical.record-held.v1";
     public static final String BATCH_PROCESSED = "uddp.canonical.batch-processed.v1";
+    /** Benefit, application, asset, DQ and error rows of one batch (published before batch-processed). */
+    public static final String BATCH_OBSERVED = "uddp.canonical.batch-observed.v1";
     public static final String CANONICAL_DLQ = "uddp.canonical.dlq.v1";
 
     public static final String MATCH_DECIDED = "uddp.identity.match-decided.v1";

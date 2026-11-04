@@ -61,6 +61,16 @@ public class RemoteCanonicalProcessor implements CanonicalBatchProcessor {
     /** The report may come before the batch's Residents (other topic): wait until every mapped one is here. */
     private static boolean residentsArrived(java.sql.Connection c, UUID batchId,
                                             com.fasterxml.jackson.databind.JsonNode report) throws Exception {
+        if (report.path("observed").asBoolean(false)) {
+            try (var s = c.prepareStatement("select 1 from remote_canonical_observed where batch_id = ?")) {
+                s.setObject(1, batchId);
+                try (var r = s.executeQuery()) {
+                    if (!r.next()) {
+                        return false;
+                    }
+                }
+            }
+        }
         try (var s = c.prepareStatement("select count(*) from canonical_resident where batch_id = ?")) {
             s.setObject(1, batchId);
             try (var r = s.executeQuery()) {
