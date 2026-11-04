@@ -22,13 +22,13 @@
       <artifactId>uddp-messaging</artifactId>
     </dependency>
     <!--
-      Phase 3c (strangler): the Golden build engine (survivorship, lifecycle, families, UDDP IDs) comes from the uddp-engine
+      Phase 3c (strangler): the Golden build engine (survivorship, lifecycle, families, UDDP IDs) comes from the uddp-golden-engine
       module (moved out of common-core unchanged).
       The module holds only the classes those engines need: no web controllers, edge security or JPA.
     -->
     <dependency>
       <groupId>gov.uddp</groupId>
-      <artifactId>uddp-engine</artifactId>
+      <artifactId>uddp-golden-engine</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -22,6 +22,8 @@
 
   <modules>
     <module>engine</module>
+    <module>canonical-engine</module>
+    <module>golden-engine</module>
     <module>common-core</module>
     <module>contracts</module>
     <module>messaging</module>
