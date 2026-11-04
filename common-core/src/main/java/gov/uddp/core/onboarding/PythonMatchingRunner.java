@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * and its output is redacted before it is stored.
  */
 @Component
-public class PythonMatchingRunner {
+public class PythonMatchingRunner implements MatchingRunner {
     static final String STATE_PACK_DIRECTORY = "UDDP_STATE_PACK_DIRECTORY";
 
     private final ObjectMapper json;
@@ -48,11 +48,13 @@ public class PythonMatchingRunner {
     }
 
     /** A full matching run over every latest canonical Resident. */
+    @Override
     public UUID run() {
         return execute(false);
     }
 
     /** An incremental run: only pairs touching new or changed canonical Residents (ADR-0004). */
+    @Override
     public UUID runIncremental() {
         return execute(true);
     }

@@ -9,6 +9,9 @@ spring:
     url: ${UDDP_IDENTITY_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_identity}
     username: ${UDDP_IDENTITY_POSTGRES_USER:uddp_identity}
     password: ${UDDP_IDENTITY_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+    hikari:
+      # Unqualified SQL (and the Python adapter, through PGOPTIONS) resolves to the service's own schema.
+      schema: identity
   flyway:
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: identity
@@ -22,3 +25,12 @@ management:
     web:
       exposure:
         include: health,info
+uddp:
+  kafka:
+    # Empty: no consumers and no relay (the service still serves its API). Set to enable messaging.
+    bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  identity:
+    # Root of the repository that holds matching/ (the Python adapter) and the default State Pack directory.
+    repository-root: ${UDDP_REPOSITORY_ROOT:../..}
+    state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:}
+    python: ${UDDP_PYTHON:python}

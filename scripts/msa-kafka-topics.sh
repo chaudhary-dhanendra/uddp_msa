@@ -48,4 +48,14 @@ for t in ingestion.ingest-requested ingestion.replay-requested identity.matching
   create "uddp.cmd.$t.v1" 1 "retention.ms=$((7 * DAY))"
 done
 
+# Dead-letter topics: <topic>.dlt.<consumer> for every consumer group (docs/msa-design.md, section 3.4).
+dlt() { # consumer topic...
+  local consumer="$1"
+  shift
+  for t in "$@"; do create "$t.dlt.$consumer" 1 "retention.ms=$((90 * DAY))"; done
+}
+dlt identity-service-projections uddp.canonical.resident-created.v1 uddp.registry.golden-resident-changed.v1
+dlt identity-service-commands uddp.cmd.identity.matching-requested.v1
+dlt common-core-identity-projection uddp.identity.match-decided.v1 uddp.identity.cluster-assigned.v1   uddp.identity.match-run-completed.v1
+
 echo "UDDP topics ready on $BOOTSTRAP"

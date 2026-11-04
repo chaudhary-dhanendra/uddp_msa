@@ -27,7 +27,7 @@ public class OnboardingService {
     private final StatePackLoader packs;
     private final HopRunner hop;
     private final CanonicalResidentProcessingService canonical;
-    private final PythonMatchingRunner matching;
+    private final MatchingRunner matching;
     private gov.uddp.core.events.PlatformEvents platformEvents;
     private final GoldenResidentService golden;
     private DatabaseSources databases;
@@ -40,7 +40,7 @@ public class OnboardingService {
     @Autowired
     public OnboardingService(PostgresConnectionFactory connections, StatePackLifecycleService lifecycle,
                              StatePackLoader packs, HopRunner hop, CanonicalResidentProcessingService canonical,
-                             PythonMatchingRunner matching, GoldenResidentService golden) {
+                             MatchingRunner matching, GoldenResidentService golden) {
         this.connections = connections;
         this.lifecycle = lifecycle;
         this.packs = packs;
