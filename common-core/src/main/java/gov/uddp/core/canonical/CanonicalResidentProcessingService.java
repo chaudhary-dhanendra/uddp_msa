@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
  * (M15), for the benefit its pack's Benefit rules name.
  */
 @Service
-public class CanonicalResidentProcessingService {
+public class CanonicalResidentProcessingService implements gov.uddp.core.onboarding.CanonicalBatchProcessor {
     private final RawRecordRepository raws;
     private final CanonicalResidentRepository canonicals;
     private final StatePackLoader packs;
@@ -180,6 +180,7 @@ public class CanonicalResidentProcessingService {
      * A source record claimed by more than one row of the batch is rejected for every row, wherever the rows are;
      * UNIQUE_WITHIN_BATCH validation compares the rows of one chunk.
      */
+    @Override
     public CanonicalProcessingSummary processBatch(UUID batchId) {
         if (events != null) {
             events.rawBatchLanded(batchId);

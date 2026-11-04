@@ -11,6 +11,16 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  */
 public final class Inbox {
 
+    /**
+     * Thrown by a handler whose event depends on another event that has not arrived yet (events of different topics
+     * are not ordered with each other). The loop retries the record after a short wait instead of parking it.
+     */
+    public static class NotYetApplicable extends RuntimeException {
+        public NotYetApplicable(String message) {
+            super(message);
+        }
+    }
+
     /** The effect of one event, applied on the transaction that also records the event as processed. */
     @FunctionalInterface
     public interface Handler {

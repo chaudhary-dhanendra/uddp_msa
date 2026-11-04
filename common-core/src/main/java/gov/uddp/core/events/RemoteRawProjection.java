@@ -59,6 +59,21 @@ public final class RemoteRawProjection {
         if ("LANDED".equals(p.path("status").asText())) {
             return; // this service's own Phase 2 announcement, not ingestion-service's
         }
+        if (p.hasNonNull("statePackVersion") && p.hasNonNull("sourceSystem")) {
+            // The report may arrive before any record of its batch (another partition): record the batch from it.
+            try (var s = c.prepareStatement("insert into ingestion_batch (batch_id, state_code, source_system,"
+                    + " source_type, source_schema_version, state_pack_version, pipeline_template, status)"
+                    + " values (?, ?, ?, ?, ?, ?, ?, 'STARTED') on conflict do nothing")) {
+                s.setObject(1, UUID.fromString(p.path("batchId").asText()));
+                s.setString(2, envelope.path("stateCode").asText());
+                s.setString(3, p.path("sourceSystem").asText());
+                s.setString(4, p.path("sourceType").asText("FILE"));
+                s.setString(5, text(p.path("sourceSchemaVersion")));
+                s.setString(6, p.path("statePackVersion").asText());
+                s.setString(7, p.path("pipelineTemplate").asText(""));
+                s.executeUpdate();
+            }
+        }
         try (var s = c.prepareStatement("update ingestion_batch set remote_status = ?, remote_record_count = ?,"
                 + " remote_message = ? where batch_id = ?")) {
             s.setString(1, p.path("status").asText());

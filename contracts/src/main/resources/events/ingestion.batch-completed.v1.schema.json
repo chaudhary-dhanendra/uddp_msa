@@ -10,6 +10,9 @@
     "status": { "type": "string", "enum": ["COMPLETED", "FAILED", "LANDED"] },
     "message": { "type": ["string", "null"], "description": "Redacted Hop output when the batch failed." },
     "sourceSystem": { "type": ["string", "null"] },
+    "sourceType": { "type": ["string", "null"] },
+    "sourceSchemaVersion": { "type": ["string", "null"] },
+    "statePackVersion": { "type": ["string", "null"] },
     "pipelineTemplate": { "type": ["string", "null"] }
   }
 }

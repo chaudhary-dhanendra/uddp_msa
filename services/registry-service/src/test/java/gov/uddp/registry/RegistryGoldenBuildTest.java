@@ -90,8 +90,9 @@ class RegistryGoldenBuildTest {
                     .isEqualTo(5);
             assertThat(count("select count(*) from outbox_event where topic like 'uddp.identity.%'"))
                     .as("matching runs are identity-service's to publish").isZero();
-            assertThat(count("select count(*) from processed_event where consumer = ?",
-                    RegistryMessaging.PROJECTION_CONSUMER)).isEqualTo(events.size());
+            assertThat(count("select count(*) from processed_event where consumer in (?, ?)",
+                    RegistryMessaging.PROJECTION_CONSUMER, RegistryMessaging.RESIDENT_CONSUMER))
+                    .isEqualTo(events.size());
             List<String> ids = jdbc.queryForList("select golden_resident_id::text from golden_resident order by 1",
                     String.class);
 
