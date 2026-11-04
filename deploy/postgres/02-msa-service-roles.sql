@@ -13,13 +13,13 @@
 
 SELECT format('CREATE ROLE %I LOGIN', r)
 FROM unnest(ARRAY['uddp_ingestion', 'uddp_canonical', 'uddp_identity',
-                  'uddp_registry', 'uddp_statepack', 'uddp_stewardship']) AS r
+                  'uddp_registry', 'uddp_statepack', 'uddp_edge']) AS r
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r)
 \gexec
 
 SELECT format('ALTER ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L', r, :'svc_password')
 FROM unnest(ARRAY['uddp_ingestion', 'uddp_canonical', 'uddp_identity',
-                  'uddp_registry', 'uddp_statepack', 'uddp_stewardship']) AS r
+                  'uddp_registry', 'uddp_statepack', 'uddp_edge']) AS r
 \gexec
 
 -- uddp_raw: ingestion
@@ -47,19 +47,19 @@ CREATE SCHEMA IF NOT EXISTS registry AUTHORIZATION uddp_registry;
 CREATE SCHEMA IF NOT EXISTS lineage AUTHORIZATION uddp_registry;
 ALTER ROLE uddp_registry IN DATABASE uddp_registry SET search_path = registry, lineage;
 
--- uddp_platform: canonical, statepack and stewardship, each with its own role and no access to the others
+-- uddp_platform: canonical, statepack and edge, each with its own role and no access to the others
 \connect uddp_platform
 REVOKE ALL ON DATABASE uddp_platform FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT CONNECT ON DATABASE uddp_platform TO uddp_canonical, uddp_statepack, uddp_stewardship;
+GRANT CONNECT ON DATABASE uddp_platform TO uddp_canonical, uddp_statepack, uddp_edge;
 CREATE SCHEMA IF NOT EXISTS canonical AUTHORIZATION uddp_canonical;
 CREATE SCHEMA IF NOT EXISTS statepack AUTHORIZATION uddp_statepack;
-CREATE SCHEMA IF NOT EXISTS stewardship AUTHORIZATION uddp_stewardship;
+CREATE SCHEMA IF NOT EXISTS edge AUTHORIZATION uddp_edge;
 REVOKE ALL ON SCHEMA canonical FROM PUBLIC;
 REVOKE ALL ON SCHEMA statepack FROM PUBLIC;
-REVOKE ALL ON SCHEMA stewardship FROM PUBLIC;
+REVOKE ALL ON SCHEMA edge FROM PUBLIC;
 ALTER ROLE uddp_canonical IN DATABASE uddp_platform SET search_path = canonical;
 ALTER ROLE uddp_statepack IN DATABASE uddp_platform SET search_path = statepack;
-ALTER ROLE uddp_stewardship IN DATABASE uddp_platform SET search_path = stewardship;
+ALTER ROLE uddp_edge IN DATABASE uddp_platform SET search_path = edge;
 
 \echo 'UDDP service roles and schemas are ready.'

@@ -1,6 +1,6 @@
 -- Steward review outcomes the Python adapter's run metrics read (matching/metrics.py acceptance_by_band). In the
 -- monolith they come from stewardship_decision and stewardship_review_task; here they are a projection of
--- stewardship.decision-recorded (owned by api-stewardship-service), exposed through views with the same names.
+-- stewardship.decision-recorded (owned by edge-service), exposed through views with the same names.
 CREATE TABLE review_outcome (
   review_task_id uuid PRIMARY KEY,
   match_probability numeric NOT NULL,

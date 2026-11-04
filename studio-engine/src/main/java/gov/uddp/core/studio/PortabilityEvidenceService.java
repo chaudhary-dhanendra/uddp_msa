@@ -41,8 +41,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class PortabilityEvidenceService {
     private static final Logger log = LoggerFactory.getLogger(PortabilityEvidenceService.class);
-    static final List<String> PLATFORM_PATHS = List.of("common-core/src/main", "matching", "hop", "platform");
-    private static final List<String> EXCLUDED = List.of(":(exclude)matching/test_*", ":(exclude)matching/conftest.py",
+    /** The generic platform code: every service and engine module, the matcher, the Hop templates, platform data. */
+    static final List<String> PLATFORM_PATHS = List.of("services", "engine", "canonical-engine", "golden-engine",
+            "matching-engine", "studio-engine", "contracts", "messaging", "matching", "hop", "platform");
+    private static final List<String> EXCLUDED = List.of(":(exclude)services/*/seed/**", ":(exclude)**/src/test/**",
+            ":(exclude)matching/test_*", ":(exclude)matching/conftest.py",
             ":(exclude)**/__pycache__/**");
     private static final String GUARD = "gov.uddp.core.portability.M10PortabilityGuardTest";
 
@@ -166,7 +169,7 @@ public class PortabilityEvidenceService {
     }
 
     GuardResult guard() {
-        Path report = repository.resolve("common-core/target/surefire-reports/TEST-" + GUARD + ".xml");
+        Path report = repository.resolve("services/edge-service/target/surefire-reports/TEST-" + GUARD + ".xml");
         if (!Files.isRegularFile(report)) {
             return null;
         }

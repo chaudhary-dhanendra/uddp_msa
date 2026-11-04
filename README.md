@@ -54,7 +54,7 @@ The portability proof will run State 1 PDS and State 2 Pension through the same 
 
 - `services/` — the six services: `ingestion-service` (Hop, connectors, landing folders), `canonical-service`,
   `identity-service` (Splink matching and the Matching Studio), `registry-service` (Golden records),
-  `statepack-service` (State Pack versions and the Onboarding Studio) and `api-stewardship-service` (the edge for the
+  `statepack-service` (State Pack versions and the Onboarding Studio) and `edge-service` (the edge for the
   UI: security, read APIs, stewardship, onboarding orchestration); `gateway-service` (the single public entry, Spring Cloud
   Gateway, port 8080) and `discovery-service` (the Eureka registry, port 8761)
 - `engine/`, `canonical-engine/`, `golden-engine/`, `matching-engine/`, `studio-engine/` — engine modules the

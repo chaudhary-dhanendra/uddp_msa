@@ -11,7 +11,7 @@
 
   <!--
     The API gateway (Spring Cloud Gateway): the single public entry. It routes the UI's API, sign-in and API
-    documentation to the edge (api-stewardship-service), resolved through discovery; the internal services are never
+    documentation to the edge (edge-service), resolved through discovery; the internal services are never
     routed. It adds forwarding headers, drops caller-supplied internal headers and applies CORS.
   -->
   <artifactId>uddp-gateway-service</artifactId>
