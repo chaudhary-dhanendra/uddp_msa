@@ -9,6 +9,8 @@ spring:
     url: ${UDDP_STATEPACK_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_platform}
     username: ${UDDP_STATEPACK_POSTGRES_USER:uddp_statepack}
     password: ${UDDP_STATEPACK_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+    hikari:
+      schema: statepack
   flyway:
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: statepack
@@ -22,3 +24,7 @@ management:
     web:
       exposure:
         include: health,info
+uddp:
+  kafka:
+    # Empty: no relay (the service still serves its API). Set to publish pack lifecycle events.
+    bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}

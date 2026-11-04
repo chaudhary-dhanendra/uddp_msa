@@ -18,6 +18,14 @@
       <artifactId>uddp-contracts</artifactId>
     </dependency>
     <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-messaging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
