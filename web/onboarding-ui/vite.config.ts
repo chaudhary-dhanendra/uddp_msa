@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // The dev and preview servers bind to localhost only and proxy the backend, so the browser sees one origin and the
-// backend needs no CORS. UDDP_API_URL points the proxy at another backend port (scripts/run-demo sets it).
+// backend needs no CORS. The default 8080 is the API gateway (gateway-service); UDDP_API_URL points it elsewhere.
 const backend = process.env.UDDP_API_URL ?? "http://127.0.0.1:8080";
 const proxy = {
   "/api": { target: backend, changeOrigin: false },

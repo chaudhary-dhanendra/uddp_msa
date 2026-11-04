@@ -13,6 +13,11 @@
   <artifactId>uddp-identity-service</artifactId>
 
   <dependencies>
+    <!-- Registers with the service registry (Eureka) and resolves lb:// service addresses through it. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
     <dependency>
       <groupId>gov.uddp</groupId>
       <artifactId>uddp-contracts</artifactId>

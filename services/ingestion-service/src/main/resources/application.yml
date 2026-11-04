@@ -42,3 +42,12 @@ uddp:
     # Database-table sources: one entry per connection name a State Pack source names (connectionRef). Credentials
     # come only from the environment, e.g. UDDP_INGESTION_CONNECTIONS_<NAME>_PASSWORD; they never travel on Kafka.
     connections: {}
+
+# Service discovery: register with the registry (discovery-service) and resolve lb:// addresses through it.
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true

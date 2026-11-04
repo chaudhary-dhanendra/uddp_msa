@@ -37,13 +37,13 @@ import org.springframework.web.server.ResponseStatusException;
 @ConditionalOnExpression("'${uddp.identity.url:}' != ''")
 public class RemoteStudioDelegation {
 
-    private final URI identity;
+    private final String identity;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper().findAndRegisterModules()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     public RemoteStudioDelegation(@Value("${uddp.identity.url}") String identity) {
-        this.identity = URI.create(identity.replaceAll("/+$", ""));
+        this.identity = identity;
     }
 
     @Around("execution(public * gov.uddp.core.api.v1.MatchingStudioController.*(..))")
@@ -62,7 +62,7 @@ public class RemoteStudioDelegation {
         String target = request.getRequestURI().substring(request.getContextPath().length())
                 + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        var builder = HttpRequest.newBuilder(URI.create(identity + target)).timeout(Duration.ofMinutes(10))
+        var builder = HttpRequest.newBuilder(URI.create(gov.uddp.contracts.ServiceUrls.resolve(identity) + target)).timeout(Duration.ofMinutes(10))
                 .header("Content-Type", "application/json")
                 .header("X-UDDP-Actor", authentication == null ? "system" : authentication.getName())
                 .method(request.getMethod(), body == null ? HttpRequest.BodyPublishers.noBody()

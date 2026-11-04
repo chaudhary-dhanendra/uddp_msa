@@ -23,26 +23,26 @@ import org.springframework.stereotype.Component;
 @ConditionalOnExpression("${uddp.ingestion.remote:false} and '${uddp.ingestion.url:}' != ''")
 public class IngestionClient {
 
-    private final URI base;
+    private final String base;
     private final ObjectMapper json = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     public IngestionClient(@Value("${uddp.ingestion.url}") String url) {
-        this.base = URI.create(url.endsWith("/") ? url : url + "/");
+        this.base = url;
     }
 
     public Optional<JsonNode> get(String path) {
-        var response = send(HttpRequest.newBuilder(base.resolve(path)).GET());
+        var response = send(HttpRequest.newBuilder(at(path)).GET());
         return response.statusCode() == 404 ? Optional.empty() : Optional.of(body(response));
     }
 
     public JsonNode post(String path, Object body) {
-        return body(send(HttpRequest.newBuilder(base.resolve(path)).header("Content-Type", "application/json")
+        return body(send(HttpRequest.newBuilder(at(path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(write(body)))));
     }
 
     public JsonNode put(String path, Object body) {
-        return body(send(HttpRequest.newBuilder(base.resolve(path)).header("Content-Type", "application/json")
+        return body(send(HttpRequest.newBuilder(at(path)).header("Content-Type", "application/json")
                 .PUT(HttpRequest.BodyPublishers.ofString(write(body)))));
     }
 
@@ -84,5 +84,10 @@ public class IngestionClient {
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** The path at ingestion-service's address now (a registered instance when the address is lb://). */
+    private URI at(String path) {
+        return URI.create(gov.uddp.contracts.ServiceUrls.resolve(base) + "/" + path);
     }
 }

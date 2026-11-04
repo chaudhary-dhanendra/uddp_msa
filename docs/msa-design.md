@@ -497,6 +497,19 @@ Not done yet, in priority order:
      so relative defaults are `../../`. The monolith's demo and e2e scripts, the Hop project file and empty
      placeholder folders were removed; the e2e module is the end-to-end proof.
 
+   - **API gateway and service discovery (2026-11-04, Spring Cloud 2025.0):** `discovery-service` is the Eureka
+     registry (port 8761); every service registers with it by its `spring.application.name`
+     (`UDDP_EUREKA_URL`, `UDDP_EUREKA_ENABLED`). `gateway-service` (Spring Cloud Gateway, port 8080) is the single
+     public entry: it routes `/api/**`, sign-in (`/oauth2/**`, `/login/**`, `/logout/**`) and the API docs to the edge
+     found by name (`lb://api-stewardship-service`), adds forwarding headers, drops a caller-supplied X-UDDP-Actor and
+     applies CORS for the UI's origins (`UDDP_UI_ORIGINS`); the internal services are never routed. Service-to-service
+     HTTP addresses are `lb://<service-name>` by default (the edge's ingestion, identity and statepack calls,
+     canonical-service's statepack calls), resolved at call time round robin over the registered instances
+     (`contracts.ServiceUrls`, fed by each service's discovery client); an `http://` address still works without a
+     registry. Kafka needs no discovery. Proven by `GatewayRoutingTest`, `ServiceUrlsTest` and the e2e
+     `DiscoveryAndGatewayTest` (a service registers with the real registry and is called by name; the gateway reaches
+     the edge by name and routes nothing else). Tests never register (the build sets `eureka.client.enabled=false`).
+
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, but the geography master still has to be loaded or
    replicated from canonical-service (until then, previews here resolve no geography). Studio preview connections

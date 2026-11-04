@@ -36,3 +36,12 @@ uddp:
     platform-directory: ${UDDP_PLATFORM_DIRECTORY:../../platform}
     state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:../../services/statepack-service/seed/state-packs}
     build-wait: PT10M
+
+# Service discovery: register with the registry (discovery-service) and resolve lb:// addresses through it.
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true

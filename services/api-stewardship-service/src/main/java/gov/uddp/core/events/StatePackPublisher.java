@@ -27,12 +27,12 @@ public class StatePackPublisher {
     /** The checker recorded for a version published without a human checker (maker-checker off or auto-approved). */
     public static final String AUTO_CHECKER = "platform-auto-approval";
 
-    private final URI base;
+    private final String service;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
 
     public StatePackPublisher(@Value("${uddp.statepack.url}") String url) {
-        this.base = URI.create(url.replaceAll("/+$", "") + "/api/statepacks");
+        this.service = url;
     }
 
     /** Publishes the files as a PENDING_APPROVAL version (the same content again is accepted as it is). */
@@ -64,18 +64,23 @@ public class StatePackPublisher {
         return approveAndActivate(published.path("packId").asText(), published.path("version").asText(), checker);
     }
 
+    /** statepack-service's version API at its address now (a registered instance when the address is lb://). */
+    private String base() {
+        return gov.uddp.contracts.ServiceUrls.resolve(service) + "/api/statepacks";
+    }
+
     private static String path(String packId, String version) {
         return "/" + URLEncoder.encode(packId, StandardCharsets.UTF_8) + "/"
                 + URLEncoder.encode(version, StandardCharsets.UTF_8);
     }
 
     private JsonNode get(String packId, String version) {
-        return send(HttpRequest.newBuilder(URI.create(base + path(packId, version))).GET());
+        return send(HttpRequest.newBuilder(URI.create(base() + path(packId, version))).GET());
     }
 
     private JsonNode post(String suffix, Object body) {
         try {
-            return send(HttpRequest.newBuilder(URI.create(base + suffix)).header("Content-Type", "application/json")
+            return send(HttpRequest.newBuilder(URI.create(base() + suffix)).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))));
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Cannot write the statepack-service request", e);

@@ -38,3 +38,12 @@ uddp:
     # When set, each run reads the ACTIVE packs from statepack-service (verified by digest) instead of the directory.
     statepack-url: ${UDDP_STATEPACK_URL:}
     python: ${UDDP_PYTHON:python}
+
+# Service discovery: register with the registry (discovery-service) and resolve lb:// addresses through it.
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true

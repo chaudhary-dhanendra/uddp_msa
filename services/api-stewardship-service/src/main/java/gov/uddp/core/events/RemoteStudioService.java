@@ -54,7 +54,7 @@ public class RemoteStudioService {
 
     private static final Set<String> LOCAL = Set.of("status", "goldenDataExists", "setShapePreviews");
 
-    private final URI operations;
+    private final String statepack;
     private final RemoteStatePackMessaging.Installer installer;
     private final EdgeStudioOnboarding onboarding;
     private final Path repositoryRoot;
@@ -66,9 +66,8 @@ public class RemoteStudioService {
                                DatabaseStatePackRepository documents, StatePackLifecycleService lifecycle,
                                PostgresConnectionFactory connections, EdgeStudioOnboarding onboarding,
                                StatePackProperties properties) {
-        String base = url.replaceAll("/+$", "");
-        this.operations = URI.create(base + "/api/studio-operations/");
-        this.installer = new RemoteStatePackMessaging.Installer(new StatePackClient(base), packs, documents, lifecycle,
+        this.statepack = url;
+        this.installer = new RemoteStatePackMessaging.Installer(new StatePackClient(url), packs, documents, lifecycle,
                 connections);
         this.onboarding = onboarding;
         this.repositoryRoot = properties.repositoryRoot();
@@ -139,7 +138,8 @@ public class RemoteStudioService {
             }
         }
         String actor = CurrentUser.username();
-        var request = HttpRequest.newBuilder(operations.resolve(operation)).timeout(Duration.ofMinutes(10))
+        var request = HttpRequest.newBuilder(URI.create(gov.uddp.contracts.ServiceUrls.resolve(statepack)
+                        + "/api/studio-operations/" + operation)).timeout(Duration.ofMinutes(10))
                 .header("Content-Type", "application/json")
                 .header("X-UDDP-Actor", actor == null ? "platform" : actor)
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
