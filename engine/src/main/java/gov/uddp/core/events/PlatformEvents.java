@@ -419,12 +419,19 @@ public class PlatformEvents {
                     buildId + "|" + goldenId, goldenId.toString(), null, summary.matchingRunId(), p);
         }
         if (goldenReplica) {
-            ObjectNode replica = object();
-            replica.put("goldenBuildId", buildId.toString());
-            replica.put("matchingRunId", summary.matchingRunId() == null ? null : summary.matchingRunId().toString());
-            replica.set("rows", GoldenReplica.read(c, buildId));
-            append(c, Topics.GOLDEN_REPLICA, "uddp.registry.golden-replica", buildId.toString(), buildId.toString(),
-                    null, summary.matchingRunId(), replica);
+            var chunks = GoldenReplica.chunks(GoldenReplica.read(c, buildId));
+            for (int i = 0; i < chunks.size(); i++) {
+                ObjectNode replica = object();
+                replica.put("goldenBuildId", buildId.toString());
+                replica.put("matchingRunId", summary.matchingRunId() == null ? null
+                        : summary.matchingRunId().toString());
+                replica.put("chunk", i + 1);
+                replica.put("last", i == chunks.size() - 1);
+                replica.set("rows", chunks.get(i));
+                // One key per build: the chunks stay in order (parents first) on one partition.
+                append(c, Topics.GOLDEN_REPLICA, "uddp.registry.golden-replica", buildId + "|" + (i + 1),
+                        buildId.toString(), null, summary.matchingRunId(), replica);
+            }
         }
         ObjectNode done = Outbox.json().valueToTree(summary);
         done.put("goldenBuildId", buildId.toString());

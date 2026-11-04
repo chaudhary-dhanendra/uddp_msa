@@ -63,23 +63,7 @@ public final class CanonicalBatchRows {
 
     /** The rows split into ordered chunks of at most {@link #CHUNK_ROWS} rows (always at least one chunk). */
     public static List<ObjectNode> chunks(ObjectNode rows) {
-        List<ObjectNode> out = new java.util.ArrayList<>();
-        ObjectNode current = gov.uddp.messaging.Outbox.json().createObjectNode();
-        int size = 0;
-        for (String table : ORDER) {
-            for (JsonNode row : rows.path(table)) {
-                if (size == CHUNK_ROWS) {
-                    out.add(current);
-                    current = gov.uddp.messaging.Outbox.json().createObjectNode();
-                    size = 0;
-                }
-                ((com.fasterxml.jackson.databind.node.ArrayNode) (current.has(table) ? current.get(table)
-                        : current.putArray(table))).add(row);
-                size++;
-            }
-        }
-        out.add(current);
-        return out;
+        return RowReplication.chunks(rows, ORDER, CHUNK_ROWS, java.util.Set.of());
     }
 
     /** Applies a canonical.batch-observed event; the last chunk records that the batch's rows are all here. */

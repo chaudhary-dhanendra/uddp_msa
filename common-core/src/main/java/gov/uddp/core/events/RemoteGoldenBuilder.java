@@ -105,8 +105,8 @@ public class RemoteGoldenBuilder implements GoldenBuildRunner {
     }
 
     private static long builds(Connection c, UUID run) throws Exception {
-        try (var s = c.prepareStatement("select count(*) from golden_build where matching_run_id = ?"
-                + " and completed_at is not null")) {
+        try (var s = c.prepareStatement("select count(*) from golden_build b join remote_golden_replicated r"
+                + " using (golden_build_id) where b.matching_run_id = ? and b.completed_at is not null")) {
             s.setObject(1, run);
             try (var r = s.executeQuery()) {
                 r.next();
