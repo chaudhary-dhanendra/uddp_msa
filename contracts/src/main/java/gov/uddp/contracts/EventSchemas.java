@@ -30,6 +30,11 @@ public final class EventSchemas {
         return CACHE.computeIfAbsent(name, EventSchemas::load).validate(document);
     }
 
+    /** Whether {@code events/<name>.schema.json} exists. */
+    public static boolean exists(String name) {
+        return EventSchemas.class.getResource("/events/" + name + ".schema.json") != null;
+    }
+
     private static JsonSchema load(String name) {
         String resource = "/events/" + name + ".schema.json";
         try (InputStream in = EventSchemas.class.getResourceAsStream(resource)) {

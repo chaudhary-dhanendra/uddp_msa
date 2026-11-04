@@ -51,7 +51,13 @@ public final class SampleData {
 
     /** Canonical processing with Family (M14) and Benefit (M15) observation, as the application wires it. */
     public static CanonicalResidentProcessingService processing(PostgresConnectionFactory connections, StatePackLoader loader) {
-        var service = processingWithoutBenefits(connections, loader);
+        return processing(connections, loader, null);
+    }
+
+    /** As {@link #processing(PostgresConnectionFactory, StatePackLoader)}, writing platform events (MSA Phase 2). */
+    public static CanonicalResidentProcessingService processing(PostgresConnectionFactory connections, StatePackLoader loader,
+                                                                gov.uddp.core.events.PlatformEvents events) {
+        var service = processingWithoutBenefits(connections, loader, events);
         var json = new ObjectMapper().findAndRegisterModules();
         service.setBenefitProcessor(new gov.uddp.core.canonical.CanonicalBenefitProcessor(connections,
                 new gov.uddp.core.mapping.BenefitMappingEngine(new RawCsvRecordParser(json),
@@ -67,7 +73,12 @@ public final class SampleData {
     /** Canonical processing with Family observation only, as before M15 (for schemas older than V13). */
     public static CanonicalResidentProcessingService processingWithoutBenefits(PostgresConnectionFactory connections,
                                                                               StatePackLoader loader) {
-        var service = processingWithoutFamilies(connections, loader);
+        return processingWithoutBenefits(connections, loader, null);
+    }
+
+    private static CanonicalResidentProcessingService processingWithoutBenefits(PostgresConnectionFactory connections,
+            StatePackLoader loader, gov.uddp.core.events.PlatformEvents events) {
+        var service = processingWithoutFamilies(connections, loader, events);
         var json = new ObjectMapper().findAndRegisterModules();
         service.setFamilyProcessor(new gov.uddp.core.canonical.CanonicalFamilyProcessor(connections,
                 new gov.uddp.core.mapping.FamilyMappingEngine(new RawCsvRecordParser(json)), json));
@@ -77,19 +88,28 @@ public final class SampleData {
     /** Resident-only canonical processing, as before M14 (for schemas older than V11). */
     public static CanonicalResidentProcessingService processingWithoutFamilies(PostgresConnectionFactory connections,
                                                                               StatePackLoader loader) {
+        return processingWithoutFamilies(connections, loader, null);
+    }
+
+    private static CanonicalResidentProcessingService processingWithoutFamilies(PostgresConnectionFactory connections,
+            StatePackLoader loader, gov.uddp.core.events.PlatformEvents events) {
         var json = new ObjectMapper().findAndRegisterModules();
         var properties = new StatePackProperties();
         properties.setStatePackDirectory(loader == null ? STATE_PACKS.toString() : STATE_PACKS.toString());
         properties.setPlatformDirectory(REPOSITORY_ROOT.resolve("platform").toString());
-        return new CanonicalResidentProcessingService(
+        var canonicals = new PostgresCanonicalResidentRepository(connections);
+        canonicals.setEvents(events);
+        var service = new CanonicalResidentProcessingService(
                 new PostgresRawRecordRepository(connections, json),
-                new PostgresCanonicalResidentRepository(connections),
+                canonicals,
                 loader,
                 new ResidentMappingEngine(new RawCsvRecordParser(json)),
                 new ResidentValidator(),
                 json,
                 new gov.uddp.core.validation.DqRepository(connections),
                 new gov.uddp.core.validation.PlatformReferenceData(properties));
+        service.setEvents(events);
+        return service;
     }
 
     /** A Golden Resident service with the Golden Family build (M14) and stewardship (M13), as the application wires it. */

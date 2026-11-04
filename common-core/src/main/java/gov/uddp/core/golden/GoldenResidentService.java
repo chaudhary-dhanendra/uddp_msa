@@ -54,6 +54,7 @@ public class GoldenResidentService {
     private gov.uddp.core.identity.UddpIdService uddpIds;
     private DmnSurvivorshipRules dmnSurvivorshipRules;
     private org.springframework.context.ApplicationEventPublisher events;
+    private gov.uddp.core.events.PlatformEvents platformEvents;
 
     @Autowired
     public GoldenResidentService(PostgresConnectionFactory connections, ObjectMapper json, StatePackLoader packs,
@@ -100,7 +101,16 @@ public class GoldenResidentService {
         this.events = events;
     }
 
+    /** MSA Phase 2: with events enabled, a build publishes its matching run's events and its own changes. */
+    @Autowired(required = false)
+    public void setPlatformEvents(gov.uddp.core.events.PlatformEvents platformEvents) {
+        this.platformEvents = platformEvents;
+    }
+
     public GoldenBuildSummary build(UUID run) {
+        if (platformEvents != null) {
+            platformEvents.matchRunCompleted(run);
+        }
         GoldenBuildSummary summary = buildAndCommit(run);
         if (events != null) {
             events.publishEvent(new GoldenBuildCompletedEvent(run, summary));
@@ -164,6 +174,9 @@ public class GoldenResidentService {
                     if (uddpIds != null) {
                         uddpIds.mintMissing(c, gov.uddp.core.identity.UddpIdService.Kind.FAMILY);
                     }
+                }
+                if (platformEvents != null) {
+                    platformEvents.goldenBuildCommitting(c, build, summary);
                 }
                 c.commit();
                 return summary;

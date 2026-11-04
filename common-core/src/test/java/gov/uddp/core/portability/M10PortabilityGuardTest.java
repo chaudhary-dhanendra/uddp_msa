@@ -32,8 +32,11 @@ import org.junit.jupiter.api.Test;
  */
 class M10PortabilityGuardTest {
     private static final Path ROOT = Path.of("..");
-    /** The M15 completion commit, which includes M13 and M14 (ADR-0005); engine changes since then are listed below. */
-    private static final String BASELINE = "m15-scheme-benefit";
+    /**
+     * The MSA import commit (a plain copy of uddp-mvp, so the monolith's m15-scheme-benefit tag does not exist here);
+     * its engines equal the monolith's. Engine changes the monolith made since M15 stay listed below.
+     */
+    private static final String BASELINE = "msa-import";
     /**
      * Generic engine files the Onboarding Studio changes for every state alike, each justified in
      * docs/milestones/STUDIO_ACCEPTANCE.md. Re-baseline and empty this list at the next accepted milestone.
