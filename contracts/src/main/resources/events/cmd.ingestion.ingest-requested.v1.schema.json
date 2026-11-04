@@ -12,9 +12,19 @@
     "statePackVersion": { "type": "string", "minLength": 1 },
     "pipelineTemplate": {
       "type": "string",
-      "enum": ["generic-file-ingest.hpl", "generic-excel-ingest.hpl"],
-      "description": "Database sources stay with the local runner until source connectors move to ingestion-service."
+      "enum": ["generic-file-ingest.hpl", "generic-excel-ingest.hpl", "generic-db-ingest.hpl"]
     },
+    "fileRef": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}/[A-Za-z0-9._ -]{1,200}$",
+      "description": "A file uploaded to ingestion-service (POST /api/ingestion/files); replaces SOURCE_FILE or FILE."
+    },
+    "connectionRef": {
+      "type": ["string", "null"],
+      "description": "A database source's connection name, configured (with its credentials) only in ingestion-service."
+    },
+    "table": { "type": ["string", "null"] },
+    "query": { "type": ["string", "null"] },
     "parameters": {
       "type": "object",
       "propertyNames": {

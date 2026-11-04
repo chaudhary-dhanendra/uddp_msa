@@ -35,4 +35,10 @@ uddp:
     # Root of the repository that holds hop/pipelines (the generic templates).
     repository-root: ${UDDP_REPOSITORY_ROOT:../..}
     hop-home: ${HOP_HOME:}
-    hop-project: ${UDDP_HOP_PROJECT:uddp-mvp}
+    # Empty: run without a registered Hop project, with this repository's metadata folder (HOP_METADATA_FOLDER).
+    hop-project: ${UDDP_HOP_PROJECT:}
+    # Files uploaded for ingestion (POST /api/ingestion/files), so callers never share a disk with this service.
+    landing-directory: ${UDDP_LANDING_DIRECTORY:${java.io.tmpdir}/uddp-landing}
+    # Database-table sources: one entry per connection name a State Pack source names (connectionRef). Credentials
+    # come only from the environment, e.g. UDDP_INGESTION_CONNECTIONS_<NAME>_PASSWORD; they never travel on Kafka.
+    connections: {}

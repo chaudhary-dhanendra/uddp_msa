@@ -52,37 +52,19 @@ public class DatabaseSources {
     }
 
     /** The SELECT a source reads: the table, or the query as a sub-select. Validated, never raw user SQL alone. */
+    /** The validated SELECT of a source; shared with ingestion-service ({@link gov.uddp.contracts.SourceSql}). */
     public static String select(String table, String query) {
-        return select(table, query, true);
+        return gov.uddp.contracts.SourceSql.select(table, query);
     }
 
     /** As {@link #select(String, String)}; {@code asKeyword} false omits AS before the sub-select alias (Oracle). */
     public static String select(String table, String query, boolean asKeyword) {
-        if (query != null && !query.isBlank()) {
-            String trimmed = query.strip();
-            if (!trimmed.regionMatches(true, 0, "select ", 0, 7) || UNSAFE.matcher(trimmed).find()) {
-                throw new IllegalArgumentException("A source query must be one SELECT statement without"
-                        + " ; \" < > | & ^ % or ` characters");
-            }
-            return "select * from (" + trimmed + ")" + (asKeyword ? " as " : " ") + "source_query";
-        }
-        if (table == null || !TABLE.matcher(table).matches()) {
-            throw new IllegalArgumentException("Table must be a table name, optionally schema-qualified");
-        }
-        return "select * from " + table;
+        return gov.uddp.contracts.SourceSql.select(table, query, asKeyword);
     }
 
-    /**
-     * The SELECT the generic Hop template runs: one column {@code raw_source_line} holding each row as a CSV line in
-     * column order (values with a comma, quote or line break are quoted), the same opaque line a file delivers.
-     * Built only from functions and single-quoted literals, so it survives any command line unchanged.
-     */
+    /** The SELECT generic-db-ingest.hpl runs; shared with ingestion-service. */
     public static String rawLineSelect(String table, String query) {
-        return "select (select string_agg(case when v is null then '' when position(',' in v) > 0"
-                + " or position(chr(34) in v) > 0 or position(chr(10) in v) > 0"
-                + " then concat(chr(34), replace(v, chr(34), concat(chr(34), chr(34))), chr(34)) else v end,"
-                + " ',' order by ord) from json_each_text(row_to_json(source_rows)) with ordinality as e(k, v, ord))"
-                + " as raw_source_line from (" + select(table, query) + ") as source_rows";
+        return gov.uddp.contracts.SourceSql.rawLineSelect(table, query);
     }
 
     public Rows read(String connectionName, String table, String query, int limit) {

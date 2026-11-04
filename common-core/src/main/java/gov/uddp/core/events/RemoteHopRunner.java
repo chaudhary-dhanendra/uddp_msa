@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
  * The INGESTED stage with ingestion-service (MSA Phase 3): resolves the source to its generic template and
  * allow-listed parameters (ARCHITECTURE.md A, the same set {@link ProcessHopRunner} runs), sends
  * cmd.ingestion.ingest-requested and waits until ingestion-service reported the batch and every landed row has been
- * projected here ({@link RemoteRawProjection}). Database sources keep the local runner: their credentials are not
- * sent over Kafka.
+ * projected here ({@link RemoteRawProjection}). Files are uploaded to ingestion-service when its URL is configured;
+ * a database source is named by its connectionRef, whose credentials live only in ingestion-service.
  */
 @Component
 @Primary
@@ -38,15 +38,55 @@ public class RemoteHopRunner implements HopRunner {
         this.timeout = timeout;
     }
 
+    private String ingestionUrl = "";
+    private boolean remoteDatabaseSources = true;
+
+    /**
+     * ingestion-service's address: with it, delivered files are uploaded (POST /api/ingestion/files) and named by
+     * fileRef, so the services need no shared disk; without it the command carries the file's path.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setIngestionUrl(@Value("${uddp.ingestion.url:}") String ingestionUrl) {
+        this.ingestionUrl = ingestionUrl == null ? "" : ingestionUrl.strip();
+    }
+
+    /** Database-table sources run in ingestion-service, with the connection it holds under the source's name. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setRemoteDatabaseSources(@Value("${uddp.ingestion.remote-database-sources:true}") boolean remote) {
+        this.remoteDatabaseSources = remote;
+    }
+
     @Override
     public Result ingest(SourceDefinition source, String stateCode, String packVersion, UUID batchId) {
-        if (source.database()) {
+        if (source.database() && !remoteDatabaseSources) {
             return local.ingest(source, stateCode, packVersion, batchId);
         }
         UUID correlation = UUID.randomUUID();
         try (var c = connections.open()) {
-            var invocation = local.fileInvocation(source, stateCode, packVersion, batchId);
             var payload = Outbox.json().createObjectNode();
+            ProcessHopRunner.Invocation invocation;
+            if (source.database()) {
+                // No credentials here: ingestion-service resolves connectionRef and reads the header itself.
+                var parameters = new java.util.LinkedHashMap<String, String>();
+                parameters.put("STATE_CODE", stateCode);
+                parameters.put("SOURCE_SYSTEM", source.sourceId());
+                parameters.put("SOURCE_ENTITY", source.sourceId());
+                parameters.put("SOURCE_SCHEMA_VERSION", source.sourceSchemaVersion());
+                parameters.put("STATE_PACK_VERSION", packVersion);
+                parameters.put("BATCH_ID", batchId.toString());
+                invocation = new ProcessHopRunner.Invocation(source.hopTemplate(), parameters);
+                payload.put("connectionRef", source.connectionRef());
+                payload.put("table", source.table());
+                payload.put("query", source.query());
+            } else {
+                invocation = local.fileInvocation(source, stateCode, packVersion, batchId);
+                if (!ingestionUrl.isEmpty()) {
+                    var params = new java.util.LinkedHashMap<>(invocation.parameters());
+                    String path = params.containsKey("FILE") ? params.remove("FILE") : params.remove("SOURCE_FILE");
+                    payload.put("fileRef", upload(java.nio.file.Path.of(path)));
+                    invocation = new ProcessHopRunner.Invocation(invocation.template(), params);
+                }
+            }
             payload.put("batchId", batchId.toString());
             payload.put("sourceSystem", source.sourceId());
             payload.put("sourceType", source.sourceType());
@@ -86,5 +126,19 @@ public class RemoteHopRunner implements HopRunner {
             }
         }
         throw new IllegalStateException("ingestion-service did not land batch " + batchId + " within " + timeout);
+    }
+
+    /** Uploads a delivered file to ingestion-service and returns its fileRef. */
+    private String upload(java.nio.file.Path file) throws Exception {
+        String url = ingestionUrl.replaceAll("/+$", "") + "/api/ingestion/files?name="
+                + java.net.URLEncoder.encode(file.getFileName().toString(), java.nio.charset.StandardCharsets.UTF_8);
+        var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
+                        java.net.URI.create(url)).header("Content-Type", "application/octet-stream")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofFile(file)).build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new IllegalStateException("ingestion-service refused the file: " + response.statusCode());
+        }
+        return Outbox.json().readTree(response.body()).path("fileRef").asText();
     }
 }
