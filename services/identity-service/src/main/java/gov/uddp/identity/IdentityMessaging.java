@@ -60,7 +60,8 @@ public class IdentityMessaging implements DisposableBean {
         executor.scheduleWithFixedDelay(relay::drain, 500, 500, TimeUnit.MILLISECONDS);
         var projections = new KafkaEventLoop(bootstrapServers, PROJECTION_CONSUMER, dataSource::getConnection, Map.of(
                 Topics.RESIDENT_CREATED, Projections::residentCreated,
-                Topics.GOLDEN_RESIDENT_CHANGED, Projections::goldenResidentChanged), producer);
+                Topics.GOLDEN_RESIDENT_CHANGED, Projections::goldenResidentChanged,
+                Topics.STEWARDSHIP_DECISION_RECORDED, Projections::decisionRecorded), producer);
         var commands = new KafkaEventLoop(bootstrapServers, COMMAND_CONSUMER, dataSource::getConnection, Map.of(
                 Topics.CMD_MATCHING_REQUESTED, (c, envelope) -> matchingRequested(envelope)), producer,
                 Map.of("max.poll.records", "1", "max.poll.interval.ms", String.valueOf(TimeUnit.HOURS.toMillis(2))));

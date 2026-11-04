@@ -71,6 +71,30 @@ public final class Projections {
         }
     }
 
+    /**
+     * stewardship.decision-recorded: the decision's link constraints, with the decision's sequence, so the matching
+     * studio's impact preview applies the same effective constraints as the Golden build.
+     */
+    public static void decisionRecorded(Connection c, JsonNode envelope) throws SQLException {
+        JsonNode rows = envelope.path("payload").path("rows");
+        JsonNode decision = rows.path("stewardship_decision").path(0);
+        if (decision.isMissingNode()) {
+            return;
+        }
+        try (var s = c.prepareStatement("insert into link_constraint (decision_id, record_key_a, record_key_b,"
+                + " constraint_type, decision_sequence) values (?, ?, ?, ?, ?) on conflict do nothing")) {
+            for (JsonNode link : rows.path("stewardship_link_constraint")) {
+                s.setObject(1, UUID.fromString(link.path("decision_id").asText()));
+                s.setString(2, link.path("record_key_a").asText());
+                s.setString(3, link.path("record_key_b").asText());
+                s.setString(4, link.path("constraint_type").asText());
+                s.setLong(5, decision.path("decision_sequence").asLong());
+                s.addBatch();
+            }
+            s.executeBatch();
+        }
+    }
+
     private static UUID uuidOrNull(JsonNode node) {
         return node.isMissingNode() || node.isNull() ? null : UUID.fromString(node.asText());
     }

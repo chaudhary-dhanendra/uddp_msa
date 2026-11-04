@@ -32,7 +32,7 @@ class IdentityServiceSmokeTest {
     void migratesOnlyItsOwnSchemas() {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from identity.flyway_schema_history where success and type = 'SQL'", Integer.class);
-        assertThat(applied).isEqualTo(3);
+        assertThat(applied).isEqualTo(5);
 
         var schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata"

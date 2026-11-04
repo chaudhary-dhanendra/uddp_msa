@@ -132,6 +132,12 @@ public class PostgresConnectionFactory implements gov.uddp.core.database.Connect
             variables.put(HOST, matcher.group(1));
             variables.put(PORT, matcher.group(2) == null ? "5432" : matcher.group(2));
             variables.put(DB, matcher.group(3));
+            // MSA: a service's URL names its own schema (currentSchema=...); a child process (Python) gets the same
+            // search path through libpq's PGOPTIONS, so its unqualified SQL reads that schema too.
+            var schema = java.util.regex.Pattern.compile("[?&]currentSchema=([A-Za-z0-9_,]+)").matcher(url);
+            if (schema.find()) {
+                variables.put("PGOPTIONS", "-c search_path=" + schema.group(1));
+            }
         } else {
             variables.put(HOST, required(HOST));
             variables.put(PORT, required(PORT));

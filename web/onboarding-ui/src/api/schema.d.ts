@@ -6425,7 +6425,7 @@ export interface components {
         };
         ProcessingRejections: {
             /** Format: uuid */
-            batchId: string;
+            batchId: string | null;
             /** Format: int32 */
             count: number;
         };

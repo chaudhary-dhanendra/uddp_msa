@@ -85,7 +85,7 @@ class RemoteIdentityTest {
                 + " values (gen_random_uuid(), 'resident', 1, 'RETIRED', '{}'::jsonb, 'maker'),"
                 + " (gen_random_uuid(), 'resident', 2, 'APPROVED', '{\"thresholds\":{\"autoMatch\":0.9}}'::jsonb,"
                 + " 'maker')");
-        var runner = new RemoteMatchingRunner(connections, Duration.ofMinutes(2));
+        var runner = new RemoteMatchingRunner(connections, Duration.ofMinutes(2), "");
         CompletableFuture<UUID> result = CompletableFuture.supplyAsync(runner::run);
 
         long deadline = System.currentTimeMillis() + 30_000;

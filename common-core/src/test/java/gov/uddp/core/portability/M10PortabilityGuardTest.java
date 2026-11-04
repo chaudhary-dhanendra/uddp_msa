@@ -107,7 +107,8 @@ class M10PortabilityGuardTest {
             "common-core/src/main/java/gov/uddp/core/validation/ValidationIssue.java");
     /** The engines moved, unchanged, from common-core to the engine modules (MSA); every location is protected. */
     private static final String MOVED_FROM = "common-core/src/main/java/";
-    private static final List<String> ENGINE_MODULES = List.of("engine", "canonical-engine", "golden-engine");
+    private static final List<String> ENGINE_MODULES = List.of("engine", "canonical-engine", "golden-engine",
+            "matching-engine");
     private static final String[] PROTECTED_PATHS = {
         "common-core/src/main/java/gov/uddp/core/mapping",
         "common-core/src/main/java/gov/uddp/core/canonical",
@@ -226,7 +227,7 @@ class M10PortabilityGuardTest {
         List<Path> files = new ArrayList<>();
         Path migrations = ROOT.resolve("common-core/src/main/resources/db/migration");
         for (String module : List.of("common-core/src/main", "engine/src/main", "canonical-engine/src/main",
-                "golden-engine/src/main")) {
+                "golden-engine/src/main", "matching-engine/src/main")) {
             try (Stream<Path> java = Files.walk(ROOT.resolve(module))) {
                 java.filter(Files::isRegularFile)
                         // Historical migrations are immutable upgrade records. They may contain legacy sample pack IDs
