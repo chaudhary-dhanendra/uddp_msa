@@ -45,7 +45,8 @@ public class RegistryMessaging implements DisposableBean {
     public RegistryMessaging(@Value("${uddp.kafka.bootstrap-servers}") String bootstrapServers,
                              PostgresConnectionFactory registryConnections, GoldenBuilds builds) {
         this.producer = new KafkaProducer<>(Map.of("bootstrap.servers", bootstrapServers, "enable.idempotence", "true",
-                "acks", "all", "client.id", "registry-service"), new StringSerializer(), new StringSerializer());
+                "acks", "all", "client.id", "registry-service", "max.request.size", "8388608"),
+                new StringSerializer(), new StringSerializer());
         this.relay = new OutboxRelay(registryConnections::open, producer, 500);
         // Residents have their own consumer: a family observation that waits for its Resident must not block it.
         loops.add(new KafkaEventLoop(bootstrapServers, RESIDENT_CONSUMER, registryConnections::open, Map.of(
@@ -54,10 +55,14 @@ public class RegistryMessaging implements DisposableBean {
                 Topics.FAMILY_OBSERVED, RegistryProjections::familyObserved,
                 Topics.MATCH_DECIDED, RegistryProjections.MATCH_DECIDED,
                 Topics.CLUSTER_ASSIGNED, RegistryProjections.CLUSTER_ASSIGNED,
-                Topics.MATCH_RUN_COMPLETED, RegistryProjections.MATCH_RUN_COMPLETED), producer));
+                Topics.MATCH_RUN_COMPLETED, RegistryProjections.MATCH_RUN_COMPLETED,
+                Topics.STEWARDSHIP_DECISION_RECORDED, RegistryProjections::decisionRecorded), producer));
         loops.add(new KafkaEventLoop(bootstrapServers, COMMAND_CONSUMER, registryConnections::open, Map.of(
                 Topics.CMD_GOLDEN_BUILD_REQUESTED, (c, envelope) -> builds.build(
-                        UUID.fromString(envelope.path("payload").path("matchingRunId").asText()))), producer,
+                        UUID.fromString(envelope.path("payload").path("matchingRunId").asText()),
+                        envelope.path("payload").hasNonNull("afterDecisionId")
+                                ? UUID.fromString(envelope.path("payload").path("afterDecisionId").asText())
+                                : null)), producer,
                 Map.of("max.poll.records", "1", "max.poll.interval.ms", String.valueOf(TimeUnit.HOURS.toMillis(2)))));
     }
 

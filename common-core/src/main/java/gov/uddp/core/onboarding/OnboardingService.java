@@ -1,7 +1,6 @@
 package gov.uddp.core.onboarding;
 
 import gov.uddp.core.canonical.PostgresConnectionFactory;
-import gov.uddp.core.golden.GoldenResidentService;
 import gov.uddp.core.security.SecretRedactor;
 import gov.uddp.core.statepack.StatePackAssets.SourceDefinition;
 import gov.uddp.core.statepack.StatePackLoader;
@@ -28,7 +27,7 @@ public class OnboardingService {
     private final CanonicalBatchProcessor canonical;
     private final MatchingRunner matching;
     private gov.uddp.core.events.PlatformEvents platformEvents;
-    private final GoldenResidentService golden;
+    private final GoldenBuildRunner golden;
     private DatabaseSources databases;
     private DeliveryChangeService changes;
     private ReleaseCheckpoint release;
@@ -39,7 +38,7 @@ public class OnboardingService {
     @Autowired
     public OnboardingService(PostgresConnectionFactory connections, StatePackLifecycleService lifecycle,
                              StatePackLoader packs, HopRunner hop, CanonicalBatchProcessor canonical,
-                             MatchingRunner matching, GoldenResidentService golden) {
+                             MatchingRunner matching, GoldenBuildRunner golden) {
         this.connections = connections;
         this.lifecycle = lifecycle;
         this.packs = packs;

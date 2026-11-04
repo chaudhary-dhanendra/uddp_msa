@@ -36,6 +36,8 @@ public class RegistryConfiguration {
         // Matching runs and Raw are other services' events; this service only publishes Golden changes.
         events.setRemoteIdentity(true);
         events.setRemoteIngestion(true);
+        // Each build also publishes the rows it wrote, for api-stewardship-service's read model.
+        events.setGoldenReplica(true);
         return events;
     }
 

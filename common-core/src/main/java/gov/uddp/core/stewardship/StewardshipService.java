@@ -3,7 +3,6 @@ package gov.uddp.core.stewardship;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.uddp.core.canonical.PostgresConnectionFactory;
 import gov.uddp.core.golden.GoldenBuildSummary;
-import gov.uddp.core.golden.GoldenResidentService;
 import gov.uddp.core.read.ReadNotFoundException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -28,10 +27,12 @@ public class StewardshipService {
     private static final String UNIQUE_VIOLATION = "23505";
 
     private final PostgresConnectionFactory connections;
-    private final GoldenResidentService golden;
+    private final gov.uddp.core.onboarding.GoldenBuildRunner golden;
+    private gov.uddp.core.events.PlatformEvents events;
     private final ObjectMapper json;
 
-    public StewardshipService(PostgresConnectionFactory connections, GoldenResidentService golden, ObjectMapper json) {
+    public StewardshipService(PostgresConnectionFactory connections, gov.uddp.core.onboarding.GoldenBuildRunner golden,
+                              ObjectMapper json) {
         this.connections = connections;
         this.golden = golden;
         this.json = json;
@@ -175,6 +176,9 @@ public class StewardshipService {
                 }
                 pending = plan.in(c);
                 insertDecision(c, decision, pending, reviewer.strip(), reason.strip());
+                if (events != null) {
+                    events.decisionRecorded(c, decision);
+                }
                 c.commit();
             } catch (Exception e) {
                 c.rollback();
@@ -193,6 +197,12 @@ public class StewardshipService {
         GoldenBuildSummary build = golden.build(run);
         return new DecisionResult(decision, pending.action(), reviewer.strip(), reason.strip(), pending.goldenIds(),
                 pending.constraints().size(), run, build);
+    }
+
+    /** MSA Phase 3: with events enabled, each decision is published (registry-service applies its constraints). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEvents(gov.uddp.core.events.PlatformEvents events) {
+        this.events = events;
     }
 
     private void insertDecision(Connection c, UUID id, Pending pending, String reviewer, String reason) throws Exception {

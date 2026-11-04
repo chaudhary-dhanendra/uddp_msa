@@ -65,6 +65,13 @@ public class PlatformEvents {
 
     private boolean remoteIngestion;
 
+    private boolean goldenReplica;
+
+    /** registry-service: every build also publishes the rows it wrote (golden-replica) for the edge's read model. */
+    public void setGoldenReplica(boolean goldenReplica) {
+        this.goldenReplica = goldenReplica;
+    }
+
     public boolean enabled() {
         return enabled;
     }
@@ -201,6 +208,23 @@ public class PlatformEvents {
         }
         append(c, Topics.FAMILY_OBSERVED, "uddp.canonical.family-observed", observationId.toString(), key, stateCode,
                 batch, p);
+    }
+
+    /**
+     * stewardship: a recorded decision and its link constraints (rows), on the transaction that wrote them, so
+     * registry-service applies the same constraints in its next build.
+     */
+    public void decisionRecorded(Connection c, UUID decisionId) throws SQLException {
+        if (!enabled) {
+            return;
+        }
+        ObjectNode p = object();
+        p.put("decisionId", decisionId.toString());
+        p.set("rows", RowReplication.read(c, List.of(
+                new RowReplication.Selection("stewardship_decision", "decision_id = ?", List.of(decisionId)),
+                new RowReplication.Selection("stewardship_link_constraint", "decision_id = ?", List.of(decisionId)))));
+        append(c, Topics.STEWARDSHIP_DECISION_RECORDED, "uddp.stewardship.decision-recorded", decisionId.toString(),
+                decisionId.toString(), null, null, p);
     }
 
     /** canonical DLQ: a business-invalid record, on the transaction that recorded the failure. */
@@ -377,6 +401,14 @@ public class PlatformEvents {
             }
             append(c, Topics.GOLDEN_RESIDENT_CHANGED, "uddp.registry.golden-resident-changed",
                     buildId + "|" + goldenId, goldenId.toString(), null, summary.matchingRunId(), p);
+        }
+        if (goldenReplica) {
+            ObjectNode replica = object();
+            replica.put("goldenBuildId", buildId.toString());
+            replica.put("matchingRunId", summary.matchingRunId() == null ? null : summary.matchingRunId().toString());
+            replica.set("rows", GoldenReplica.read(c, buildId));
+            append(c, Topics.GOLDEN_REPLICA, "uddp.registry.golden-replica", buildId.toString(), buildId.toString(),
+                    null, summary.matchingRunId(), replica);
         }
         ObjectNode done = Outbox.json().valueToTree(summary);
         done.put("goldenBuildId", buildId.toString());

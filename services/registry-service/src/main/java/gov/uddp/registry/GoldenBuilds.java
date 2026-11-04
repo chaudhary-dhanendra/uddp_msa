@@ -30,7 +30,12 @@ public class GoldenBuilds {
     }
 
     public GoldenBuildSummary build(UUID matchingRunId) {
-        awaitReady(matchingRunId);
+        return build(matchingRunId, null);
+    }
+
+    /** As {@link #build(UUID)}, after the stewardship decision {@code afterDecisionId} (if any) has been applied here. */
+    public GoldenBuildSummary build(UUID matchingRunId, UUID afterDecisionId) {
+        awaitReady(matchingRunId, afterDecisionId);
         return golden.build(matchingRunId);
     }
 
@@ -51,9 +56,24 @@ public class GoldenBuilds {
         }
     }
 
-    private void awaitReady(UUID matchingRunId) {
+    private boolean decided(UUID decisionId) {
+        if (decisionId == null) {
+            return true;
+        }
+        try (var c = connections.open(); var s = c.prepareStatement("select 1 from stewardship_decision"
+                + " where decision_id = ?")) {
+            s.setObject(1, decisionId);
+            try (var r = s.executeQuery()) {
+                return r.next();
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot check stewardship decision " + decisionId, e);
+        }
+    }
+
+    private void awaitReady(UUID matchingRunId, UUID afterDecisionId) {
         Instant deadline = Instant.now().plus(wait);
-        while (!ready(matchingRunId)) {
+        while (!ready(matchingRunId) || !decided(afterDecisionId)) {
             if (Instant.now().isAfter(deadline)) {
                 throw new IllegalStateException("Matching run " + matchingRunId + " is not complete in registry-service");
             }

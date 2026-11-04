@@ -17,6 +17,16 @@
       <groupId>gov.uddp</groupId>
       <artifactId>uddp-contracts</artifactId>
     </dependency>
+    <!--
+      The edge is the monolith's remaining application (security, read APIs, review queue, onboarding saga, Studio)
+      with every pipeline stage handed to its service (api-stewardship.yml) and the data it reads held as read models
+      fed by events: Raw, canonical, matching runs and the Golden replica.
+    -->
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-common-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
@@ -24,18 +34,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
