@@ -77,6 +77,10 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <!-- The executable jar gets the "exec" classifier; the plain jar is used by the cross-service e2e test. -->
+        <configuration>
+          <classifier>exec</classifier>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

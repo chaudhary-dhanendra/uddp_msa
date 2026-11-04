@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>gov.uddp</groupId>
+    <artifactId>uddp-msa</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <!--
+    Phase 4: the cross-service portability proof. Starts statepack, ingestion, canonical, identity and registry
+    in one JVM against Testcontainers Postgres and Kafka (real Splink; Hop is a fixture that lands rows as the generic
+    template does) and onboards states by State Pack data only. Slow, so it runs only with -Dmsa.e2e=true.
+  -->
+  <artifactId>uddp-msa-e2e</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-statepack-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-ingestion-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-canonical-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-identity-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-registry-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skipTests>${msa.e2e.skip}</skipTests>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>msa-e2e-off</id>
+      <activation>
+        <property>
+          <name>!msa.e2e</name>
+        </property>
+      </activation>
+      <properties>
+        <msa.e2e.skip>true</msa.e2e.skip>
+      </properties>
+    </profile>
+    <profile>
+      <id>msa-e2e-on</id>
+      <activation>
+        <property>
+          <name>msa.e2e</name>
+        </property>
+      </activation>
+      <properties>
+        <msa.e2e.skip>false</msa.e2e.skip>
+      </properties>
+    </profile>
+  </profiles>
+</project>

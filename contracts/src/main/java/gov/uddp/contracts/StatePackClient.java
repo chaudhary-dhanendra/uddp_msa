@@ -39,6 +39,15 @@ public final class StatePackClient {
         return read(get("api/statepacks/resolve?stateCode=" + encode(stateCode) + "&version=" + encode(version)));
     }
 
+    /** Every ACTIVE pack version (one per pack), each fetched and verified by its digest. */
+    public java.util.List<Pack> active() {
+        var out = new java.util.ArrayList<Pack>();
+        for (JsonNode row : get("api/statepacks?status=ACTIVE")) {
+            out.add(fetch(row.path("packId").asText(), row.path("version").asText(), row.path("digest").asText()));
+        }
+        return out;
+    }
+
     /** The pack version, which must have {@code expectedDigest} (null: whatever was approved). */
     public Pack fetch(String packId, String version, String expectedDigest) {
         Pack pack = read(get("api/statepacks/" + encode(packId) + "/" + encode(version)));
