@@ -1,0 +1,24 @@
+# Publishes, approves (maker-checker) and serves State Packs by version and digest.
+# Connection settings come only from the environment. The URL defaults to the local database uddp_platform on
+# UDDP_POSTGRES_HOST/PORT, the user to the service role uddp_statepack, and the password to UDDP_STATEPACK_POSTGRES_PASSWORD or,
+# when that is unset, UDDP_POSTGRES_PASSWORD. Nothing here is a credential.
+spring:
+  application:
+    name: statepack-service
+  datasource:
+    url: ${UDDP_STATEPACK_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_platform}
+    username: ${UDDP_STATEPACK_POSTGRES_USER:uddp_statepack}
+    password: ${UDDP_STATEPACK_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+  flyway:
+    # Own schema(s) and own history table; this service never touches another schema.
+    schemas: statepack
+    default-schema: statepack
+    create-schemas: true
+server:
+  address: 127.0.0.1
+  port: 8105
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

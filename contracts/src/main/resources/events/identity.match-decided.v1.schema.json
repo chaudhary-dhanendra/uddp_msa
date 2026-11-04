@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/identity.match-decided.v1.schema.json",
+  "title": "Match decided v1 (one scored pair of a matching run)",
+  "type": "object",
+  "required": ["matchingRunId", "canonicalRecordA", "canonicalRecordB", "matchProbability", "matchWeight", "decision"],
+  "properties": {
+    "matchingRunId": { "type": "string", "format": "uuid" },
+    "canonicalRecordA": { "type": "string", "format": "uuid" },
+    "canonicalRecordB": { "type": "string", "format": "uuid" },
+    "matchProbability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "matchWeight": { "type": "number" },
+    "decision": { "type": "string", "enum": ["AUTO_MATCH", "POSSIBLE_MATCH", "NO_MATCH"] },
+    "evidence": { "type": "object" }
+  }
+}

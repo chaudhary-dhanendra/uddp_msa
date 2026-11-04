@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/ingestion.raw-record-received.v1.schema.json",
+  "title": "Raw record received v1 (also the payload of raw-record-replayed, with replayRunId set)",
+  "type": "object",
+  "required": ["rawRecordId", "batchId", "sourceSystem", "payloadFormat", "rawPayload", "landedAt"],
+  "properties": {
+    "rawRecordId": { "type": "string", "format": "uuid" },
+    "batchId": { "type": "string", "format": "uuid" },
+    "sourceSystem": { "type": "string", "minLength": 1 },
+    "sourceLine": { "type": ["integer", "null"], "minimum": 1 },
+    "payloadFormat": { "type": "string", "enum": ["CSV_ROW", "XLSX_ROW", "DB_ROW", "JSON"] },
+    "rawPayload": { "type": "string", "description": "The original payload, unchanged." },
+    "landedAt": { "type": "string", "format": "date-time" },
+    "replayRunId": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

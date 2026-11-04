@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/canonical.resident-created.v1.schema.json",
+  "title": "Canonical resident created v1 (a new canonical version of one source record)",
+  "type": "object",
+  "required": ["canonicalResidentId", "sourceRecordKey", "version", "rawRecordId", "processingRunId", "canonicalPayload"],
+  "properties": {
+    "canonicalResidentId": { "type": "string", "format": "uuid" },
+    "sourceRecordKey": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "supersedesCanonicalId": { "type": ["string", "null"], "format": "uuid" },
+    "rawRecordId": { "type": "string", "format": "uuid" },
+    "processingRunId": { "type": "string", "format": "uuid" },
+    "canonicalPayload": {
+      "type": "object",
+      "description": "Common Data Model Resident; protected identifiers are vault tokens."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ruleId"],
+        "properties": {
+          "ruleId": { "type": "string" },
+          "field": { "type": ["string", "null"] },
+          "message": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

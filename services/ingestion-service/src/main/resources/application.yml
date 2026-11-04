@@ -1,0 +1,24 @@
+# Generic Hop ingestion and append-only Raw/Landing; publishes raw-record-received.
+# Connection settings come only from the environment. The URL defaults to the local database uddp_raw on
+# UDDP_POSTGRES_HOST/PORT, the user to the service role uddp_ingestion, and the password to UDDP_INGESTION_POSTGRES_PASSWORD or,
+# when that is unset, UDDP_POSTGRES_PASSWORD. Nothing here is a credential.
+spring:
+  application:
+    name: ingestion-service
+  datasource:
+    url: ${UDDP_INGESTION_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_raw}
+    username: ${UDDP_INGESTION_POSTGRES_USER:uddp_ingestion}
+    password: ${UDDP_INGESTION_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+  flyway:
+    # Own schema(s) and own history table; this service never touches another schema.
+    schemas: ingestion
+    default-schema: ingestion
+    create-schemas: true
+server:
+  address: 127.0.0.1
+  port: 8101
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

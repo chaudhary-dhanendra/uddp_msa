@@ -1,0 +1,24 @@
+# Survivorship, Golden Resident and Golden Family lifecycle, provenance and lineage.
+# Connection settings come only from the environment. The URL defaults to the local database uddp_registry on
+# UDDP_POSTGRES_HOST/PORT, the user to the service role uddp_registry, and the password to UDDP_REGISTRY_POSTGRES_PASSWORD or,
+# when that is unset, UDDP_POSTGRES_PASSWORD. Nothing here is a credential.
+spring:
+  application:
+    name: registry-service
+  datasource:
+    url: ${UDDP_REGISTRY_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_registry}
+    username: ${UDDP_REGISTRY_POSTGRES_USER:uddp_registry}
+    password: ${UDDP_REGISTRY_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+  flyway:
+    # Own schema(s) and own history table; this service never touches another schema.
+    schemas: registry,lineage
+    default-schema: registry
+    create-schemas: true
+server:
+  address: 127.0.0.1
+  port: 8104
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
