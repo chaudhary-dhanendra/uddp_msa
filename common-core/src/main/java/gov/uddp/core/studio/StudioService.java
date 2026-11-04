@@ -4,19 +4,13 @@ import gov.uddp.core.canonical.PostgresConnectionFactory;
 import gov.uddp.core.config.StatePackProperties;
 import gov.uddp.core.config.StudioProperties;
 import gov.uddp.core.onboarding.DatabaseSources;
-import gov.uddp.core.onboarding.OnboardingNotFoundException;
 import gov.uddp.core.security.CurrentUser;
 import gov.uddp.core.security.SecretRedactor;
-import gov.uddp.core.security.SecurityProperties;
 import gov.uddp.core.setup.DatabaseConnectionSettings;
 import gov.uddp.core.setup.LocalSettingsStore;
-import gov.uddp.core.onboarding.OnboardingService;
-import gov.uddp.core.onboarding.OnboardingService.ProcessingMode;
-import gov.uddp.core.onboarding.StatePackLifecycleService;
 import gov.uddp.core.statepack.LoadedStatePack;
 import gov.uddp.core.statepack.StatePackLoadException;
 import gov.uddp.core.statepack.StatePackLoader;
-import gov.uddp.core.statepack.DatabaseStatePackRepository;
 import gov.uddp.core.studio.StudioMetadata.DefaultValidation;
 import gov.uddp.core.studio.StudioModels.Approval;
 import gov.uddp.core.studio.StudioModels.Crosswalk;
@@ -83,9 +77,8 @@ public class StudioService {
     private final StudioProperties studio;
     private final Path repositoryRoot;
     private final StatePackLoader packs;
-    private gov.uddp.core.gates.AutoApprovalPolicy autoApproval;
-    private final StatePackLifecycleService lifecycle;
-    private final OnboardingService onboarding;
+    private final StudioPublications publications;
+    private final StudioOnboarding onboarding;
     private final PostgresConnectionFactory connections;
     private final CsvProfiler profiler;
     private final SuggestionEngine suggestions;
@@ -94,27 +87,23 @@ public class StudioService {
     private final StudioMetadata metadata;
     private final PackGenerator generator;
     private final PreviewService previews;
-    private final StudioRunner runner;
     private final PortabilityEvidenceService evidence;
     private final SourceRows sourceRows;
     private final LocalSettingsStore store;
-    private final DatabaseStatePackRepository databasePacks;
     private final StatePackApprovalStore approvals;
-    private final SecurityProperties security;
 
     public StudioService(StudioWorkspace workspace, StudioProperties studio, StatePackProperties properties,
-                         StatePackLoader packs, StatePackLifecycleService lifecycle, OnboardingService onboarding,
+                         StatePackLoader packs, StudioPublications publications, StudioOnboarding onboarding,
                          PostgresConnectionFactory connections, CsvProfiler profiler, SuggestionEngine suggestions,
                          StudioMetadata metadata, PackGenerator generator, PreviewService previews,
-                         StudioRunner runner, PortabilityEvidenceService evidence, SourceRows sourceRows,
-                         LocalSettingsStore store, DatabaseStatePackRepository databasePacks,
-                         StatePackApprovalStore approvals, SecurityProperties security,
+                         PortabilityEvidenceService evidence, SourceRows sourceRows,
+                         LocalSettingsStore store, StatePackApprovalStore approvals,
                          SuggestionReviewStore reviews, AiMappingAdvisor advisor) {
         this.workspace = workspace;
         this.studio = studio;
         this.repositoryRoot = properties.repositoryRoot();
         this.packs = packs;
-        this.lifecycle = lifecycle;
+        this.publications = publications;
         this.onboarding = onboarding;
         this.connections = connections;
         this.profiler = profiler;
@@ -124,13 +113,10 @@ public class StudioService {
         this.metadata = metadata;
         this.generator = generator;
         this.previews = previews;
-        this.runner = runner;
         this.evidence = evidence;
         this.sourceRows = sourceRows;
         this.store = store;
-        this.databasePacks = databasePacks;
         this.approvals = approvals;
-        this.security = security;
     }
 
     public StudioStatus status() {
@@ -143,14 +129,7 @@ public class StudioService {
     public List<StateEntry> states() {
         List<StateEntry> states = new ArrayList<>();
         for (Draft draft : workspace.all()) {
-            String runStatus = null;
-            if (draft.lastRunId() != null) {
-                try {
-                    runStatus = String.valueOf(onboarding.detail(UUID.fromString(draft.lastRunId())).get("status"));
-                } catch (OnboardingNotFoundException | IllegalStateException e) {
-                    runStatus = null;
-                }
-            }
+            String runStatus = draft.lastRunId() == null ? null : onboarding.runStatus(draft.lastRunId());
             states.add(new StateEntry(draft.draftId(), draft.packId(), draft.stateCode(), draft.displayName(),
                     draft.status(), draft.published() == null ? null : draft.published().version(),
                     draft.source() == null ? null : draft.source().fileName(), draft.lastRunId(), runStatus,
@@ -357,7 +336,7 @@ public class StudioService {
     public Suggestions suggestions(String draftId) {
         Draft draft = draft(draftId);
         Profile profile = profile(draftId);
-        List<LoadedStatePack> published = packs.all().stream()
+        List<LoadedStatePack> published = publications.published().stream()
                 .filter(p -> !p.manifest().packId().equals(draft.packId()))
                 .toList();
         Suggestions suggested = advisor.combine(profile, suggestions.suggest(profile, published));
@@ -432,7 +411,7 @@ public class StudioService {
             return List.copyOf(crosswalks);
         }
         Profile profile = profiler.profile(sourceRows.sample(requireSource(draft), PROFILE_HEAD_ROWS, PROFILE_RANDOM_ROWS));
-        List<LoadedStatePack> published = packs.all().stream()
+        List<LoadedStatePack> published = publications.published().stream()
                 .filter(p -> !p.manifest().packId().equals(draft.packId()))
                 .toList();
         List<Crosswalk> result = new ArrayList<>();
@@ -549,24 +528,10 @@ public class StudioService {
         return new GeneratedPack(draft.packId(), version, generate(draft, version));
     }
 
-    private gov.uddp.core.events.StatePackPublisher statePackService;
-
-    /** MSA: with statepack-service every publication and decision is also recorded there, its system of record. */
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setStatePackService(gov.uddp.core.events.StatePackPublisher statePackService) {
-        this.statePackService = statePackService;
-    }
-
     private Map<String, String> fileMap(Draft draft, String version) {
         Map<String, String> files = new java.util.LinkedHashMap<>();
         generate(draft, version).forEach(file -> files.put(file.path(), file.content()));
         return files;
-    }
-
-    /** Enables auto-approval of routine pack edits (Track C3); without it every publication needs a checker. */
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setAutoApproval(gov.uddp.core.gates.AutoApprovalPolicy autoApproval) {
-        this.autoApproval = autoApproval;
     }
 
     public Preview preview(String draftId, Integer rows) {
@@ -582,7 +547,7 @@ public class StudioService {
     public synchronized Draft publish(String draftId) {
         Draft draft = draft(draftId);
         requireNotPending(draft);
-        if (runner.inProgress()) {
+        if (onboarding.inProgress()) {
             throw new StudioConflictException("An onboarding run is in progress; publish when it has finished");
         }
         Preview check = preview(draft, PUBLISH_CHECK_ROWS);
@@ -607,21 +572,12 @@ public class StudioService {
             deleteTree(staging.getParent());
         }
         List<String> paths = files.stream().map(GeneratedFile::path).toList();
-        if (!security.getMakerChecker().isStatePackPublish()) {
+        if (!publications.makerChecker() || publications.autoApproved(draft, persisted, actor())) {
             return applyPublication(draft, version, paths, persisted, null);
-        }
-        if (autoApproval != null) {
-            var previous = draft.published() == null ? java.util.Optional.<LoadedStatePack>empty() : packs.find(draft.packId());
-            if (autoApproval.packEdit(previous, persisted, true).autoApproved()) {
-                autoApproval.recordAutoApproved("STATE_PACK", draft.packId(), draft.stateCode(), actor());
-                return applyPublication(draft, version, paths, persisted, null);
-            }
         }
         Approval approval = approvals.submit(draft.draftId(), draft.packId(), draft.stateCode(), version, persisted,
                 paths, actor());
-        if (statePackService != null) {
-            statePackService.publish(approval.submittedBy(), fileMap(draft, version));
-        }
+        publications.submitted(approval, fileMap(draft, version));
         Draft submitted = draft.withApproval(DraftStatus.PENDING_APPROVAL, approval, now());
         workspace.save(submitted);
         log.info("Studio submitted {} {} for approval", draft.packId(), version);
@@ -644,7 +600,7 @@ public class StudioService {
     public synchronized Draft approve(String approvalId, String reason) {
         Approval pending = requirePending(approvalId);
         String approver = requireOtherUser(pending);
-        if (runner.inProgress()) {
+        if (onboarding.inProgress()) {
             throw new StudioConflictException("An onboarding run is in progress; approve when it has finished");
         }
         Draft draft = draft(pending.draftId());
@@ -664,10 +620,7 @@ public class StudioService {
         }
         String approver = requireOtherUser(pending);
         Draft draft = draft(pending.draftId());
-        if (statePackService != null) {
-            statePackService.publish(pending.submittedBy(), fileMap(draft, pending.version()));
-            statePackService.reject(pending.packId(), pending.version(), approver, reason.strip());
-        }
+        publications.rejected(pending, approver, reason.strip(), fileMap(draft, pending.version()));
         Approval decided = approvals.decide(approvalId, StatePackApprovalStore.REJECTED, approver, reason.strip());
         DraftStatus previous = draft.published() == null ? DraftStatus.DRAFT
                 : draft.lastRunId() != null ? DraftStatus.ONBOARDED : DraftStatus.PUBLISHED;
@@ -680,24 +633,12 @@ public class StudioService {
     /** Persists, registers and activates an approved (or, without maker-checker, a validated) version. */
     private Draft applyPublication(Draft draft, String version, List<String> paths, LoadedStatePack persisted,
                                    Approval approval) {
-        if (statePackService != null && approval != null) {
-            statePackService.publish(approval.submittedBy(), fileMap(draft, version));
-            statePackService.approveAndActivate(draft.packId(), version, approval.decidedBy());
-        } else if (statePackService != null) {
-            statePackService.publishActive(actor(), fileMap(draft, version));
-        }
-        databasePacks.save(draft.displayName(), persisted);
-        if (draft.published() != null && !draft.published().version().equals(version)) {
-            retire(draft.packId(), draft.published().version());
-        }
-        lifecycle.register(draft.packId());
-        transitionToActive(draft.packId(), version);
+        String location = publications.activate(draft, version, persisted, approval, fileMap(draft, version), actor());
         if (evidenceMissing()) {
             evidence.record("before first publication");
         }
         evidence.record(draft.packId());
-        Publication publication = new Publication(version, now(), "postgresql:state_pack_document/" + draft.packId(),
-                paths, "ACTIVE");
+        Publication publication = new Publication(version, now(), location, paths, "ACTIVE");
         Draft updated = draft.withPublication(version, publication, approval, now());
         workspace.save(updated);
         log.info("Studio published {} {} ({} files)", draft.packId(), version, paths.size());
@@ -739,34 +680,32 @@ public class StudioService {
         if (draft.published() == null) {
             throw new StudioConflictException("Publish the pack before onboarding it");
         }
-        ProcessingMode mode = requestedMode == null || requestedMode.isBlank()
-                ? (goldenDataExists() ? ProcessingMode.INCREMENTAL : ProcessingMode.FULL)
-                : ProcessingMode.valueOf(requestedMode.trim().toUpperCase(Locale.ROOT));
-        UUID run = onboarding.start(draft.packId(), draft.published().version(), draft.source().sourceId(), mode);
-        Draft running = draft.withRun(run.toString(), draft.status(), now());
+        OnboardStarted started = onboarding.start(draft.packId(), draft.published().version(),
+                draft.source().sourceId(), requestedMode);
+        Draft running = draft.withRun(started.runId(), draft.status(), now());
         workspace.save(running);
-        runner.runInBackground(run, status -> finished(draftId, run, status));
-        return new OnboardStarted(run.toString(), mode.name());
+        onboarding.runInBackground(started.runId(), status -> runFinished(draftId, started.runId(), status));
+        return started;
     }
 
-    private synchronized void finished(String draftId, UUID run, String status) {
+    /** Records a Studio-started run's end; a COMPLETED run marks the draft ONBOARDED. */
+    public synchronized void runFinished(String draftId, String run, String status) {
         Draft draft = draft(draftId);
-        if (run.toString().equals(draft.lastRunId()) && "COMPLETED".equals(status)) {
-            workspace.save(draft.withRun(run.toString(), DraftStatus.ONBOARDED, now()));
+        if (run.equals(draft.lastRunId()) && "COMPLETED".equals(status)) {
+            workspace.save(draft.withRun(run, DraftStatus.ONBOARDED, now()));
         }
+    }
+
+    /** Records a run of the draft's published version started by the edge, where the Studio runs elsewhere (MSA). */
+    public synchronized Draft runStarted(String draftId, String run) {
+        Draft draft = draft(draftId);
+        Draft running = draft.withRun(run, draft.status(), now());
+        workspace.save(running);
+        return running;
     }
 
     public boolean goldenDataExists() {
-        if (!connections.isConfigured()) {
-            return false;
-        }
-        try (var c = connections.open();
-                var s = c.prepareStatement("select exists(select 1 from golden_resident where status='ACTIVE')");
-                var r = s.executeQuery()) {
-            return r.next() && r.getBoolean(1);
-        } catch (Exception e) {
-            return false;
-        }
+        return onboarding.goldenDataExists();
     }
 
     public StudioModels.PortabilityEvidence portability() {
@@ -825,7 +764,7 @@ public class StudioService {
 
     private void requireAgreeingThresholds(Draft draft) {
         Matching matching = draft.rules().matching();
-        for (LoadedStatePack pack : packs.all()) {
+        for (LoadedStatePack pack : publications.published()) {
             if (pack.manifest().packId().equals(draft.packId())) {
                 continue;
             }
@@ -839,36 +778,6 @@ public class StudioService {
                             + "): one matching run compares residents across states");
                 }
             }
-        }
-    }
-
-    private void transitionToActive(String packId, String version) {
-        String status = lifecycleStatus(packId, version);
-        if ("DRAFT".equals(status)) {
-            lifecycle.transition(packId, version, "VALIDATED");
-            status = "VALIDATED";
-        }
-        if ("VALIDATED".equals(status)) {
-            lifecycle.transition(packId, version, "ACTIVE");
-        }
-    }
-
-    private void retire(String packId, String version) {
-        if ("ACTIVE".equals(lifecycleStatus(packId, version))) {
-            lifecycle.transition(packId, version, "RETIRED");
-        }
-    }
-
-    private String lifecycleStatus(String packId, String version) {
-        try (var c = connections.open();
-                var s = c.prepareStatement("select status from state_pack_lifecycle where pack_id=? and version=?")) {
-            s.setString(1, packId);
-            s.setString(2, version);
-            try (var r = s.executeQuery()) {
-                return r.next() ? r.getString(1) : null;
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot read the State Pack lifecycle", e);
         }
     }
 
@@ -910,7 +819,7 @@ public class StudioService {
                         + " or state code " + other.stateCode());
             }
         }
-        for (LoadedStatePack pack : packs.all()) {
+        for (LoadedStatePack pack : publications.published()) {
             boolean ownPack = draftId != null && draft(draftId).packId().equals(pack.manifest().packId());
             if (!ownPack && (pack.manifest().packId().equals(details.packId().trim())
                     || pack.manifest().stateCode().equals(details.stateCode().trim()))) {
