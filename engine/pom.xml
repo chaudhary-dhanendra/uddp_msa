@@ -3,12 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <!--
-    The UDDP engines, moved out of common-core with their packages unchanged: State Pack loading, shaping, mapping,
-    conversion, crosswalks, validation and DQ, canonical processing (Resident, Family, Benefit, Application, Asset),
-    identifier types, geography master reads, survivorship and the Golden lifecycle, plus the event projections the
-    services share. It is exactly the classes those engines need (no web controllers, no edge features).
-    canonical-service and registry-service depend on this module; common-core (the edge's application) depends on it
-    too. Like common-core it keeps spring-boot-starter-parent, so its build matches the monolith's.
+    The kernel the UDDP engines share, moved unchanged from common-core (MSA): the State Pack model and loader,
+    the connection factory, identifier types and protection, rule sets, the shaping plugin API and the event port
+    (PlatformEvents, Golden replica, canonical batch rows). canonical-engine and golden-engine build on it.
   -->
   <parent>
     <groupId>org.springframework.boot</groupId>

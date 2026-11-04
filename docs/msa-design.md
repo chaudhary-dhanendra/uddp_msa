@@ -423,14 +423,17 @@ Not done yet, in priority order:
    `matching_profile` and `identity_policy` rows, APPROVED ones last, and identity-service applies them row for row
    before the run, so the Splink adapter uses the approved profile and policy). Profile training, steward labels and
    threshold proposals still run at the edge against its own read models.
-4. **common-core split, first step done (2026-11-04):** the 152 classes the engines need (State Pack loading,
-   shaping, mapping, validation and DQ, canonical processing, identifier types, geography reads, survivorship, the
-   Golden lifecycle and the shared event projections) moved unchanged, in their packages, to the `engine` module;
-   canonical-service and registry-service depend on `uddp-engine` only, and common-core (220 classes, the edge's
-   application) depends on it. The packages are cyclic (the canonical package alone reaches 33 of 34 packages), so
-   the next step, splitting `engine` into a canonical engine and a Golden engine, first needs those cycles broken
-   (PostgresConnectionFactory out of `canonical`, the `events` hooks behind interfaces). The portability guard
-   protects both module paths and treats an unchanged move as no change.
+4. **common-core split done (2026-11-04):** the engine classes moved unchanged, in their packages, out of
+   common-core into three modules chosen by class-level reachability (the packages themselves are cyclic, but the
+   classes split cleanly): `engine` (48 classes: the shared kernel, i.e. State Pack model and loader, connection
+   factory, identifier types, rule sets, the shaping plugin API and the event port), `canonical-engine` (81:
+   shaping operations and parsers, mapping, validation and DQ, held records, canonical processing) and
+   `golden-engine` (23: survivorship, the Golden lifecycle, UDDP IDs, identity policy, registry projections).
+   canonical-service depends only on `uddp-canonical-engine`, registry-service only on `uddp-golden-engine`, and
+   common-core (220 classes, the edge's application) on both. The `shaping-api` jar now holds the five plugin
+   contract types (FieldParser, LayoutOperation, OperationLookup, ParseResult, RawRow); the record-shaping types
+   that depend on mapping moved to canonical-engine. The portability guard protects every module path and treats an
+   unchanged move as no change.
 5. Database-table sources, connectors, schedules and landing folders stay at the edge (credentials never go over
    Kafka); source files are passed as paths (shared filesystem); a Golden replica is one event (8 MB limit);
    canonical-service cannot yet replay a batch with a different pack version; real Hop runs are not in automated tests.

@@ -23,13 +23,13 @@
     </dependency>
     <!--
       Phase 3d (strangler): the canonical engine (shaping, mapping, conversion, crosswalks, validation, DQ, family and
-      benefit observation) and the State Pack loader come from the uddp-engine module (moved out of common-core
+      benefit observation) and the State Pack loader come from the uddp-canonical-engine module (moved out of common-core
       unchanged), together.
       The module holds only the classes those engines need: no web controllers, edge security or JPA.
     -->
     <dependency>
       <groupId>gov.uddp</groupId>
-      <artifactId>uddp-engine</artifactId>
+      <artifactId>uddp-canonical-engine</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
