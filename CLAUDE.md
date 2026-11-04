@@ -51,7 +51,8 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 - `m10-state-packs/state-4/` — State 4 portability fixture (combined with `state-packs/` only by the M10 e2e)
 - `hop/pipelines/generic-file-ingest.hpl` and `generic-db-ingest.hpl` — the ONLY ingest pipelines (generic)
 - `platform/studio/` — Studio metadata: mapping targets, keyword groups, rule defaults (no state names)
-- `studio-packs/`, `studio-workspace/` — Studio-generated packs, drafts and uploads (gitignored)
+- Studio drafts, uploads and evidence are runtime data in statepack-service (`UDDP_STUDIO_WORKSPACE`, default its
+  `target/studio-workspace`); nothing is written to the repository root
 - `common-model/` — JSON Schemas for Resident, Family, Scheme, Benefit
 - `sample-data/` — tiny CSVs per state (7 residents total; 3 are "Ram Singh")
 
