@@ -434,9 +434,24 @@ Not done yet, in priority order:
    contract types (FieldParser, LayoutOperation, OperationLookup, ParseResult, RawRow); the record-shaping types
    that depend on mapping moved to canonical-engine. The portability guard protects every module path and treats an
    unchanged move as no change.
-5. Database-table sources, connectors, schedules and landing folders stay at the edge (credentials never go over
-   Kafka); source files are passed as paths (shared filesystem); a Golden replica is one event (8 MB limit);
-   canonical-service cannot yet replay a batch with a different pack version; real Hop runs are not in automated tests.
+5. ~~Remaining smaller items~~ (done 2026-11-04):
+   - **Delivered files** are uploaded to ingestion-service (`POST /api/ingestion/files`, stored by SHA-256 in its
+     landing directory) and named by `fileRef` in the ingest command when the edge has `uddp.ingestion.url`; no
+     service shares a disk any more.
+   - **Database-table sources** run in ingestion-service: the command names the source's `connectionRef`, `table`
+     or `query`; the connection and password are configured only there
+     (`uddp.ingestion.connections.<name>.*`, password from the environment), it reads the header itself and hands
+     Hop the generic SELECT (`contracts.SourceSql`, shared with the edge) through the deleted JVM argument file. No
+     command or event carries a credential.
+   - **The Golden replica** travels in ordered chunks (at most 1000 rows, golden_resident rows kept together); the
+     last chunk records the build (V117), so no build is limited by one Kafka message.
+   - **Real Hop** runs through ingestion-service without a registered Hop project (HOP_METADATA_FOLDER = this
+     repository's `metadata/`): `mvn test -pl services/ingestion-service -Dtest=RealHopIngestionTest -Dmsa.hop=true`
+     lands the sample file and a database table in the `ingestion` schema (passed on 2026-11-04).
+
+   Still at the edge by design: source connector management screens, schedules and landing-folder watching, Studio,
+   profile training and steward labels. Known pre-existing failures unrelated to the MSA work:
+   StudioDatabaseSourceTest and StudioEquivalenceTest (LGD district not resolved; they fail on the untouched import).
 
 ### Phase 4: cross-service portability proof
 
