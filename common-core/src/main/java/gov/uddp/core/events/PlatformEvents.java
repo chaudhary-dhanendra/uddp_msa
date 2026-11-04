@@ -34,15 +34,31 @@ import org.springframework.stereotype.Component;
 @Component
 public class PlatformEvents {
 
-    private static final String PRODUCER = "common-core";
+    private final String producer;
 
     private final PostgresConnectionFactory connections;
     private final boolean enabled;
 
+    public PlatformEvents(PostgresConnectionFactory connections, boolean enabled) {
+        this(connections, enabled, "common-core");
+    }
+
+    /** The application's wiring: the switches that hand matching or ingestion to their services (MSA Phase 3). */
+    @org.springframework.beans.factory.annotation.Autowired
     public PlatformEvents(PostgresConnectionFactory connections,
-                          @Value("${uddp.events.enabled:false}") boolean enabled) {
+                          @Value("${uddp.events.enabled:false}") boolean enabled,
+                          @Value("${uddp.identity.remote:false}") boolean remoteIdentity,
+                          @Value("${uddp.ingestion.remote:false}") boolean remoteIngestion) {
+        this(connections, enabled, "common-core");
+        this.remoteIdentity = remoteIdentity;
+        this.remoteIngestion = remoteIngestion;
+    }
+
+    /** As above, naming the producing service (registry-service reuses the Golden events). */
+    public PlatformEvents(PostgresConnectionFactory connections, boolean enabled, String producer) {
         this.connections = connections;
         this.enabled = enabled;
+        this.producer = producer;
     }
 
     private boolean remoteIdentity;
@@ -54,14 +70,12 @@ public class PlatformEvents {
     }
 
     /** With ingestion-service (MSA Phase 3) Raw events are its events; this service must not republish them. */
-    @org.springframework.beans.factory.annotation.Autowired
-    public void setRemoteIngestion(@Value("${uddp.ingestion.remote:false}") boolean remoteIngestion) {
+    public void setRemoteIngestion(boolean remoteIngestion) {
         this.remoteIngestion = remoteIngestion;
     }
 
     /** With identity-service (MSA Phase 3) matching runs are its events; this service must not republish them. */
-    @org.springframework.beans.factory.annotation.Autowired
-    public void setRemoteIdentity(@Value("${uddp.identity.remote:false}") boolean remoteIdentity) {
+    public void setRemoteIdentity(boolean remoteIdentity) {
         this.remoteIdentity = remoteIdentity;
     }
 
@@ -135,6 +149,58 @@ public class PlatformEvents {
         p.set("canonicalPayload", readTree(r.canonicalPayload()));
         append(c, Topics.RESIDENT_CREATED, "uddp.canonical.resident-created", r.canonicalResidentId().toString(),
                 sourceRecordKey, r.stateCode(), r.batchId(), p);
+    }
+
+    /** canonical: one family observation and its memberships, on the transaction that wrote them. */
+    public void familyObserved(Connection c, UUID observationId) throws SQLException {
+        if (!enabled) {
+            return;
+        }
+        ObjectNode p = object();
+        String key;
+        String stateCode;
+        UUID batch;
+        try (var s = c.prepareStatement("select raw_record_id, batch_id, state_code, source_system, source_entity,"
+                + " state_pack_version, mapping_version, resident_record_key, canonical_resident_id, observed_at"
+                + " from canonical_family_observation where canonical_family_observation_id = ?")) {
+            s.setObject(1, observationId);
+            try (var r = s.executeQuery()) {
+                if (!r.next()) {
+                    return;
+                }
+                p.put("observationId", observationId.toString());
+                p.put("rawRecordId", r.getString(1));
+                p.put("batchId", r.getString(2));
+                p.put("sourceSystem", r.getString(4));
+                p.put("sourceEntity", r.getString(5));
+                p.put("statePackVersion", r.getString(6));
+                p.put("mappingVersion", r.getString(7));
+                p.put("residentRecordKey", r.getString(8));
+                p.put("canonicalResidentId", r.getString(9));
+                p.put("observedAt", r.getObject(10, OffsetDateTime.class).toInstant().toString());
+                stateCode = r.getString(3);
+                key = r.getString(8);
+                batch = r.getObject(2, UUID.class);
+            }
+        }
+        ArrayNode memberships = p.putArray("memberships");
+        try (var s = c.prepareStatement("select canonical_family_membership_id, family_record_key, source_family_id,"
+                + " relationship_type, family_payload::text from canonical_family_membership"
+                + " where canonical_family_observation_id = ? order by family_record_key")) {
+            s.setObject(1, observationId);
+            try (var r = s.executeQuery()) {
+                while (r.next()) {
+                    ObjectNode m = memberships.addObject();
+                    m.put("membershipId", r.getString(1));
+                    m.put("familyRecordKey", r.getString(2));
+                    m.put("sourceFamilyId", r.getString(3));
+                    m.put("relationshipType", r.getString(4));
+                    m.set("familyPayload", readTree(r.getString(5)));
+                }
+            }
+        }
+        append(c, Topics.FAMILY_OBSERVED, "uddp.canonical.family-observed", observationId.toString(), key, stateCode,
+                batch, p);
     }
 
     /** canonical DLQ: a business-invalid record, on the transaction that recorded the failure. */
@@ -343,7 +409,7 @@ public class PlatformEvents {
     private void append(Connection c, String topic, String eventType, String idSource, String key, String stateCode,
                         UUID correlationId, ObjectNode payload) throws SQLException {
         UUID id = idSource == null ? UUID.randomUUID() : Outbox.deterministicId(eventType, idSource);
-        Outbox.append(c, topic, new EventEnvelope(id, eventType, 1, Instant.now(), PRODUCER, key, correlationId, null,
+        Outbox.append(c, topic, new EventEnvelope(id, eventType, 1, Instant.now(), producer, key, correlationId, null,
                 stateCode, null, payload));
     }
 

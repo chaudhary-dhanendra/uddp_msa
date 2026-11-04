@@ -69,6 +69,7 @@ class PlatformEventsOutboxTest {
         assertEquals(batches, outbox(sql, Topics.BATCH_PROCESSED));
         assertEquals(sql.count("select count(*) from canonical_resident_version"), outbox(sql, Topics.RESIDENT_CREATED));
         assertEquals(sql.count("select count(*) from canonical_processing_error"), outbox(sql, Topics.CANONICAL_DLQ));
+        assertEquals(sql.count("select count(*) from canonical_family_observation"), outbox(sql, Topics.FAMILY_OBSERVED));
         assertEquals(sql.count("select count(*) from resident_match_pair"), outbox(sql, Topics.MATCH_DECIDED));
         assertEquals(sql.count("select count(*) from resident_match_cluster_member"), outbox(sql, Topics.CLUSTER_ASSIGNED));
         assertEquals(1, outbox(sql, Topics.MATCH_RUN_COMPLETED));

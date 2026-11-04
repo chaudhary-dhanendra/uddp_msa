@@ -9,8 +9,12 @@ spring:
     url: ${UDDP_REGISTRY_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_registry}
     username: ${UDDP_REGISTRY_POSTGRES_USER:uddp_registry}
     password: ${UDDP_REGISTRY_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+    hikari:
+      schema: registry
   flyway:
-    # Own schema(s) and own history table; this service never touches another schema.
+    # Own schema(s) and own history table; this service never touches another schema. Its own location, because the
+    # monolith's jar (reused for the Golden engine) carries the monolith's migrations under db/migration.
+    locations: classpath:db/registry
     schemas: registry,lineage
     default-schema: registry
     create-schemas: true
@@ -22,3 +26,13 @@ management:
     web:
       exposure:
         include: health,info
+uddp:
+  kafka:
+    # Empty: no consumers and no relay (the service still serves its API). Set to enable messaging.
+    bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  registry:
+    # Platform survivorship policy (platform/survivorship/resident.yaml) and State Packs, until statepack-service
+    # serves them by version and digest.
+    platform-directory: ${UDDP_PLATFORM_DIRECTORY:../../platform}
+    state-pack-directory: ${UDDP_STATE_PACK_DIRECTORY:../../state-packs}
+    build-wait: PT10M
