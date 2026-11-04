@@ -3,14 +3,20 @@
   "$id": "https://uddp.gov/events/canonical.resident-created.v1.schema.json",
   "title": "Canonical resident created v1 (a new canonical version of one source record)",
   "type": "object",
-  "required": ["canonicalResidentId", "sourceRecordKey", "version", "rawRecordId", "processingRunId", "canonicalPayload"],
+  "required": ["canonicalResidentId", "sourceRecordKey", "version", "rawRecordId", "batchId", "sourceSystem",
+    "statePackVersion", "canonicalPayload"],
   "properties": {
     "canonicalResidentId": { "type": "string", "format": "uuid" },
     "sourceRecordKey": { "type": "string", "minLength": 1 },
     "version": { "type": "integer", "minimum": 1 },
     "supersedesCanonicalId": { "type": ["string", "null"], "format": "uuid" },
     "rawRecordId": { "type": "string", "format": "uuid" },
-    "processingRunId": { "type": "string", "format": "uuid" },
+    "batchId": { "type": "string", "format": "uuid" },
+    "sourceSystem": { "type": "string", "minLength": 1 },
+    "sourceEntity": { "type": ["string", "null"] },
+    "statePackVersion": { "type": "string", "minLength": 1 },
+    "processingRunId": { "type": ["string", "null"], "format": "uuid" },
+    "mappedAt": { "type": ["string", "null"], "format": "date-time" },
     "canonicalPayload": {
       "type": "object",
       "description": "Common Data Model Resident; protected identifiers are vault tokens."

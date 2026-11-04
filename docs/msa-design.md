@@ -316,6 +316,17 @@ The monolith is never modified. Each phase ends with every existing test still p
 5. Done when: all existing tests pass with the default config; new Testcontainers tests (Postgres + Kafka) prove
    outbox → Kafka → idempotent consumer, duplicate delivery and relay restart.
 
+Phase 2 as built (2026-11-04): `messaging` module (`Outbox`, `OutboxRelay`, `Inbox`); `common-core` V112 adds
+`outbox_event`/`processed_event`; `gov.uddp.core.events.PlatformEvents` writes raw, canonical (incl. DLQ), match and
+golden events from `CanonicalResidentProcessingService`, `PostgresCanonicalResidentRepository`,
+`GoldenResidentService` and the onboarding matching stage, only with `uddp.events.enabled=true`;
+`OutboxRelayScheduler` publishes when `uddp.events.kafka.bootstrap-servers` is also set. Step 4 (Kafka command
+adapters for `HopRunner`, matching and golden-build triggers) moves to Phase 3, where each adapter gets its real
+consumer in the extracted service. Statepack and stewardship events follow with those services. Envelopes carry no
+`statePack` ref yet (the monolith records only the pack version string); statepack-service adds the digest.
+The portability guard baseline is now the local tag `msa-import` (the import commit), since the monolith's tags were
+not copied.
+
 ### Phase 3: extract services in this order
 
 For each service: create its schema with a new V1 that recreates the monolith end-state of the tables it owns

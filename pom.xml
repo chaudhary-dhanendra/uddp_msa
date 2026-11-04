@@ -23,6 +23,7 @@
   <modules>
     <module>common-core</module>
     <module>contracts</module>
+    <module>messaging</module>
     <module>services/ingestion-service</module>
     <module>services/canonical-service</module>
     <module>services/identity-service</module>
@@ -41,6 +42,11 @@
       <dependency>
         <groupId>gov.uddp</groupId>
         <artifactId>uddp-contracts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>gov.uddp</groupId>
+        <artifactId>uddp-messaging</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

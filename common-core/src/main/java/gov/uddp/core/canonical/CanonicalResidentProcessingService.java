@@ -48,6 +48,8 @@ public class CanonicalResidentProcessingService {
     private boolean holdLowConfidence;
     private boolean holdInvalidIdentifiers;
 
+    private gov.uddp.core.events.PlatformEvents events;
+
     public CanonicalResidentProcessingService(RawRecordRepository raws, CanonicalResidentRepository canonicals,
                                               StatePackLoader packs, ResidentMappingEngine mapper,
                                               ResidentValidator validator, ObjectMapper json) {
@@ -179,6 +181,9 @@ public class CanonicalResidentProcessingService {
      * UNIQUE_WITHIN_BATCH validation compares the rows of one chunk.
      */
     public CanonicalProcessingSummary processBatch(UUID batchId) {
+        if (events != null) {
+            events.rawBatchLanded(batchId);
+        }
         final var referenceValues = referenceValues(true);
         var duplicateKeys = duplicateKeys(batchId);
         int committed = progress == null ? 0 : progress.begin(batchId, chunkSize);
@@ -219,7 +224,21 @@ public class CanonicalResidentProcessingService {
             progress.complete(batchId);
         }
         var sum = totals[0];
-        return new CanonicalProcessingSummary(batchId, sum.read(), sum.mapped(), sum.skipped(), sum.failed(), sum.held());
+        var summary = new CanonicalProcessingSummary(batchId, sum.read(), sum.mapped(), sum.skipped(), sum.failed(),
+                sum.held());
+        if (events != null) {
+            events.batchProcessed(summary);
+        }
+        return summary;
+    }
+
+    /**
+     * MSA Phase 2: with events enabled, processing a batch first publishes its landed raw records (idempotent, so
+     * every path that lands a batch is covered) and finally announces the processed batch.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEvents(gov.uddp.core.events.PlatformEvents events) {
+        this.events = events;
     }
 
     /** The reference sets rules check against; {@code persist} also stores the pack's sets for the DQ report. */

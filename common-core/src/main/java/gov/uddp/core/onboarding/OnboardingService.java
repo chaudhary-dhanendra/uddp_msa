@@ -28,6 +28,7 @@ public class OnboardingService {
     private final HopRunner hop;
     private final CanonicalResidentProcessingService canonical;
     private final PythonMatchingRunner matching;
+    private gov.uddp.core.events.PlatformEvents platformEvents;
     private final GoldenResidentService golden;
     private DatabaseSources databases;
     private DeliveryChangeService changes;
@@ -53,6 +54,12 @@ public class OnboardingService {
     public OnboardingService(PostgresConnectionFactory connections, StatePackLifecycleService lifecycle,
                              StatePackLoader packs) {
         this(connections, lifecycle, packs, null, null, null, null);
+    }
+
+    /** MSA Phase 2: with events enabled, a completed matching stage publishes its run's events. */
+    @Autowired(required = false)
+    public void setPlatformEvents(gov.uddp.core.events.PlatformEvents platformEvents) {
+        this.platformEvents = platformEvents;
     }
 
     /** Enables the SOURCE_TESTED check of database-table sources (ADR-0016). */
@@ -508,6 +515,9 @@ public class OnboardingService {
     /** Input: the records the run considered (every latest canonical, or only new/changed ones when incremental). */
     private StageResult match(Run row) {
         UUID id = ProcessingMode.INCREMENTAL.name().equals(row.processingMode()) ? matching.runIncremental() : matching.run();
+        if (platformEvents != null) {
+            platformEvents.matchRunCompleted(id);
+        }
         int input = count("select records_considered from matching_run where run_id=?", id);
         return new StageResult(input, count("select count(*) from resident_match_cluster_member where run_id=?", id), null, id);
     }
