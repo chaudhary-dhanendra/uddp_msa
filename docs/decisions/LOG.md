@@ -73,3 +73,4 @@
 - 2026-11-04 MSA: engines moved to an engine module by class-level dependency closure (packages kept, no code changes) rather than by package, because the packages are cyclic; services depend on uddp-engine, not common-core.
 - 2026-11-04 MSA: engine split into engine (kernel), canonical-engine and golden-engine by class reachability from each service's roots; the shared kernel is exactly the classes both engines reach, so no package cycle had to be broken.
 - 2026-11-04 MSA: files reach ingestion-service by upload (content-hash fileRef) and database sources by connectionRef with credentials held only by ingestion-service; ingestion-service runs Hop without a registered project, using the repository metadata folder.
+- 2026-11-04 MSA: connectors and landing folders moved to ingestion-service (credentials encrypted there); schedules stay at the edge because a schedule starts an onboarding run, which the edge orchestrates.

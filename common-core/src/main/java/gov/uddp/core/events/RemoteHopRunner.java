@@ -56,6 +56,47 @@ public class RemoteHopRunner implements HopRunner {
         this.remoteDatabaseSources = remote;
     }
 
+    /** With ingestion-service's URL it stages connector and landing-folder deliveries itself. */
+    @Override
+    public boolean stagesDeliveries() {
+        return !ingestionUrl.isEmpty();
+    }
+
+    /**
+     * SOURCE_TESTED where the source is read: a file this machine has is uploaded at ingestion, so it only has to be
+     * readable here; anything else (connector, landing folder, database table) is tested by ingestion-service.
+     */
+    @Override
+    public void testSource(SourceDefinition source, String stateCode) {
+        if (!source.database() && source.location() != null
+                && java.nio.file.Files.isReadable(local.sourceFile(source))
+                && java.nio.file.Files.isRegularFile(local.sourceFile(source))) {
+            return;
+        }
+        var body = new java.util.LinkedHashMap<String, Object>();
+        body.put("stateCode", stateCode);
+        body.put("sourceSystem", source.sourceId());
+        body.put("location", source.location());
+        body.put("connectionRef", source.connectionRef());
+        body.put("table", source.table());
+        body.put("query", source.query());
+        try {
+            var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
+                            java.net.URI.create(ingestionUrl.replaceAll("/+$", "") + "/api/ingestion/sources/test"))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(Outbox.json().writeValueAsString(body)))
+                    .build(), java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException(Outbox.json().readTree(response.body()).path("error")
+                        .asText("The source is not ready in ingestion-service"));
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot test the source in ingestion-service", e);
+        }
+    }
+
     @Override
     public Result ingest(SourceDefinition source, String stateCode, String packVersion, UUID batchId) {
         if (source.database() && !remoteDatabaseSources) {
@@ -78,14 +119,34 @@ public class RemoteHopRunner implements HopRunner {
                 payload.put("connectionRef", source.connectionRef());
                 payload.put("table", source.table());
                 payload.put("query", source.query());
+            } else if (!ingestionUrl.isEmpty()) {
+                // ingestion-service takes the delivery: the source's connector, the file uploaded from here (when
+                // this machine has it), the source's landing folder there, in that order.
+                payload.put("delivery", "auto");
+                payload.put("location", source.location());
+                java.nio.file.Path localFile = source.location() == null ? null
+                        : local.sourceFile(source);
+                var parameters = new java.util.LinkedHashMap<String, String>();
+                if (localFile != null && java.nio.file.Files.isRegularFile(localFile)) {
+                    parameters.putAll(local.fileInvocation(source, stateCode, packVersion, batchId).parameters());
+                    parameters.remove("FILE");
+                    parameters.remove("SOURCE_FILE");
+                    payload.put("fileRef", upload(localFile));
+                } else {
+                    parameters.put("STATE_CODE", stateCode);
+                    parameters.put("SOURCE_SYSTEM", source.sourceId());
+                    parameters.put("SOURCE_ENTITY", source.sourceId());
+                    parameters.put("SOURCE_SCHEMA_VERSION", source.sourceSchemaVersion());
+                    parameters.put("STATE_PACK_VERSION", packVersion);
+                    parameters.put("BATCH_ID", batchId.toString());
+                    if ("xlsx".equals(source.formatOrDefault())) {
+                        parameters.put("SHEETS", ProcessHopRunner.sheets(source));
+                    }
+                }
+                invocation = new ProcessHopRunner.Invocation("xlsx".equals(source.formatOrDefault())
+                        ? "generic-excel-ingest.hpl" : "generic-file-ingest.hpl", parameters);
             } else {
                 invocation = local.fileInvocation(source, stateCode, packVersion, batchId);
-                if (!ingestionUrl.isEmpty()) {
-                    var params = new java.util.LinkedHashMap<>(invocation.parameters());
-                    String path = params.containsKey("FILE") ? params.remove("FILE") : params.remove("SOURCE_FILE");
-                    payload.put("fileRef", upload(java.nio.file.Path.of(path)));
-                    invocation = new ProcessHopRunner.Invocation(invocation.template(), params);
-                }
             }
             payload.put("batchId", batchId.toString());
             payload.put("sourceSystem", source.sourceId());

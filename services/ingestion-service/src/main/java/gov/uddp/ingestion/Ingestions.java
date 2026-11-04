@@ -6,6 +6,7 @@ import gov.uddp.contracts.EventEnvelope;
 import gov.uddp.contracts.EventSchemas;
 import gov.uddp.contracts.Topics;
 import gov.uddp.messaging.Outbox;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -43,6 +44,16 @@ public class Ingestions {
         this.connections = connections;
     }
 
+    private gov.uddp.ingestion.connector.Connectors connectors;
+    private gov.uddp.ingestion.connector.LandingFolders folders;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setDeliveries(gov.uddp.ingestion.connector.Connectors connectors,
+                       gov.uddp.ingestion.connector.LandingFolders folders) {
+        this.connectors = connectors;
+        this.folders = folders;
+    }
+
     /** Runs a {@code cmd.ingestion.ingest-requested} payload; returns the batch's status. */
     public String ingest(JsonNode request, UUID correlationId) {
         var problems = EventSchemas.validate("cmd.ingestion.ingest-requested.v1", request);
@@ -56,7 +67,45 @@ public class Ingestions {
         parameters.put("BATCH_ID", batch.toString());
         String template = request.path("pipelineTemplate").asText();
         Map<String, String> secret = new LinkedHashMap<>();
-        if (request.hasNonNull("fileRef")) {
+        Runnable delivered = () -> { };
+        if ("auto".equals(request.path("delivery").asText(null)) && !template.equals("generic-db-ingest.hpl")) {
+            // This service decides where the delivery comes from: the source's connector, an uploaded file, the
+            // source's landing folder, or its file path, in that order.
+            String state = parameters.get("STATE_CODE");
+            String source = request.path("sourceSystem").asText();
+            var staged = connectors == null ? java.util.Optional.<gov.uddp.ingestion.connector.Connectors.Staged>empty()
+                    : connectors.stage(state, source);
+            String location = request.path("location").asText(null);
+            Path file = null;
+            if (staged.isPresent()) {
+                file = staged.get().file();
+                delivered = staged.get().completed();
+                template = "generic-file-ingest.hpl";
+            } else if (request.hasNonNull("fileRef")) {
+                file = landing.resolve(request.path("fileRef").asText());
+            } else if (folders != null && folders.isLandingFolder(location)) {
+                var intake = folders.next(location).orElseThrow(() -> new IllegalArgumentException(
+                        "No file is waiting in the landing folder " + location));
+                file = intake.file();
+                delivered = intake.completed();
+                if (file.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".csv")) {
+                    template = "generic-file-ingest.hpl";
+                }
+            }
+            if (file != null) {
+                parameters.remove("SOURCE_FILE");
+                parameters.remove("FILE");
+                if (template.contains("excel")) {
+                    parameters.put("FILE", file.toString());
+                } else {
+                    parameters.put("SOURCE_FILE", file.toString());
+                    parameters.put("CSV_HEADER", firstLine(file));
+                }
+            } else if (parameters.get("SOURCE_FILE") != null && parameters.get("CSV_HEADER") == null) {
+                parameters.put("CSV_HEADER", firstLine(Path.of(parameters.get("SOURCE_FILE"))));
+            }
+        }
+        if (request.hasNonNull("fileRef") && !"auto".equals(request.path("delivery").asText(null))) {
             // An uploaded file: its landed copy replaces any path the caller knew.
             String file = landing.resolve(request.path("fileRef").asText()).toString();
             parameters.remove("SOURCE_FILE");
@@ -79,6 +128,9 @@ public class Ingestions {
         HopExecutor.Result result;
         try {
             result = secret.isEmpty() ? hop.run(template, parameters) : hop.run(template, parameters, secret);
+            if (result.succeeded()) {
+                delivered.run();
+            }
         } catch (RuntimeException e) {
             result = new HopExecutor.Result(-1, e.getMessage());
         }
@@ -190,6 +242,16 @@ public class Ingestions {
             }
         }
         return count;
+    }
+
+    /** The header line of a delivered CSV file, as the generic file template expects it (CSV_HEADER). */
+    private static String firstLine(Path file) {
+        try (var lines = java.nio.file.Files.lines(file, java.nio.charset.StandardCharsets.UTF_8)) {
+            String first = lines.findFirst().orElseThrow(() -> new IllegalArgumentException("Empty file " + file));
+            return first.startsWith("\uFEFF") ? first.substring(1) : first;
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Cannot read " + file.getFileName(), e);
+        }
     }
 
     private String status(UUID batch) {
