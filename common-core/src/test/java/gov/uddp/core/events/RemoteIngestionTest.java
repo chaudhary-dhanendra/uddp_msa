@@ -90,6 +90,44 @@ class RemoteIngestionTest {
     }
 
     @Test
+    void withIngestionServicesUrlTheFileIsUploadedAndNamedByFileRef() throws Exception {
+        var connections = TestDatabase.freshMigrated();
+        var sql = new Sql(connections);
+        LoadedStatePack pack = firstPack();
+        SourceDefinition source = pack.sources().getFirst();
+        UUID batch = startBatch(connections, pack, source);
+        var uploaded = new java.util.concurrent.atomic.AtomicReference<byte[]>();
+        var stub = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        stub.createContext("/api/ingestion/files", exchange -> {
+            uploaded.set(exchange.getRequestBody().readAllBytes());
+            byte[] body = ("{\"fileRef\":\"sha256:" + "a".repeat(64) + "/landed.csv\"}").getBytes();
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        stub.start();
+        try {
+            var runner = new RemoteHopRunner(connections, localRunner(connections), Duration.ofSeconds(2));
+            runner.setIngestionUrl("http://127.0.0.1:" + stub.getAddress().getPort());
+            CompletableFuture.runAsync(() -> {
+                try {
+                    runner.ingest(source, pack.manifest().stateCode(), pack.manifest().version(), batch);
+                } catch (RuntimeException expectedTimeout) {
+                    // nothing answers here; only the command matters
+                }
+            });
+            JsonNode command = awaitCommand(sql);
+            assertEquals("sha256:" + "a".repeat(64) + "/landed.csv", command.path("payload").path("fileRef").asText());
+            assertFalse(command.path("payload").path("parameters").has("SOURCE_FILE"),
+                    "no path of this machine travels in the command");
+            assertTrue(command.path("payload").path("parameters").has("CSV_HEADER"));
+            assertEquals(Files.size(SampleData.REPOSITORY_ROOT.resolve(source.location())), uploaded.get().length);
+        } finally {
+            stub.stop(0);
+        }
+    }
+
+    @Test
     void aFailedRemoteBatchFailsTheStageWithItsMessage() throws Exception {
         var connections = TestDatabase.freshMigrated();
         var sql = new Sql(connections);

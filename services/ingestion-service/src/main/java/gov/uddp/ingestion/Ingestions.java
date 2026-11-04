@@ -29,10 +29,18 @@ public class Ingestions {
 
     private final HopExecutor hop;
     private final DataSource dataSource;
+    private LandingFiles landing;
+    private SourceConnections connections;
 
     public Ingestions(HopExecutor hop, DataSource dataSource) {
         this.hop = hop;
         this.dataSource = dataSource;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setSources(LandingFiles landing, SourceConnections connections) {
+        this.landing = landing;
+        this.connections = connections;
     }
 
     /** Runs a {@code cmd.ingestion.ingest-requested} payload; returns the batch's status. */
@@ -46,13 +54,31 @@ public class Ingestions {
         request.path("parameters").properties().forEach(e -> parameters.put(e.getKey(),
                 e.getValue().isNull() ? null : e.getValue().asText()));
         parameters.put("BATCH_ID", batch.toString());
+        String template = request.path("pipelineTemplate").asText();
+        Map<String, String> secret = new LinkedHashMap<>();
+        if (request.hasNonNull("fileRef")) {
+            // An uploaded file: its landed copy replaces any path the caller knew.
+            String file = landing.resolve(request.path("fileRef").asText()).toString();
+            parameters.remove("SOURCE_FILE");
+            parameters.remove("FILE");
+            parameters.put(template.contains("excel") ? "FILE" : "SOURCE_FILE", file);
+        }
+        if (template.equals("generic-db-ingest.hpl")) {
+            // A database source: its connection and credentials are this service's own configuration.
+            String ref = request.path("connectionRef").asText(null);
+            String table = request.path("table").asText(null);
+            String query = request.path("query").asText(null);
+            parameters.put("CSV_HEADER", connections.header(ref, gov.uddp.contracts.SourceSql.select(table, query)));
+            secret.putAll(connections.hopSettings(ref));
+            secret.put("UDDP_SOURCE_SQL", gov.uddp.contracts.SourceSql.rawLineSelect(table, query));
+        }
         String stateCode = parameters.get("STATE_CODE");
         if (!startBatch(request, batch, stateCode, correlationId)) {
             return status(batch);
         }
         HopExecutor.Result result;
         try {
-            result = hop.run(request.path("pipelineTemplate").asText(), parameters);
+            result = secret.isEmpty() ? hop.run(template, parameters) : hop.run(template, parameters, secret);
         } catch (RuntimeException e) {
             result = new HopExecutor.Result(-1, e.getMessage());
         }

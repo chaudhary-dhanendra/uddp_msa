@@ -33,7 +33,7 @@ public class ProcessHopExecutor implements HopExecutor {
     public ProcessHopExecutor(JdbcConnectionDetails database,
                               @Value("${uddp.ingestion.repository-root:../..}") String repositoryRoot,
                               @Value("${uddp.ingestion.hop-home:}") String hopHome,
-                              @Value("${uddp.ingestion.hop-project:uddp-mvp}") String hopProject) {
+                              @Value("${uddp.ingestion.hop-project:}") String hopProject) {
         this.database = database;
         this.repositoryRoot = Path.of(repositoryRoot).toAbsolutePath().normalize();
         this.hopHome = hopHome;
@@ -42,6 +42,11 @@ public class ProcessHopExecutor implements HopExecutor {
 
     @Override
     public Result run(String template, Map<String, String> parameters) {
+        return run(template, parameters, Map.of());
+    }
+
+    @Override
+    public Result run(String template, Map<String, String> parameters, Map<String, String> secretSettings) {
         if (hopHome == null || hopHome.isBlank()) {
             throw new IllegalStateException("HOP_HOME is required for ingestion");
         }
@@ -54,14 +59,27 @@ public class ProcessHopExecutor implements HopExecutor {
             values.add("RAW_SCHEMA=ingestion");
             String launcher = System.getProperty("os.name", "").toLowerCase().contains("win")
                     ? "hop-run.bat" : "hop-run.sh";
-            var builder = new ProcessBuilder(List.of(Path.of(hopHome, launcher).toString(), "-j", hopProject, "-r",
-                    "local", "-f", pipeline.toString(), "-ps", "@@", "-p", String.join("@@", values)))
-                    .redirectErrorStream(true);
-            argumentFile = jvmSettings(builder, connectionVariables(password));
+            List<String> command = new ArrayList<>(List.of(Path.of(hopHome, launcher).toString()));
+            if (hopProject != null && !hopProject.isBlank()) {
+                command.addAll(List.of("-j", hopProject));
+            }
+            command.addAll(List.of("-r", "local", "-f", pipeline.toString(), "-ps", "@@", "-p",
+                    String.join("@@", values)));
+            var builder = new ProcessBuilder(command).redirectErrorStream(true);
+            if (hopProject == null || hopProject.isBlank()) {
+                // No registered Hop project: the connections uddp-postgres and uddp-source come from this
+                // repository's metadata folder, so the service needs no Hop configuration of its own.
+                builder.environment().put("HOP_METADATA_FOLDER", repositoryRoot.resolve("metadata").toString());
+            }
+            Map<String, String> settings = new LinkedHashMap<>(connectionVariables(password));
+            settings.putAll(secretSettings);
+            argumentFile = jvmSettings(builder, settings);
             Process process = builder.start();
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exit = process.waitFor();
-            return new Result(exit, redact(tail(output), password));
+            String redacted = redact(tail(output), password);
+            String sourcePassword = secretSettings.get("UDDP_SOURCE_PASSWORD");
+            return new Result(exit, redact(redacted, sourcePassword));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Generic Hop execution was interrupted", e);
