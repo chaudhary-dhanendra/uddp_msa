@@ -260,8 +260,23 @@ public class PlatformEvents {
         p.put("recordsSkipped", summary.recordsSkipped());
         p.put("recordsFailed", summary.recordsFailed());
         p.put("recordsHeld", summary.recordsHeld());
-        inOwnTransaction(c -> append(c, Topics.BATCH_PROCESSED, "uddp.canonical.batch-processed", null,
-                summary.batchId().toString(), null, summary.batchId(), p));
+        // Consumers that need the batch's other rows wait until batch-observed has been applied too.
+        p.put("observed", true);
+        inOwnTransaction(c -> {
+            var chunks = CanonicalBatchRows.chunks(CanonicalBatchRows.read(c, summary.batchId()));
+            for (int i = 0; i < chunks.size(); i++) {
+                ObjectNode observed = object();
+                observed.put("batchId", summary.batchId().toString());
+                observed.put("chunk", i + 1);
+                observed.put("last", i == chunks.size() - 1);
+                observed.set("rows", chunks.get(i));
+                // Same key: the chunks stay in order on one partition (parents before children).
+                append(c, Topics.BATCH_OBSERVED, "uddp.canonical.batch-observed", null, summary.batchId().toString(),
+                        null, summary.batchId(), observed);
+            }
+            append(c, Topics.BATCH_PROCESSED, "uddp.canonical.batch-processed", null, summary.batchId().toString(),
+                    null, summary.batchId(), p);
+        });
     }
 
     /**

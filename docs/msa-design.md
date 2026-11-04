@@ -415,8 +415,10 @@ Not done yet, in priority order:
 
 1. ~~Review tasks in remote mode~~ (done 2026-11-04: after each replicated remote build the edge turns the run's
    POSSIBLE_MATCH pairs into review tasks, as the monolith's build does; `RemoteReviewTasksTest`).
-2. **Benefit, application and asset observations** are not published as events, so in remote canonical mode the
-   edge's benefit, scheme-eligibility and application reports are empty.
+2. ~~Benefit, application and asset observations~~ (done 2026-11-04: canonical-service publishes each batch's
+   benefit, application, asset, DQ and processing-error rows as `canonical.batch-observed` in ordered chunks of at
+   most 500 rows before batch-processed; the edge applies them row for row and the MAPPED stage waits for them, V116).
+   registry-service does not consume them yet (scheme eligibility and benefit reads are computed at the edge).
 3. **Matching profiles, labels, training and identity policy** are still managed at the edge and not sent to
    identity-service, which uses its defaults in remote mode.
 4. **The common-core module still exists**: canonical-service and registry-service reuse its engines as a library and
