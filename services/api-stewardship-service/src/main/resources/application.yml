@@ -48,3 +48,12 @@ springdoc:
   paths-to-match: /api/**, /health
   swagger-ui:
     path: /swagger-ui.html
+
+# Service discovery: register with the registry (discovery-service) and resolve lb:// addresses through it.
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true

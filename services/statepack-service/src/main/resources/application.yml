@@ -40,3 +40,12 @@ uddp:
   shaping:
     plugins-dir: ${UDDP_SHAPING_PLUGINS_DIR:plugins}
     approved-plugins-file: ${UDDP_SHAPING_APPROVED_PLUGINS:../../platform/shaping/approved-plugins.yaml}
+
+# Service discovery: register with the registry (discovery-service) and resolve lb:// addresses through it.
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true

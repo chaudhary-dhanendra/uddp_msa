@@ -18,6 +18,18 @@
   <dependencies>
     <dependency>
       <groupId>gov.uddp</groupId>
+      <artifactId>uddp-discovery-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-gateway-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>gov.uddp</groupId>
       <artifactId>uddp-statepack-service</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

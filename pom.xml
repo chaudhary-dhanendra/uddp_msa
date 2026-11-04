@@ -5,7 +5,8 @@
 
   <!--
     UDDP microservices build (docs/msa-design.md): the contracts and messaging modules, the engine modules shared by
-    the services, the six services (api-stewardship-service is the edge for the UI) and the cross-service e2e test.
+    the services, the six services (api-stewardship-service is the edge for the UI), the gateway and discovery services, and
+    the cross-service e2e test.
   -->
   <parent>
     <groupId>org.springframework.boot</groupId>
@@ -33,16 +34,27 @@
     <module>services/registry-service</module>
     <module>services/statepack-service</module>
     <module>services/api-stewardship-service</module>
+    <module>services/discovery-service</module>
+    <module>services/gateway-service</module>
     <module>e2e</module>
   </modules>
 
   <properties>
     <java.version>21</java.version>
     <json-schema-validator.version>1.5.6</json-schema-validator.version>
+    <!-- Spring Cloud release train for Spring Boot 3.5: Eureka discovery, Gateway, LoadBalancer. -->
+    <spring-cloud.version>2025.0.3</spring-cloud.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>gov.uddp</groupId>
         <artifactId>uddp-contracts</artifactId>
@@ -77,6 +89,10 @@
               <excludedEnvironmentVariable>UDDP_POSTGRES_USER</excludedEnvironmentVariable>
               <excludedEnvironmentVariable>UDDP_POSTGRES_PASSWORD</excludedEnvironmentVariable>
             </excludedEnvironmentVariables>
+            <!-- Tests never register with a developer's discovery server. -->
+            <systemPropertyVariables>
+              <eureka.client.enabled>false</eureka.client.enabled>
+            </systemPropertyVariables>
           </configuration>
         </plugin>
       </plugins>

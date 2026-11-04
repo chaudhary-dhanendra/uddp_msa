@@ -61,6 +61,8 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
   cross-service: `mvn test -pl e2e -Dmsa.e2e=true`; real Hop: `mvn test -pl services/ingestion-service
   -Dtest=RealHopIngestionTest -Dmsa.hop=true`
 - Python tests: `pip install -r matching/requirements-dev.txt && python -m pytest matching` (integration tests need Docker)
+- Run order: discovery-service (8761), then the services (8101-8106, each registers by name), then
+  gateway-service (8080, the only public entry; point the UI at it). Service URLs default to `lb://<name>`.
 - Infrastructure: `docker compose up -d kafka kafka-init` (topics from `deploy/kafka/create-topics.sh`);
   `docker compose --profile postgres up -d postgres` creates the service databases and roles from `deploy/postgres/`
   (or run those two SQL files with psql against an existing server)

@@ -1,0 +1,26 @@
+# The UDDP API gateway: the single public entry; routes the UI's calls to the edge found through discovery.
+spring:
+  application:
+    name: gateway-service
+server:
+  port: ${UDDP_GATEWAY_PORT:8080}
+eureka:
+  client:
+    enabled: ${UDDP_EUREKA_ENABLED:true}
+    # The gateway is reactive (no RestClient builder): the registry client talks through WebClient.
+    webclient:
+      enabled: true
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+uddp:
+  gateway:
+    # The edge by its registered name (load balanced); a fixed http:// address works without discovery.
+    edge-uri: ${UDDP_GATEWAY_EDGE_URI:lb://api-stewardship-service}
+    ui-origins: ${UDDP_UI_ORIGINS:http://localhost:4173,http://localhost:5173}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,24 @@
+# The UDDP service registry. A single standalone Eureka server for development; production runs two or more peers
+# (set UDDP_EUREKA_URL on each to the other peers' /eureka/ addresses).
+spring:
+  application:
+    name: discovery-service
+server:
+  port: ${UDDP_DISCOVERY_PORT:8761}
+eureka:
+  instance:
+    hostname: ${UDDP_DISCOVERY_HOST:localhost}
+  client:
+    # A standalone registry neither registers with nor fetches from itself.
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: ${UDDP_EUREKA_URL:http://${eureka.instance.hostname}:${server.port}/eureka/}
+  server:
+    # Development: no self-preservation, so stopped services leave the registry quickly.
+    enable-self-preservation: ${UDDP_EUREKA_SELF_PRESERVATION:false}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

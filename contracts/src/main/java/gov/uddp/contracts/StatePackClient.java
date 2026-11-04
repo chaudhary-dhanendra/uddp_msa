@@ -26,12 +26,13 @@ public final class StatePackClient {
     public record Pack(StatePackRef ref, String stateCode, String status, Map<String, String> files) {
     }
 
-    private final URI baseUrl;
+    private final String baseUrl;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
 
+    /** {@code baseUrl}: statepack-service's address, {@code http://...} or {@code lb://statepack-service}. */
     public StatePackClient(String baseUrl) {
-        this.baseUrl = URI.create(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/");
+        this.baseUrl = baseUrl;
     }
 
     /** The APPROVED or ACTIVE pack of this state with this version. */
@@ -98,7 +99,7 @@ public final class StatePackClient {
 
     private JsonNode get(String path) {
         try {
-            var response = http.send(HttpRequest.newBuilder(baseUrl.resolve(path)).timeout(Duration.ofSeconds(30))
+            var response = http.send(HttpRequest.newBuilder(URI.create(ServiceUrls.resolve(baseUrl) + "/" + path)).timeout(Duration.ofSeconds(30))
                     .GET().build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new IllegalStateException("statepack-service answered " + response.statusCode() + " for "

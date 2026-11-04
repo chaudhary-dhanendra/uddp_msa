@@ -79,3 +79,4 @@
 - 2026-11-04 MSA: the Studio is hosted by statepack-service behind two ports; the edge forwards StudioService operations (not its controller), so permission checks, state scope and audit stay at the edge unchanged, and onboarding stays with the edge's orchestration.
 - 2026-11-04 MSA: common-core dissolved into api-stewardship-service; production starts remote-only, the in-process Hop/Python runners became test fixtures, and the engines run in-process only in the edge's tests.
 - 2026-11-04 MSA: data and setup moved to their owners: State Packs are statepack-service seed data, sample CSVs are ingestion-service seed data, edge test fixtures live with the edge's tests, and database/Kafka setup is deploy/ (compose init scripts, no PowerShell).
+- 2026-11-04 MSA: Spring Cloud gateway + Eureka discovery (option A); services call each other by lb://name, resolved per call through the registry; the gateway routes only to the edge, so internal service APIs stay unexposed.

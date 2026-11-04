@@ -19,6 +19,11 @@
   <artifactId>uddp-api-stewardship-service</artifactId>
 
   <dependencies>
+    <!-- Registers with the service registry (Eureka) and resolves lb:// service addresses through it. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
     <dependency><groupId>gov.uddp</groupId><artifactId>uddp-contracts</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
     <!-- MSA: forwards the Matching Studio endpoints to identity-service after the edge's own checks. -->

@@ -76,7 +76,7 @@ public class RemoteHopRunner implements HopRunner {
         body.put("query", source.query());
         try {
             var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
-                            java.net.URI.create(ingestionUrl.replaceAll("/+$", "") + "/api/ingestion/sources/test"))
+                            java.net.URI.create(gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/sources/test"))
                     .header("Content-Type", "application/json")
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(Outbox.json().writeValueAsString(body)))
                     .build(), java.net.http.HttpResponse.BodyHandlers.ofString());
@@ -182,7 +182,7 @@ public class RemoteHopRunner implements HopRunner {
 
     /** Uploads a delivered file to ingestion-service and returns its fileRef. */
     private String upload(java.nio.file.Path file) throws Exception {
-        String url = ingestionUrl.replaceAll("/+$", "") + "/api/ingestion/files?name="
+        String url = gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/files?name="
                 + java.net.URLEncoder.encode(file.getFileName().toString(), java.nio.charset.StandardCharsets.UTF_8);
         var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
                         java.net.URI.create(url)).header("Content-Type", "application/octet-stream")
