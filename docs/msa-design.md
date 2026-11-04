@@ -27,7 +27,7 @@ Existing seams we will put the new transport behind:
 | `read.statepack.StatePackQueryService`, `statepack.StatePackLoader` | statepack-service HTTP API + `statepack-client` library |
 | `golden.GoldenResidentService` (build)     | registry-service, triggered by `identity.match-run-completed`   |
 | `golden.StewardshipConstraints`            | registry's local projection of `stewardship.decision-recorded`  |
-| `inbox.ExceptionSource`, `gates.MetricsSource`, `monitoring.PlatformMetricsSource` | per-service read APIs aggregated by api-stewardship |
+| `inbox.ExceptionSource`, `gates.MetricsSource`, `monitoring.PlatformMetricsSource` | per-service read APIs aggregated by edge-service |
 
 Seams that are missing today and must be added in Phase 2: an `EventPublisher` (outbox) port, a golden-build
 trigger port, and a canonical-read port used by matching and survivorship instead of SQL against
@@ -42,7 +42,7 @@ trigger port, and a canonical-read port used by matching and survivorship instea
 | **identity-service** | Decides *who is the same person*. Java service hosting the `MatchingService` boundary; runs the Python Splink adapter (`resident-match-v1`) as today, against its own DB only. Matching profiles, labels, training, monitoring. Never touches canonical or golden data. | `uddp_identity` / `identity` | `matching_run`, `resident_match_pair`, `resident_match_cluster_member`, `matching_profile`, `matching_label`, `matching_metric_bound`, `matching_run_metrics`, `matching_threshold_proposal`, `matching_training_job`, `matching_alert` + projections `candidate_resident`, `current_membership` |
 | **registry-service** | Decides *which value wins*. Generic SurvivorshipEngine (DMN rules from the pack), Golden Resident and Golden Family lifecycle (stable IDs, versions, history, merge/split, carry-forward ADR-0001/0006), field provenance, UDDP IDs, benefits linked to golden residents, scheme eligibility, lineage events. | `uddp_registry` / `registry`, `lineage` | `golden_build`, `golden_resident*`, `golden_family*`, `uddp_id`, `benefit`, `benefit_end_marker`, `scheme_eligibility_*` + new `lineage.lineage_event` + projections `canonical_observation`, `link_constraint` |
 | **statepack-service** | Publish, approve (maker-checker, ADR via V18/V44) and serve State Packs and Scheme Packs by version and digest. Studio pack generation and drafts, rule sets, departments and state profile, scheme catalogue. Packs are immutable once published. | `uddp_platform` / `statepack` | `state_pack_lifecycle`, `state_pack_document`, `state_pack_approval`, `scheme_pack*`, `rule_set`, `ai_rule_draft`, `studio_draft`, `studio_suggestion_review`, `department`, `department_source_pack`, `state_profile` |
-| **api-stewardship-service** | Edge/BFF for the onboarding UI: authentication, sessions, permissions, state/department scoping, audit; read APIs (Resident 360 by API composition and read models); review queue, manual merge/split, decision log; onboarding orchestration (saga); release gates; alerts and webhooks; privacy retention requests; setup mode. | `uddp_platform` / `stewardship` | `stewardship_review_task`, `stewardship_decision`, `stewardship_proposal`, `stewardship_link_constraint` (source of truth), `onboarding_run`, `onboarding_stage_execution`, `run_release_decision`, `app_user*`, `app_role*`, `app_permission`, `user_*_scope`, `app_audit_event`, `alert_rule`, `alert_notification`, `webhook_delivery`, `retention_run`, `retention_tombstone` + read-model projections |
+| **edge-service** | Edge/BFF for the onboarding UI: authentication, sessions, permissions, state/department scoping, audit; read APIs (Resident 360 by API composition and read models); review queue, manual merge/split, decision log; onboarding orchestration (saga); release gates; alerts and webhooks; privacy retention requests; setup mode. | `uddp_platform` / `stewardship` | `stewardship_review_task`, `stewardship_decision`, `stewardship_proposal`, `stewardship_link_constraint` (source of truth), `onboarding_run`, `onboarding_stage_execution`, `run_release_decision`, `app_user*`, `app_role*`, `app_permission`, `user_*_scope`, `app_audit_event`, `alert_rule`, `alert_notification`, `webhook_delivery`, `retention_run`, `retention_tombstone` + read-model projections |
 
 Boundary rules:
 
@@ -56,7 +56,7 @@ Boundary rules:
 4. Choices I made where the brief was silent (please confirm): shaping, held records, identifier vault and LGD
    geography go to **canonical-service** (they interpret pack semantics and feed mapping); benefits and scheme
    eligibility go to **registry-service** (they hang off golden residents); onboarding orchestration and auth go to
-   **api-stewardship-service** (it is the edge and already drives the UI).
+   **edge-service** (it is the edge and already drives the UI).
 
 ## 3. Event contracts
 
@@ -99,26 +99,26 @@ tokens before publishing (existing `IdentifierProtection`), and never contain cr
 
 | Event (topic `uddp.<name>.v1`) | Producer | Key | Payload (main fields) | Consumers |
 |---|---|---|---|---|
-| `ingestion.batch-started` | ingestion | `batchId` | batchId, sourceSystem, sourceDefinition ref, pack ref | api-stewardship |
+| `ingestion.batch-started` | ingestion | `batchId` | batchId, sourceSystem, sourceDefinition ref, pack ref | edge-service |
 | `ingestion.raw-record-received` | ingestion | `sourceSystem:rawRecordId` | rawRecordId, batchId, sourceSystem, sourceLine, payloadFormat, rawPayload (inline), landedAt, replayRunId (null) | canonical |
-| `ingestion.batch-completed` | ingestion | `batchId` | batchId, recordCount, checksum, status | canonical, api-stewardship |
+| `ingestion.batch-completed` | ingestion | `batchId` | batchId, recordCount, checksum, status | canonical, edge-service |
 | `ingestion.raw-record-replayed` | ingestion | `sourceSystem:rawRecordId` | as raw-record-received + replayRunId + requested pack ref | canonical |
-| `canonical.resident-created` | canonical | `sourceRecordKey` | canonicalResidentId, sourceRecordKey, version, supersedesCanonicalId, rawRecordId, canonicalPayload (Common Data Model, tokens), warnings, processingRunId | identity, registry, api-stewardship |
+| `canonical.resident-created` | canonical | `sourceRecordKey` | canonicalResidentId, sourceRecordKey, version, supersedesCanonicalId, rawRecordId, canonicalPayload (Common Data Model, tokens), warnings, processingRunId | identity, registry, edge-service |
 | `canonical.family-observed`, `canonical.benefit-observed`, `canonical.application-observed`, `canonical.asset-observed` | canonical | `sourceRecordKey` | observation id, canonical payload, links to canonical resident ids | registry |
-| `canonical.record-held` | canonical | `sourceRecordKey` | heldId, rawRecordId, reasonCode, rule ids | api-stewardship |
-| `canonical.batch-processed` | canonical | `batchId` | batchId, processingRunId, counts (created/held/rejected/warnings), DQ gate result | identity, api-stewardship |
-| `canonical.record-rejected` (**DLQ**, topic `uddp.canonical.dlq.v1`) | canonical | `sourceSystem:rawRecordId` | rawRecordId, batchId, errors[] (ruleId, field, reasonCode), pack ref | api-stewardship (rejection reports) |
-| `identity.match-decided` | identity | `sourceRecordKey` of record A | matchingRunId, canonicalRecordA/B, probability, weight, decision `AUTO_MATCH`/`POSSIBLE_MATCH`/`NO_MATCH`, evidence | registry, api-stewardship (POSSIBLE_MATCH → review task) |
+| `canonical.record-held` | canonical | `sourceRecordKey` | heldId, rawRecordId, reasonCode, rule ids | edge-service |
+| `canonical.batch-processed` | canonical | `batchId` | batchId, processingRunId, counts (created/held/rejected/warnings), DQ gate result | identity, edge-service |
+| `canonical.record-rejected` (**DLQ**, topic `uddp.canonical.dlq.v1`) | canonical | `sourceSystem:rawRecordId` | rawRecordId, batchId, errors[] (ruleId, field, reasonCode), pack ref | edge-service (rejection reports) |
+| `identity.match-decided` | identity | `sourceRecordKey` of record A | matchingRunId, canonicalRecordA/B, probability, weight, decision `AUTO_MATCH`/`POSSIBLE_MATCH`/`NO_MATCH`, evidence | registry, edge-service (POSSIBLE_MATCH → review task) |
 | `identity.cluster-assigned` | identity | `sourceRecordKey` | matchingRunId, canonicalRecordId, clusterId | registry |
-| `identity.match-run-completed` | identity | `matchingRunId` | matchingRunId, mode FULL/INCREMENTAL, modelVersion, thresholds, pairCount, clusterMemberCount | registry, api-stewardship |
-| `registry.golden-resident-changed` | registry | `goldenResidentId` | goldenResidentId, uddpId, changeType CREATED/UPDATED/MERGED/SPLIT/RETIRED, versionNo, members[], mergedInto/splitFrom, goldenBuildId | identity (current membership), api-stewardship (read model) |
-| `registry.golden-family-changed` | registry | `goldenFamilyId` | as above for families | api-stewardship |
-| `registry.golden-build-completed` | registry | `goldenBuildId` | goldenBuildId, matchingRunId, counts | api-stewardship |
+| `identity.match-run-completed` | identity | `matchingRunId` | matchingRunId, mode FULL/INCREMENTAL, modelVersion, thresholds, pairCount, clusterMemberCount | registry, edge-service |
+| `registry.golden-resident-changed` | registry | `goldenResidentId` | goldenResidentId, uddpId, changeType CREATED/UPDATED/MERGED/SPLIT/RETIRED, versionNo, members[], mergedInto/splitFrom, goldenBuildId | identity (current membership), edge-service (read model) |
+| `registry.golden-family-changed` | registry | `goldenFamilyId` | as above for families | edge-service |
+| `registry.golden-build-completed` | registry | `goldenBuildId` | goldenBuildId, matchingRunId, counts | edge-service |
 | `statepack.pack-published`, `statepack.pack-approved`, `statepack.pack-activated`, `statepack.pack-retired` | statepack | `packId` | packId, stateCode, version, digest, approver/maker | all services (cache invalidation) |
-| `stewardship.decision-recorded` | api-stewardship | `goldenResidentId` (or review task id) | decisionId, kind ACCEPT/REJECT/MERGE/SPLIT, sourceRecordKeys, constraint (must-link / cannot-link), reviewer | registry, identity (labels) |
-| `privacy.erasure-requested` | api-stewardship | subject key | tombstone id, scope | every service |
+| `stewardship.decision-recorded` | edge-service | `goldenResidentId` (or review task id) | decisionId, kind ACCEPT/REJECT/MERGE/SPLIT, sourceRecordKeys, constraint (must-link / cannot-link), reviewer | registry, identity (labels) |
+| `privacy.erasure-requested` | edge-service | subject key | tombstone id, scope | every service |
 
-Commands (also Kafka, same envelope, `uddp.cmd.<name>.v1`), sent by the onboarding saga in api-stewardship:
+Commands (also Kafka, same envelope, `uddp.cmd.<name>.v1`), sent by the onboarding saga in edge-service:
 `ingestion.ingest-requested`, `ingestion.replay-requested` (batch or source/time selection + explicit pack ref),
 `identity.matching-requested` (FULL/INCREMENTAL), `registry.golden-build-requested`. Each service replies with its
 normal domain events; the saga advances `onboarding_stage_execution` from them.
@@ -215,7 +215,7 @@ same event ids are produced and the outbox primary key absorbs duplicates.
 | `uddp_registry` | `registry`, `lineage` | `uddp_registry` | `registry.flyway_schema_history` (one history for both schemas) | none |
 | `uddp_platform` | `canonical` | `uddp_canonical` | `canonical.flyway_schema_history` | none |
 | `uddp_platform` | `statepack` | `uddp_statepack` | `statepack.flyway_schema_history` | none |
-| `uddp_platform` | `stewardship` | `uddp_stewardship` | `stewardship.flyway_schema_history` | none |
+| `uddp_platform` | `edge` | `uddp_edge` | `edge.flyway_schema_history` | none |
 
 - Each role owns only its schema; `REVOKE ALL ON SCHEMA public`; no `USAGE` grants on other schemas. A Testcontainers
   test per service proves the role cannot read another schema.
@@ -235,7 +235,7 @@ same event ids are produced and the outbox primary key absorbs duplicates.
 | identity | `current_membership` | `registry.golden-resident-changed` | `golden_resident_membership` read in `run.py` incremental mode |
 | registry | `canonical_observation` (canonical payload per version) | `canonical.resident-created`, `*-observed` | joins to `canonical_resident` in `GoldenResidentService` |
 | registry | `link_constraint` | `stewardship.decision-recorded` | `stewardship_link_constraint` |
-| api-stewardship | `resident_360` read model | registry, canonical, identity events | `read/*ReadService` SQL across all tables |
+| edge-service | `resident_360` read model | registry, canonical, identity events | `read/*ReadService` SQL across all tables |
 
 ## 7. Replay
 
@@ -254,11 +254,11 @@ Replay keeps ARCHITECTURE.md D: re-read Raw with an explicitly chosen State Pack
 - **State Packs at runtime:** `statepack-client` (shared module) fetches a pack by version + digest over HTTP, checks
   the digest, caches it immutably and parses it with the existing `StatePackLoader` model. Every event carries the
   pack ref it was produced with, so a consumer uses the same version.
-- **Security:** api-stewardship-service authenticates users (existing ADR-0017 sessions/OAuth) and calls services
+- **Security:** edge-service authenticates users (existing ADR-0017 sessions/OAuth) and calls services
   with a signed JWT carrying permissions and state/department scopes (ADR-0018/0019). Each service is an OAuth2
   resource server and re-checks permissions on its own endpoints. Services call each other with client-credential
   tokens.
-- **Audit:** every service writes `audit.recorded` events; api-stewardship keeps `app_audit_event` as the store.
+- **Audit:** every service writes `audit.recorded` events; edge-service keeps `app_audit_event` as the store.
 - **Observability:** `correlationId` in logs (MDC), Micrometer metrics per consumer lag and outbox backlog. The
   existing monitoring and quality-gate metrics become per-service read APIs.
 - **Portability guard:** the `M10PortabilityGuardTest` idea becomes one ArchUnit + forbidden-pattern test that runs
@@ -279,7 +279,7 @@ uddp_msa/
     identity-service/
     registry-service/
     statepack-service/
-    api-stewardship-service/
+    edge-service/
   matching/                     Python Splink adapter (unchanged API, new DB connection)
   hop/ state-packs/ m10-state-packs/ platform/ common-model/ sample-data/ web/ scripts/
   docker-compose.yml            Kafka (KRaft), 4 Postgres DBs (or one server with 4 DBs), init SQL for roles
@@ -376,7 +376,7 @@ that every baseline Golden ID is unchanged in the incremental run.
    alone: 5 Golden Residents, 6 Golden Families, UDDP IDs, Ram Singh in one identity, and an unchanged rebuild keeps
    every Golden ID. **Not switched over yet:** the monolith still builds its own Golden records, because its read
    APIs, stewardship, scheme eligibility and benefits read the Golden tables in-process; that read side moves with
-   api-stewardship-service (step 5). Also open: stewardship decision events (so registry's link constraints stay
+   edge-service (step 5). Also open: stewardship decision events (so registry's link constraints stay
    empty), identity policy and DMN survivorship rules in registry-service (both optional in the monolith and not
    wired here), and an automatic build on match-run-completed (builds are commanded).
 4. **canonical + statepack last, together** (per the brief). Split what remains into canonical-service and
@@ -395,17 +395,17 @@ that every baseline Golden ID is unchanged in the incremental run.
    waits instead of parking it). Not evented yet: benefit, application and asset observations (in remote canonical
    mode the monolith's benefit reports stay empty), held-record decisions, and replay of a batch with a different
    pack version in canonical-service.
-5. **api-stewardship-service.** What is left of the monolith (API controllers, security, onboarding saga,
+5. **edge-service.** What is left of the monolith (API controllers, security, onboarding saga,
    stewardship, read models, setup) becomes this service and the `common-core` module is removed.
 
-   *As built (2026-11-04):* **api-stewardship-service** is the monolith's remaining application started with
-   `api-stewardship.yml`: events on and `uddp.{ingestion,canonical,identity,registry}.remote=true`, so every pipeline
+   *As built (2026-11-04):* **edge-service** is the monolith's remaining application started with
+   `edge.yml`: events on and `uddp.{ingestion,canonical,identity,registry}.remote=true`, so every pipeline
    stage is another service's and the edge holds read models (Raw, canonical, matching runs, and a **Golden replica**:
    registry-service publishes `uddp.registry.golden-replica.v1` with every row a build wrote, applied by primary key
    with `RowReplication`). Golden builds, including those after a steward's merge or split, go to registry-service
    (`RemoteGoldenBuilder`, `GoldenBuildRunner`); decisions are published as `stewardship.decision-recorded` (rows of
    `stewardship_decision` and `stewardship_link_constraint`) and registry-service waits for the named decision before
-   it builds. Its database is `uddp_platform` with `currentSchema=stewardship` (UDDP_POSTGRES_* variables).
+   it builds. Its database is `uddp_platform` with `currentSchema=edge` (UDDP_POSTGRES_* variables).
 
 ### Status and remaining work (2026-11-04)
 
@@ -489,9 +489,9 @@ Not done yet, in priority order:
      copies the uploaded file to the location the pack names, starts the run and reports its start and end.
 
    - **common-core dissolved (2026-11-04):** its remaining code (the edge: security, read APIs, stewardship,
-     onboarding orchestration, schedules, the remote adapters) moved into `services/api-stewardship-service`, and
-     the `common-core` folder is gone. The service starts only through `ApiStewardshipServiceApplication`
-     (api-stewardship.yml: every stage remote, both Studios forwarded, service URLs from UDDP_*_URL); the in-process
+     onboarding orchestration, schedules, the remote adapters) moved into `services/edge-service`, and
+     the `common-core` folder is gone. The service starts only through `EdgeServiceApplication`
+     (edge.yml: every stage remote, both Studios forwarded, service URLs from UDDP_*_URL); the in-process
      Hop and Python runners are test fixtures now. The edge's tests still run the engines in-process on
      application.yml alone, as the engines' regression net. Every module sits two levels below the repository root,
      so relative defaults are `../../`. The monolith's demo and e2e scripts, the Hop project file and empty
@@ -501,7 +501,7 @@ Not done yet, in priority order:
      registry (port 8761); every service registers with it by its `spring.application.name`
      (`UDDP_EUREKA_URL`, `UDDP_EUREKA_ENABLED`). `gateway-service` (Spring Cloud Gateway, port 8080) is the single
      public entry: it routes `/api/**`, sign-in (`/oauth2/**`, `/login/**`, `/logout/**`) and the API docs to the edge
-     found by name (`lb://api-stewardship-service`), adds forwarding headers, drops a caller-supplied X-UDDP-Actor and
+     found by name (`lb://edge-service`), adds forwarding headers, drops a caller-supplied X-UDDP-Actor and
      applies CORS for the UI's origins (`UDDP_UI_ORIGINS`); the internal services are never routed. Service-to-service
      HTTP addresses are `lb://<service-name>` by default (the edge's ingestion, identity and statepack calls,
      canonical-service's statepack calls), resolved at call time round robin over the registered instances
@@ -552,4 +552,4 @@ guard asserts the service source trees are byte-identical to the tagged baseline
 - **D4. Existing local `uddp` DB data.** Recommended: no data migration; the MSA databases are new and filled by
   replaying `sample-data` through the pipeline. The `uddp` DB is never touched.
 - **D5. Placement choices in section 2.4** (shaping, held, vault, LGD in canonical; benefits and eligibility in
-  registry; onboarding saga and auth in api-stewardship).
+  registry; onboarding saga and auth in edge-service).

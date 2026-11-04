@@ -5,7 +5,7 @@
 
   <!--
     UDDP microservices build (docs/msa-design.md): the contracts and messaging modules, the engine modules shared by
-    the services, the six services (api-stewardship-service is the edge for the UI), the gateway and discovery services, and
+    the services, the six services (edge-service is the edge for the UI), the gateway and discovery services, and
     the cross-service e2e test.
   -->
   <parent>
@@ -33,7 +33,7 @@
     <module>services/identity-service</module>
     <module>services/registry-service</module>
     <module>services/statepack-service</module>
-    <module>services/api-stewardship-service</module>
+    <module>services/edge-service</module>
     <module>services/discovery-service</module>
     <module>services/gateway-service</module>
     <module>e2e</module>

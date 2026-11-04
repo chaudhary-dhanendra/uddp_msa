@@ -37,7 +37,7 @@ create uddp.identity.match-run-completed.v1 1 "retention.ms=$((90 * DAY))"
 create uddp.registry.golden-resident-changed.v1 3 cleanup.policy=compact
 create uddp.registry.golden-family-changed.v1 3 cleanup.policy=compact
 create uddp.registry.golden-build-completed.v1 1 "retention.ms=$((90 * DAY))"
-# One event carries every Golden row a build wrote (read model of api-stewardship-service).
+# One event carries every Golden row a build wrote (read model of edge-service).
 create uddp.registry.golden-replica.v1 1 "retention.ms=$((90 * DAY))" max.message.bytes=8388608
 
 for t in pack-published pack-approved pack-activated pack-retired; do
@@ -59,17 +59,17 @@ dlt() { # consumer topic...
 }
 dlt identity-service-projections uddp.canonical.resident-created.v1 uddp.registry.golden-resident-changed.v1
 dlt identity-service-commands uddp.cmd.identity.matching-requested.v1
-dlt common-core-identity-projection uddp.identity.match-decided.v1 uddp.identity.cluster-assigned.v1   uddp.identity.match-run-completed.v1
+dlt edge-identity-projection uddp.identity.match-decided.v1 uddp.identity.cluster-assigned.v1   uddp.identity.match-run-completed.v1
 
 dlt ingestion-service-commands uddp.cmd.ingestion.ingest-requested.v1 uddp.cmd.ingestion.replay-requested.v1
-dlt common-core-raw-projection uddp.ingestion.raw-record-received.v1 uddp.ingestion.raw-record-replayed.v1   uddp.ingestion.batch-completed.v1
+dlt edge-raw-projection uddp.ingestion.raw-record-received.v1 uddp.ingestion.raw-record-replayed.v1   uddp.ingestion.batch-completed.v1
 
 dlt canonical-service-raw uddp.ingestion.raw-record-received.v1 uddp.ingestion.batch-completed.v1
 dlt registry-service-residents uddp.canonical.resident-created.v1
 dlt registry-service-projections uddp.canonical.family-observed.v1 uddp.identity.match-decided.v1   uddp.identity.cluster-assigned.v1 uddp.identity.match-run-completed.v1
 dlt registry-service-commands uddp.cmd.registry.golden-build-requested.v1
-dlt api-stewardship-golden-replica uddp.registry.golden-replica.v1
-dlt common-core-canonical-residents uddp.canonical.resident-created.v1
-dlt common-core-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1   uddp.canonical.batch-observed.v1
+dlt edge-golden-replica uddp.registry.golden-replica.v1
+dlt edge-canonical-residents uddp.canonical.resident-created.v1
+dlt edge-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1   uddp.canonical.batch-observed.v1
 
 echo "UDDP topics ready on $BOOTSTRAP"

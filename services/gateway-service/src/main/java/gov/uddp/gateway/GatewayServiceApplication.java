@@ -14,7 +14,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 /**
  * The UDDP API gateway, the platform's single public entry. Everything the UI calls goes to the edge
- * (api-stewardship-service), found by name through discovery ({@code lb://}), which checks sign-in, permissions and
+ * (edge-service), found by name through discovery ({@code lb://}), which checks sign-in, permissions and
  * state scope; the pipeline services and their internal APIs are never routed here. The caller cannot impersonate the
  * edge: an incoming X-UDDP-Actor header is dropped.
  */

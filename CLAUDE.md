@@ -39,13 +39,13 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 `ARCHITECTURE.md`, `MVP_SCOPE.md`, `IMPLEMENTATION_PLAN.md` and `docs/` before larger changes.
 
 ## Layout
-- `services/api-stewardship-service/` — the edge (formerly `common-core/`), package root `gov.uddp.core`; the other
+- `services/edge-service/` — the edge (formerly `common-core/`), package root `gov.uddp.core`; the other
   services are in `services/` and the shared engines in `engine/`, `canonical-engine/`, `golden-engine/`,
   `matching-engine/`, `studio-engine/` (docs/msa-design.md)
   - `statepack/` loader, `mapping/` engine, `canonical/` persistence, `golden/` survivorship, `api/` controllers
 - `matching/` — Python Splink 4.0.17 adapter (`resident-match-v1`)
   - `scheme/` platform scheme catalogue and declarative eligibility (M15); `read/Benefit*Service` benefit reads and reports
-  - `services/api-stewardship-service/src/main/resources/db/migration/` — the edge's Flyway path; each service has
+  - `services/edge-service/src/main/resources/db/migration/` — the edge's Flyway path; each service has
     its own `db/<schema>` location
 - `state-packs/state-{1,2,3}/` — YAML: sources, mappings, crosswalks, validation, matching, survivorship
 - `m10-state-packs/state-4/` — State 4 portability fixture (combined with `state-packs/` only by the M10 e2e)

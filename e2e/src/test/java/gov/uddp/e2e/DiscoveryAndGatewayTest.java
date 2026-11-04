@@ -26,7 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 /**
  * Service discovery and the gateway with the real modules: statepack-service registers with the registry
  * (discovery-service) and is then called by its name ({@code lb://statepack-service}); the gateway finds the edge by
- * its registered name and forwards the UI's calls to it (an HTTP stand-in listed as api-stewardship-service).
+ * its registered name and forwards the UI's calls to it (an HTTP stand-in listed as edge-service).
  */
 @Testcontainers
 class DiscoveryAndGatewayTest {
@@ -87,9 +87,9 @@ class DiscoveryAndGatewayTest {
             // The edge stand-in is listed under the edge's registered name.
             Map<String, Object> g = new HashMap<>(client(registry));
             g.put("spring.application.name", "gateway-service");
-            g.put("uddp.gateway.edge-uri", "lb://api-stewardship-service");
+            g.put("uddp.gateway.edge-uri", "lb://edge-service");
             g.put("uddp.gateway.ui-origins", "http://localhost:4173");
-            g.put("spring.cloud.discovery.client.simple.instances.api-stewardship-service[0].uri",
+            g.put("spring.cloud.discovery.client.simple.instances.edge-service[0].uri",
                     "http://127.0.0.1:" + edge.getAddress().getPort());
             g.put("spring.main.web-application-type", "reactive");
             g.put("spring.autoconfigure.exclude", NO_DATABASE);

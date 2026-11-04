@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Wires the monolith's unchanged Golden build engine against this service's own schema, as the monolith's application
  * context wires it (platform survivorship policy, Golden Families, UDDP IDs), with two differences: link constraints
- * come from the stewardship projection and review tasks are not created here (they are api-stewardship's), and the
+ * come from the stewardship projection and review tasks are not created here (they are the edge's), and the
  * build's events are published by registry-service.
  */
 @Configuration
@@ -36,7 +36,7 @@ public class RegistryConfiguration {
         // Matching runs and Raw are other services' events; this service only publishes Golden changes.
         events.setRemoteIdentity(true);
         events.setRemoteIngestion(true);
-        // Each build also publishes the rows it wrote, for api-stewardship-service's read model.
+        // Each build also publishes the rows it wrote, for edge-service's read model.
         events.setGoldenReplica(true);
         return events;
     }

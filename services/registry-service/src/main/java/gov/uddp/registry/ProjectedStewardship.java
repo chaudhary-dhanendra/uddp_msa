@@ -10,7 +10,7 @@ import java.util.UUID;
 /**
  * Stewardship's part in a Golden build inside registry-service: the effective link constraints come from the
  * projection of stewardship.decision-recorded (read exactly as the monolith reads them), and no review task is
- * created here: api-stewardship-service creates them from identity's POSSIBLE_MATCH decisions.
+ * created here: edge-service creates them from identity's POSSIBLE_MATCH decisions.
  */
 public class ProjectedStewardship implements StewardshipConstraints {
 

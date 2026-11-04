@@ -32,7 +32,7 @@ class GatewayRoutingTest {
     @DynamicPropertySource
     static void discovery(DynamicPropertyRegistry registry) {
         registry.add("eureka.client.enabled", () -> "false");
-        registry.add("spring.cloud.discovery.client.simple.instances.api-stewardship-service[0].uri",
+        registry.add("spring.cloud.discovery.client.simple.instances.edge-service[0].uri",
                 () -> "http://127.0.0.1:" + EDGE.getAddress().getPort());
     }
 

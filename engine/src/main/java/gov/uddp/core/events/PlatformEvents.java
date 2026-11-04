@@ -41,7 +41,7 @@ public class PlatformEvents {
     private final boolean enabled;
 
     public PlatformEvents(PostgresConnectionFactory connections, boolean enabled) {
-        this(connections, enabled, "common-core");
+        this(connections, enabled, "edge-service");
     }
 
     /** The application's wiring: the switches that hand matching or ingestion to their services (MSA Phase 3). */
@@ -50,7 +50,7 @@ public class PlatformEvents {
                           @Value("${uddp.events.enabled:false}") boolean enabled,
                           @Value("${uddp.identity.remote:false}") boolean remoteIdentity,
                           @Value("${uddp.ingestion.remote:false}") boolean remoteIngestion) {
-        this(connections, enabled, "common-core");
+        this(connections, enabled, "edge-service");
         this.remoteIdentity = remoteIdentity;
         this.remoteIngestion = remoteIngestion;
     }

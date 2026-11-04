@@ -80,3 +80,4 @@
 - 2026-11-04 MSA: common-core dissolved into api-stewardship-service; production starts remote-only, the in-process Hop/Python runners became test fixtures, and the engines run in-process only in the edge's tests.
 - 2026-11-04 MSA: data and setup moved to their owners: State Packs are statepack-service seed data, sample CSVs are ingestion-service seed data, edge test fixtures live with the edge's tests, and database/Kafka setup is deploy/ (compose init scripts, no PowerShell).
 - 2026-11-04 MSA: Spring Cloud gateway + Eureka discovery (option A); services call each other by lb://name, resolved per call through the registry; the gateway routes only to the edge, so internal service APIs stay unexposed.
+- 2026-11-04 MSA: api-stewardship-service renamed edge-service (role uddp_edge, schema edge, config edge.yml, UDDP_EDGE_* variables); the stewardship feature keeps its name. Former common-core consumer groups and producer names are edge-*.

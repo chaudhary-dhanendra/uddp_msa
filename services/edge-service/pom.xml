@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>gov.uddp</groupId>
+    <artifactId>uddp-msa</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <!--
+    The edge for the onboarding UI (formerly the monolith's common-core): authentication, permissions, state scope,
+    audit and PII masking; read APIs over read models fed by events; review queue and stewardship; onboarding
+    orchestration and schedules. Every pipeline stage, the Matching Studio and the Onboarding Studio run in their
+    services (edge.yml). The engine modules are dependencies for the read models and for the tests, which
+    run the engines in-process as the regression net.
+  -->
+  <artifactId>uddp-edge-service</artifactId>
+
+  <dependencies>
+    <!-- Registers with the service registry (Eureka) and resolves lb:// service addresses through it. -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-contracts</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+    <!-- MSA: forwards the Matching Studio endpoints to identity-service after the edge's own checks. -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-aop</artifactId></dependency>
+    <!-- MSA Phase 2: event contracts and the outbox (docs/msa-design.md). -->
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-messaging</artifactId><version>${project.version}</version></dependency>
+    <!-- The canonical and Golden engines (and their shared kernel, uddp-engine), shared with the services. -->
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-canonical-engine</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-golden-engine</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-matching-engine</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-studio-engine</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-oauth2-client</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>
+    <dependency><groupId>com.fasterxml.jackson.dataformat</groupId><artifactId>jackson-dataformat-yaml</artifactId></dependency>
+    <dependency><groupId>org.apache.commons</groupId><artifactId>commons-csv</artifactId><version>1.12.0</version></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
+    <dependency><groupId>org.camunda.bpm</groupId><artifactId>camunda-engine</artifactId><version>7.22.0</version></dependency>
+    <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId><version>2.8.9</version></dependency>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
+    <!-- Track C5 connectors. JDBC drivers are optional: a department's deployment adds only the ones it needs. -->
+    <dependency><groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><scope>runtime</scope><optional>true</optional></dependency>
+    <dependency><groupId>com.microsoft.sqlserver</groupId><artifactId>mssql-jdbc</artifactId><scope>runtime</scope><optional>true</optional></dependency>
+    <dependency><groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc11</artifactId><scope>runtime</scope><optional>true</optional></dependency>
+    <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>5.3.0</version></dependency>
+    <dependency><groupId>com.github.mwiede</groupId><artifactId>jsch</artifactId><version>0.2.20</version></dependency>
+    <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.3</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>kafka</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>mysql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.3.0</version><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-testcontainers</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <!-- The executable jar gets the "exec" classifier; the plain jar is used by the cross-service e2e test. -->
+        <configuration>
+          <classifier>exec</classifier>
+          <mainClass>gov.uddp.edge.EdgeServiceApplication</mainClass>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludedEnvironmentVariables combine.children="append">
+            <!-- Tests use disposable Testcontainers databases only; never inherit the developer's DB settings. -->
+            <excludedEnvironmentVariable>UDDP_POSTGRES_URL</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_POSTGRES_HOST</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_POSTGRES_PORT</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_POSTGRES_DB</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_POSTGRES_USER</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_POSTGRES_PASSWORD</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_EDGE_POSTGRES_URL</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_EDGE_POSTGRES_USER</excludedEnvironmentVariable>
+            <excludedEnvironmentVariable>UDDP_EDGE_POSTGRES_PASSWORD</excludedEnvironmentVariable>
+          </excludedEnvironmentVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
