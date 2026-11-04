@@ -22,11 +22,6 @@ spring:
 server:
   address: 127.0.0.1
   port: 8103
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
 uddp:
   kafka:
     # Empty: no consumers and no relay (the service still serves its API). Set to enable messaging.
@@ -47,3 +42,29 @@ eureka:
       defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
   instance:
     prefer-ip-address: true
+
+# Observability (docs/observability.md): Prometheus metrics at /actuator/prometheus, traces over OTLP (Tempo), and
+# structured JSON logs to a file when UDDP_LOG_DIR is set (collected into Loki).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    enabled: ${UDDP_TRACING_ENABLED:true}
+    sampling:
+      probability: ${UDDP_TRACING_SAMPLING:1.0}
+  otlp:
+    tracing:
+      endpoint: ${UDDP_OTLP_TRACING_URL:http://127.0.0.1:4318/v1/traces}
+logging:
+  file:
+    name: ${UDDP_LOG_DIR:target/logs}/${spring.application.name}.log
+  structured:
+    format:
+      file: ecs
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "

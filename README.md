@@ -68,4 +68,5 @@ The portability proof will run State 1 PDS and State 2 Pension through the same 
 Read [ARCHITECTURE.md](ARCHITECTURE.md), [MVP_SCOPE.md](MVP_SCOPE.md), and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) before implementation.
 
 For local setup and the supported reproducibility commands, see [docs/dev-setup.md](docs/dev-setup.md).
+Observability (metrics, traces, logs in Grafana): [docs/observability.md](docs/observability.md).
 

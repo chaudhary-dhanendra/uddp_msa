@@ -149,6 +149,51 @@ class OutboxKafkaIntegrationTest {
         assertThat(count("select count(*) from outbox_event")).isZero();
     }
 
+    @Test
+    void theTraceAnEventIsWrittenInContinuesWhereItIsConsumed() throws Exception {
+        String parent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+        List<String> spans = new java.util.concurrent.CopyOnWriteArrayList<>();
+        TraceContext.use(new TraceContext.Bridge() {
+            @Override
+            public String current() {
+                return parent;
+            }
+
+            @Override
+            public void inSpan(String traceparent, String name, TraceContext.Work work) throws Exception {
+                spans.add(name + " <- " + traceparent);
+                work.run();
+            }
+        });
+        try {
+            try (Connection c = connections.open()) {
+                Outbox.append(c, topic, envelope(UUID.randomUUID(), "k1"));
+            }
+            new OutboxRelay(connections, producer, 10).drain();
+            var record = consume(1).get(0);
+            assertThat(new String(record.headers().lastHeader(TraceContext.FIELD).value())).isEqualTo(parent);
+            assertThat(TraceContext.of(Outbox.json().readTree(record.value()))).isEqualTo(parent);
+
+            var loop = new KafkaEventLoop(KAFKA.getBootstrapServers(), "trace-" + UUID.randomUUID(), connections,
+                    Map.of(topic, this::recordEffect), producer);
+            var thread = new Thread(loop);
+            thread.start();
+            try {
+                long deadline = System.currentTimeMillis() + 30_000;
+                while (count("select count(*) from effect") == 0 && System.currentTimeMillis() < deadline) {
+                    Thread.sleep(200);
+                }
+            } finally {
+                loop.close();
+                thread.join(10_000);
+            }
+            assertThat(count("select count(*) from effect")).isEqualTo(1);
+            assertThat(spans).containsExactly("consume " + topic + " <- " + parent);
+        } finally {
+            TraceContext.use(null);
+        }
+    }
+
     private void recordEffect(Connection c, com.fasterxml.jackson.databind.JsonNode envelope) throws SQLException {
         try (var s = c.prepareStatement("insert into effect values (?)")) {
             s.setObject(1, UUID.fromString(envelope.path("eventId").asText()));

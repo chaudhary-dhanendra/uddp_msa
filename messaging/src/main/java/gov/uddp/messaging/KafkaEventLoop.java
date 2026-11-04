@@ -66,7 +66,7 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
             while (running.get()) {
                 var records = consumer.poll(Duration.ofMillis(500));
                 for (ConsumerRecord<String, String> record : records) {
-                    handle(record);
+                    traced(record);
                 }
                 if (!records.isEmpty()) {
                     consumer.commitSync();
@@ -78,6 +78,19 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
             }
         } finally {
             consumer.close();
+        }
+    }
+
+    /** Handles the record in a span that continues the trace the event was written in (TraceContext). */
+    private void traced(ConsumerRecord<String, String> record) {
+        var header = record.headers().lastHeader(TraceContext.FIELD);
+        String trace = header == null ? null : new String(header.value(), java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            TraceContext.inSpan(trace, "consume " + record.topic(), () -> handle(record));
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 

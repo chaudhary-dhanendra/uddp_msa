@@ -59,6 +59,11 @@ public final class Outbox {
         if (!problems.isEmpty()) {
             throw new IllegalArgumentException("Invalid " + envelope.eventType() + " event: " + problems);
         }
+        // The trace this event is written in travels with it (not part of the contract; see TraceContext).
+        String trace = TraceContext.current();
+        if (trace != null && document instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+            object.put(TraceContext.FIELD, trace);
+        }
         try (var s = c.prepareStatement("insert into outbox_event (event_id, topic, partition_key, event_type, payload)"
                 + " values (?, ?, ?, ?, cast(? as jsonb)) on conflict (event_id) do nothing")) {
             s.setObject(1, envelope.eventId());

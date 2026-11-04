@@ -53,6 +53,10 @@ public final class OutboxRelay {
                     var record = new ProducerRecord<>(row.topic(), row.partitionKey(), row.payload());
                     record.headers().add(new RecordHeader("eventId", bytes(row.eventId().toString())));
                     record.headers().add(new RecordHeader("eventType", bytes(row.eventType())));
+                    String trace = traceOf(row.payload());
+                    if (trace != null) {
+                        record.headers().add(new RecordHeader(TraceContext.FIELD, bytes(trace)));
+                    }
                     sent.add(producer.send(record));
                 }
                 for (Future<RecordMetadata> future : sent) {
@@ -94,5 +98,13 @@ public final class OutboxRelay {
     }
 
     private record Row(UUID eventId, String topic, String partitionKey, String eventType, String payload) {
+    }
+
+    private static String traceOf(String envelope) {
+        try {
+            return TraceContext.of(Outbox.json().readTree(envelope));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

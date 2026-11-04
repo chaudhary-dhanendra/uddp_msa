@@ -49,7 +49,9 @@ public class SecurityConfiguration {
     static final String[] PUBLIC = {
         "/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
         "/api/v1/auth/csrf", "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/providers", "/api/v1/auth/me",
-        "/api/setup/**", "/oauth2/authorization/**", "/login/oauth2/code/**", "/error"
+        "/api/setup/**", "/oauth2/authorization/**", "/login/oauth2/code/**", "/error",
+        // Health and metrics for the platform's monitoring; the gateway never routes /actuator.
+        "/actuator/health", "/actuator/health/**", "/actuator/prometheus"
     };
 
     @Bean
