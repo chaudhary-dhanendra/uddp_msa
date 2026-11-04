@@ -38,7 +38,7 @@ class HeldShareGateTest {
 
     @Test
     void aDeliveryOverTheHeldLimitPausesAndOneWithinItContinues() {
-        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")).activate(PACK, "1.0.0");
+        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")).activate(PACK, "1.0.0");
         var json = new ObjectMapper();
         harness.onboarding.setDeliveryChanges(new DeliveryChangeService(harness.connections,
                 new PostgresRawRecordRepository(harness.connections, json), harness.packs, json));

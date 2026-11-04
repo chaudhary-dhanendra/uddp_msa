@@ -48,7 +48,7 @@ public class StudioHostConfiguration {
                 .toString());
         // The engine's static helpers (shaping reference data, identifiers) read the platform directory from here.
         System.setProperty("uddp.platform-directory", properties.getPlatformDirectory());
-        properties.setStatePackDirectory(java.nio.file.Path.of(repositoryRoot, "state-packs").toString());
+        properties.setStatePackDirectory(java.nio.file.Path.of(repositoryRoot, "services/statepack-service/seed/state-packs").toString());
         properties.setFixtureStatePacksEnabled(false);
         if (!settingsDirectory.isBlank()) {
             properties.setSettingsDirectory(settingsDirectory);

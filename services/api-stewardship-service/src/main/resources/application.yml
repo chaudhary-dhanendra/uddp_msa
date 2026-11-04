@@ -21,7 +21,7 @@ server:
         same-site: lax
         name: UDDP_SESSION
 uddp:
-  state-pack-directory: ../../state-packs
+  state-pack-directory: ../../services/statepack-service/seed/state-packs
   processing:
     # Rows per canonical-processing chunk (one transaction each); a failed run resumes after its last committed chunk.
     chunk-size: 5000

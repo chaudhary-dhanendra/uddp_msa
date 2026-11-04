@@ -42,7 +42,7 @@ const STATES: StateCase[] = [
     packId: "state-1",
     stateCode: "ST1",
     name: "PDS (Food & Civil Supplies)",
-    file: "sample-data/state-1/pds.csv",
+    file: "services/ingestion-service/seed/sample-data/state-1/pds.csv",
     corrections: {
       district: { "101": "100001", "102": "100002" },
       scheme: { PHH: "PDS-RATION", AAY: "PDS-RATION" },
@@ -52,7 +52,7 @@ const STATES: StateCase[] = [
     packId: "state-2",
     stateCode: "ST2",
     name: "Pension (Social Welfare)",
-    file: "sample-data/state-2/pension.csv",
+    file: "services/ingestion-service/seed/sample-data/state-2/pension.csv",
     corrections: {
       gender: { "1": "MALE", "2": "FEMALE" },
       "benefit-status": { "1": "ACTIVE" },
@@ -63,14 +63,14 @@ const STATES: StateCase[] = [
     packId: "state-3",
     stateCode: "ST3",
     name: "Welfare beneficiaries (Social Welfare)",
-    file: "sample-data/state-3/beneficiaries.csv",
+    file: "services/ingestion-service/seed/sample-data/state-3/beneficiaries.csv",
     corrections: {},
   },
   {
     packId: "state-4",
     stateCode: "ST4",
     name: "Citizen register (Planning)",
-    file: "sample-data/state-4/citizen-register.csv",
+    file: "services/ingestion-service/seed/sample-data/state-4/citizen-register.csv",
     corrections: {},
   },
 ];

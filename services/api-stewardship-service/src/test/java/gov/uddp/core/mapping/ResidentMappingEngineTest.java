@@ -23,7 +23,7 @@ class ResidentMappingEngineTest {
     private final ResidentMappingEngine engine = new ResidentMappingEngine(new RawCsvRecordParser(json));
 
     @Test void oneGenericEngineMapsAllThreeStatePacksAndPreservesUnmappedFields() {
-        Map<String, LoadedStatePack> packs = loader().loadAll(Path.of("../../state-packs"));
+        Map<String, LoadedStatePack> packs = loader().loadAll(Path.of("../../services/statepack-service/seed/state-packs"));
 
         var state1 = engine.map(raw("ST1", "pds", "beneficiary_nm,dob,sex_cd,dist_cd,ration_no,mobile",
                 "Ram Singh,12-03-1980,M,101,R1001,9876543210"), packs.get("state-1"), "pds");
@@ -57,7 +57,7 @@ class ResidentMappingEngineTest {
     }
 
     @Test void v10PayloadsGainNoV11Keys() throws Exception {
-        var packs = loader().loadAll(Path.of("../../state-packs"));
+        var packs = loader().loadAll(Path.of("../../services/statepack-service/seed/state-packs"));
         var resident = engine.map(raw("ST1", "pds", "beneficiary_nm,dob,sex_cd,dist_cd,ration_no,mobile",
                 "Ram Singh,12-03-1980,M,101,R1001,9876543210"), packs.get("state-1"), "pds");
         var keys = new ObjectMapper().findAndRegisterModules().valueToTree(resident).fieldNames();
@@ -160,7 +160,7 @@ class ResidentMappingEngineTest {
 
     private StatePackLoader loader() {
         StatePackProperties properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
         properties.setFixtureStatePacksEnabled(true);
         var loader = new StatePackLoader(properties);
         loader.reload();

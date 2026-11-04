@@ -20,8 +20,8 @@ class ResidentValidatorTest {
 
     private static LoadedStatePack realPack(String packId) {
         var properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
-        return new StatePackLoader(properties).loadAll(Path.of("../../state-packs")).get(packId);
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
+        return new StatePackLoader(properties).loadAll(Path.of("../../services/statepack-service/seed/state-packs")).get(packId);
     }
 
     private static LoadedStatePack withRules(LoadedStatePack pack, ValidationRule... rules) {

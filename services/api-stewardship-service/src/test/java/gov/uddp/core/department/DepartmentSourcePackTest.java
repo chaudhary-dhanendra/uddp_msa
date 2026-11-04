@@ -47,7 +47,7 @@ class DepartmentSourcePackTest {
     @Test
     void aPackWithoutDepartmentCodeIsAssignedFromTheSeedTable() {
         var connections = TestDatabase.freshMigrated();
-        var stripped = new StrippedLoader(SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs")));
+        var stripped = new StrippedLoader(SampleData.loader(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs")));
         var service = new SourcePackService(stripped, new DepartmentRepository(connections));
 
         assertEquals("DEPT-4", service.find("state-4").orElseThrow().departmentCode());
@@ -68,7 +68,7 @@ class DepartmentSourcePackTest {
 
     @Test
     void onboardingADepartmentSourceProducesTheSameCounts() {
-        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("m10-state-packs"))
+        var harness = new OnboardingHarness(SampleData.REPOSITORY_ROOT.resolve("services/statepack-service/seed/m10-state-packs"))
                 .activate("state-4", "1.0.0");
         var service = new SourcePackService(harness.packs, new DepartmentRepository(harness.connections));
         assertEquals("DEPT-4", service.find("state-4").orElseThrow().departmentCode());

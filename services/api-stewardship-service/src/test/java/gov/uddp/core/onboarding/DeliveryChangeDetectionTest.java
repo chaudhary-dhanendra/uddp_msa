@@ -38,7 +38,7 @@ class DeliveryChangeDetectionTest {
         Path source = work.resolve("pds.csv");
         Path sourceYaml = packs.resolve("state-1/sources").resolve(
                 Files.list(packs.resolve("state-1/sources")).findFirst().orElseThrow().getFileName());
-        Files.writeString(sourceYaml, Files.readString(sourceYaml).replace("sample-data/state-1/pds.csv",
+        Files.writeString(sourceYaml, Files.readString(sourceYaml).replace("services/ingestion-service/seed/sample-data/state-1/pds.csv",
                 source.toAbsolutePath().toString().replace('\\', '/')));
 
         var harness = new OnboardingHarness(packs).activate("state-1", SampleData.loader(packs).find("state-1").orElseThrow().manifest().version());

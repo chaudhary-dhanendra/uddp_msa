@@ -24,13 +24,13 @@ import java.util.UUID;
 public final class SampleData {
     /** Repository root, relative to the module directory Maven runs tests in (services/api-stewardship-service). */
     public static final Path REPOSITORY_ROOT = Path.of("../..");
-    public static final Path STATE_PACKS = REPOSITORY_ROOT.resolve("state-packs");
+    public static final Path STATE_PACKS = REPOSITORY_ROOT.resolve("services/statepack-service/seed/state-packs");
     /** Fixture packs fx-alpha and fx-beta: conflict and bad-data cases, never part of the sample demo. */
-    public static final Path FIXTURE_PACKS = REPOSITORY_ROOT.resolve("tests/fixtures/state-packs");
+    public static final Path FIXTURE_PACKS = REPOSITORY_ROOT.resolve("services/api-stewardship-service/src/test/fixtures/state-packs");
     /** Fixture pack fx-household (M14): household members with relationship codes, never part of the demo. */
-    public static final Path FAMILY_FIXTURE_PACKS = REPOSITORY_ROOT.resolve("tests/fixtures/family-packs");
+    public static final Path FAMILY_FIXTURE_PACKS = REPOSITORY_ROOT.resolve("services/api-stewardship-service/src/test/fixtures/family-packs");
     /** Fixture pack fx-welfare (M15): one benefit per row, with Benefit errors; never part of the demo. */
-    public static final Path BENEFIT_FIXTURE_PACKS = REPOSITORY_ROOT.resolve("tests/fixtures/benefit-packs");
+    public static final Path BENEFIT_FIXTURE_PACKS = REPOSITORY_ROOT.resolve("services/api-stewardship-service/src/test/fixtures/benefit-packs");
 
     private SampleData() {
     }

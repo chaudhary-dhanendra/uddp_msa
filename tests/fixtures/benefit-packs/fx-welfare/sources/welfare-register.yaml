@@ -1,7 +1,0 @@
-sourceId: welfare-register
-sourceType: file
-hopTemplate: generic-file-ingest.hpl
-connectionRef: local-demo-files
-location: tests/fixtures/source-files/fx-welfare/welfare-register.csv
-recordIdField: member_no
-sourceSchemaVersion: 1.0

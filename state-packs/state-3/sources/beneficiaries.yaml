@@ -1,7 +1,0 @@
-sourceId: beneficiaries
-sourceType: file
-hopTemplate: generic-file-ingest.hpl
-connectionRef: local-demo-files
-location: sample-data/state-3/beneficiaries.csv
-recordIdField: family_id
-sourceSchemaVersion: 1.0

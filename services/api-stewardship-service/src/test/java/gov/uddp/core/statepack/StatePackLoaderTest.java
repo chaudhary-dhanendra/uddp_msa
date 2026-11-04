@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StatePackLoaderTest {
     private StatePackLoader loader() {
         StatePackProperties properties = new StatePackProperties();
-        properties.setStatePackDirectory("../../state-packs");
+        properties.setStatePackDirectory("../../services/statepack-service/seed/state-packs");
         properties.setFixtureStatePacksEnabled(true);
         var loader = new StatePackLoader(properties);
         loader.setOperations(TestOperationRegistry.builtIns());
@@ -18,7 +18,7 @@ class StatePackLoaderTest {
         return loader;
     }
     @Test void sameGenericLoaderLoadsAllConfiguredStatePacks() {
-        var packs = loader().loadAll(Path.of("../../state-packs"));
+        var packs = loader().loadAll(Path.of("../../services/statepack-service/seed/state-packs"));
         assertEquals(3, packs.size());
         assertEquals("generic-file-ingest.hpl", packs.get("state-1").sources().getFirst().hopTemplate());
         assertEquals("generic-file-ingest.hpl", packs.get("state-2").sources().getFirst().hopTemplate());

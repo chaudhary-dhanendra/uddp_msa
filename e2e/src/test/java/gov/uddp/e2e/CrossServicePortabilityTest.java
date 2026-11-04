@@ -81,8 +81,8 @@ class CrossServicePortabilityTest {
 
     @Test
     void stateTwoAndStateFourOnboardByStatePackDataAloneAcrossServices() throws Exception {
-        Path packs = Platform.ROOT.resolve("state-packs");
-        Path m10 = Platform.ROOT.resolve("m10-state-packs");
+        Path packs = Platform.ROOT.resolve("services/statepack-service/seed/state-packs");
+        Path m10 = Platform.ROOT.resolve("services/statepack-service/seed/m10-state-packs");
 
         onboard(List.of(packs.resolve("state-1"), packs.resolve("state-3")));
         UUID baselineRun = matchAndBuild();

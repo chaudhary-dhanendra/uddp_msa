@@ -136,7 +136,7 @@ class RemoteStudioServiceTest {
             seen.clear();
             var started = studio.onboard("d-1", null);
             assertEquals("run-9", started.runId());
-            assertEquals(csv, Files.readString(repository.resolve("sample-data/state-2/pension.csv")),
+            assertEquals(csv, Files.readString(repository.resolve("services/ingestion-service/seed/sample-data/state-2/pension.csv")),
                     "the uploaded file is where the pack names it");
             assertEquals("ACTIVE", new Sql(connections).text(
                     "select status from state_pack_lifecycle where pack_id = 'state-2' and version = '1.0.0'"));
