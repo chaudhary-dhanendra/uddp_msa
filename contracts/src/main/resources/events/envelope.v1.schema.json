@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/envelope.v1.schema.json",
+  "title": "UDDP event envelope v1",
+  "type": "object",
+  "required": ["eventId", "eventType", "schemaVersion", "occurredAt", "producer", "partitionKey", "payload"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "type": "string", "pattern": "^uddp\\.(cmd\\.)?[a-z]+\\.[a-z-]+$" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "producer": { "type": "string", "minLength": 1 },
+    "partitionKey": { "type": "string", "minLength": 1 },
+    "correlationId": { "type": ["string", "null"], "format": "uuid" },
+    "causationId": { "type": ["string", "null"], "format": "uuid" },
+    "stateCode": {
+      "type": ["string", "null"],
+      "description": "Data for routing and audit only, never a branch condition."
+    },
+    "statePack": {
+      "type": ["object", "null"],
+      "required": ["packId", "version", "digest"],
+      "properties": {
+        "packId": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "payload": { "type": "object" }
+  }
+}

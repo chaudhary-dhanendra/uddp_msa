@@ -1,5 +1,5 @@
 # Java / Maven
-common-core/target/
+target/
 *.class
 
 # IDE

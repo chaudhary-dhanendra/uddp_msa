@@ -1,0 +1,24 @@
+# State Pack driven shaping, mapping, conversion and validation; publishes canonical events and the DLQ.
+# Connection settings come only from the environment. The URL defaults to the local database uddp_platform on
+# UDDP_POSTGRES_HOST/PORT, the user to the service role uddp_canonical, and the password to UDDP_CANONICAL_POSTGRES_PASSWORD or,
+# when that is unset, UDDP_POSTGRES_PASSWORD. Nothing here is a credential.
+spring:
+  application:
+    name: canonical-service
+  datasource:
+    url: ${UDDP_CANONICAL_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_platform}
+    username: ${UDDP_CANONICAL_POSTGRES_USER:uddp_canonical}
+    password: ${UDDP_CANONICAL_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+  flyway:
+    # Own schema(s) and own history table; this service never touches another schema.
+    schemas: canonical
+    default-schema: canonical
+    create-schemas: true
+server:
+  address: 127.0.0.1
+  port: 8102
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

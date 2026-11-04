@@ -1,0 +1,24 @@
+# Matching behind the MatchingService boundary (Python Splink adapter); publishes match-decided.
+# Connection settings come only from the environment. The URL defaults to the local database uddp_identity on
+# UDDP_POSTGRES_HOST/PORT, the user to the service role uddp_identity, and the password to UDDP_IDENTITY_POSTGRES_PASSWORD or,
+# when that is unset, UDDP_POSTGRES_PASSWORD. Nothing here is a credential.
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: ${UDDP_IDENTITY_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_identity}
+    username: ${UDDP_IDENTITY_POSTGRES_USER:uddp_identity}
+    password: ${UDDP_IDENTITY_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+  flyway:
+    # Own schema(s) and own history table; this service never touches another schema.
+    schemas: identity
+    default-schema: identity
+    create-schemas: true
+server:
+  address: 127.0.0.1
+  port: 8103
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
