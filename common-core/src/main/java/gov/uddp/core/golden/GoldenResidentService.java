@@ -39,7 +39,7 @@ import org.springframework.stereotype.Service;
  * {@link StewardshipConstraints} (M13) stewardship decisions shape the groups and new review tasks are created.
  */
 @Service
-public class GoldenResidentService {
+public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBuildRunner {
     private static final int MAX_MERGE_CHAIN = 100;
 
     private final PostgresConnectionFactory connections;
@@ -107,6 +107,7 @@ public class GoldenResidentService {
         this.platformEvents = platformEvents;
     }
 
+    @Override
     public GoldenBuildSummary build(UUID run) {
         if (platformEvents != null) {
             platformEvents.matchRunCompleted(run);

@@ -398,6 +398,35 @@ that every baseline Golden ID is unchanged in the incremental run.
 5. **api-stewardship-service.** What is left of the monolith (API controllers, security, onboarding saga,
    stewardship, read models, setup) becomes this service and the `common-core` module is removed.
 
+   *As built (2026-11-04):* **api-stewardship-service** is the monolith's remaining application started with
+   `api-stewardship.yml`: events on and `uddp.{ingestion,canonical,identity,registry}.remote=true`, so every pipeline
+   stage is another service's and the edge holds read models (Raw, canonical, matching runs, and a **Golden replica**:
+   registry-service publishes `uddp.registry.golden-replica.v1` with every row a build wrote, applied by primary key
+   with `RowReplication`). Golden builds, including those after a steward's merge or split, go to registry-service
+   (`RemoteGoldenBuilder`, `GoldenBuildRunner`); decisions are published as `stewardship.decision-recorded` (rows of
+   `stewardship_decision` and `stewardship_link_constraint`) and registry-service waits for the named decision before
+   it builds. Its database is `uddp_platform` with `currentSchema=stewardship` (UDDP_POSTGRES_* variables).
+
+### Status and remaining work (2026-11-04)
+
+Done: Phases 0-4. Every service has its own database/schema, Flyway location and history, outbox and inbox; the
+cross-service test (`mvn test -pl e2e -Dmsa.e2e=true`) onboards States 2 and 4 by pack data alone with real Splink.
+Not done yet, in priority order:
+
+1. **Review tasks in remote mode.** The monolith creates POSSIBLE_MATCH review tasks inside its Golden build;
+   registry-service does not (they are the edge's), and the edge does not yet create them from identity's
+   match-decided events, so in remote mode the review queue stays empty.
+2. **Benefit, application and asset observations** are not published as events, so in remote canonical mode the
+   edge's benefit, scheme-eligibility and application reports are empty.
+3. **Matching profiles, labels, training and identity policy** are still managed at the edge and not sent to
+   identity-service, which uses its defaults in remote mode.
+4. **The common-core module still exists**: canonical-service and registry-service reuse its engines as a library and
+   api-stewardship-service is its application. The next step is to move each engine into its service module and drop
+   what each service does not use.
+5. Database-table sources, connectors, schedules and landing folders stay at the edge (credentials never go over
+   Kafka); source files are passed as paths (shared filesystem); a Golden replica is one event (8 MB limit);
+   canonical-service cannot yet replay a batch with a different pack version; real Hop runs are not in automated tests.
+
 ### Phase 4: cross-service portability proof
 
 One Testcontainers e2e (Kafka + Postgres DBs + all six services in-process or as containers, real Splink adapter,

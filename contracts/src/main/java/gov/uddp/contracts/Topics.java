@@ -24,6 +24,8 @@ public final class Topics {
     public static final String GOLDEN_RESIDENT_CHANGED = "uddp.registry.golden-resident-changed.v1";
     public static final String GOLDEN_FAMILY_CHANGED = "uddp.registry.golden-family-changed.v1";
     public static final String GOLDEN_BUILD_COMPLETED = "uddp.registry.golden-build-completed.v1";
+    /** The Golden rows one build wrote, for read models (api-stewardship-service). */
+    public static final String GOLDEN_REPLICA = "uddp.registry.golden-replica.v1";
 
     public static final String PACK_PUBLISHED = "uddp.statepack.pack-published.v1";
     public static final String PACK_APPROVED = "uddp.statepack.pack-approved.v1";

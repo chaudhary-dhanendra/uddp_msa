@@ -30,6 +30,16 @@ public final class RegistryProjections {
         lineage(c, envelope, envelope.path("payload").path("residentRecordKey").asText());
     }
 
+    /**
+     * stewardship.decision-recorded: the decision and its link constraints, replicated row for row, so the next build
+     * applies them exactly as the monolith's build did (ProjectedStewardship reads the effective view).
+     */
+    public static void decisionRecorded(Connection c, JsonNode envelope) throws SQLException {
+        gov.uddp.core.events.RowReplication.apply(c, envelope.path("payload").path("rows"),
+                java.util.List.of("stewardship_decision", "stewardship_link_constraint"), java.util.Map.of());
+        lineage(c, envelope, envelope.path("payload").path("decisionId").asText());
+    }
+
     /** identity's run events, into the same matching tables and RECEIVING-until-complete rule as the monolith. */
     public static Inbox.Handler matching(Inbox.Handler projection, String subjectField) {
         return (c, envelope) -> {

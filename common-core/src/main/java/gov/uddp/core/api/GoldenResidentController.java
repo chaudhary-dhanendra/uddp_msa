@@ -28,8 +28,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class GoldenResidentController {
     private final GoldenResidentService service;
 
+    private gov.uddp.core.onboarding.GoldenBuildRunner builds;
+
     public GoldenResidentController(GoldenResidentService service) {
         this.service = service;
+    }
+
+    /** The build boundary (registry-service when uddp.registry.remote=true); reads stay on the local tables. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBuilds(gov.uddp.core.onboarding.GoldenBuildRunner builds) {
+        this.builds = builds;
     }
 
     public record BuildRequest(UUID matchingRunId) { }
@@ -39,7 +47,7 @@ public class GoldenResidentController {
     @PreAuthorize("hasAuthority('PERM_ONBOARDING_RUN') and @access.everyState()")
     @Audited(action = "GOLDEN_BUILD", resource = "MATCHING_RUN")
     public GoldenBuildSummary build(@RequestBody BuildRequest request) {
-        return service.build(request.matchingRunId());
+        return (builds == null ? service : builds).build(request.matchingRunId());
     }
 
     /**
