@@ -21,6 +21,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>engine</module>
     <module>common-core</module>
     <module>contracts</module>
     <module>messaging</module>

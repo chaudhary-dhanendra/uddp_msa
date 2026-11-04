@@ -423,9 +423,14 @@ Not done yet, in priority order:
    `matching_profile` and `identity_policy` rows, APPROVED ones last, and identity-service applies them row for row
    before the run, so the Splink adapter uses the approved profile and policy). Profile training, steward labels and
    threshold proposals still run at the edge against its own read models.
-4. **The common-core module still exists**: canonical-service and registry-service reuse its engines as a library and
-   api-stewardship-service is its application. The next step is to move each engine into its service module and drop
-   what each service does not use.
+4. **common-core split, first step done (2026-11-04):** the 152 classes the engines need (State Pack loading,
+   shaping, mapping, validation and DQ, canonical processing, identifier types, geography reads, survivorship, the
+   Golden lifecycle and the shared event projections) moved unchanged, in their packages, to the `engine` module;
+   canonical-service and registry-service depend on `uddp-engine` only, and common-core (220 classes, the edge's
+   application) depends on it. The packages are cyclic (the canonical package alone reaches 33 of 34 packages), so
+   the next step, splitting `engine` into a canonical engine and a Golden engine, first needs those cycles broken
+   (PostgresConnectionFactory out of `canonical`, the `events` hooks behind interfaces). The portability guard
+   protects both module paths and treats an unchanged move as no change.
 5. Database-table sources, connectors, schedules and landing folders stay at the edge (credentials never go over
    Kafka); source files are passed as paths (shared filesystem); a Golden replica is one event (8 MB limit);
    canonical-service cannot yet replay a batch with a different pack version; real Hop runs are not in automated tests.

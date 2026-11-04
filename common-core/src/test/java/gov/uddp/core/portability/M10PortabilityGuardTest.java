@@ -105,6 +105,9 @@ class M10PortabilityGuardTest {
             "common-core/src/main/java/gov/uddp/core/canonical/PostgresCanonicalResidentRepository.java",
             "common-core/src/main/java/gov/uddp/core/validation/ReasonCodes.java",
             "common-core/src/main/java/gov/uddp/core/validation/ValidationIssue.java");
+    /** The engines moved, unchanged, from common-core to the engine module (MSA); both locations are protected. */
+    private static final String MOVED_FROM = "common-core/src/main/java/";
+    private static final String MOVED_TO = "engine/src/main/java/";
     private static final String[] PROTECTED_PATHS = {
         "common-core/src/main/java/gov/uddp/core/mapping",
         "common-core/src/main/java/gov/uddp/core/canonical",
@@ -112,6 +115,12 @@ class M10PortabilityGuardTest {
         "common-core/src/main/java/gov/uddp/core/golden",
         "common-core/src/main/java/gov/uddp/core/statepack",
         "common-core/src/main/java/gov/uddp/core/scheme",
+        "engine/src/main/java/gov/uddp/core/mapping",
+        "engine/src/main/java/gov/uddp/core/canonical",
+        "engine/src/main/java/gov/uddp/core/validation",
+        "engine/src/main/java/gov/uddp/core/golden",
+        "engine/src/main/java/gov/uddp/core/statepack",
+        "engine/src/main/java/gov/uddp/core/scheme",
         "matching/config.py",
         "matching/run.py",
         "hop/pipelines"
@@ -120,17 +129,24 @@ class M10PortabilityGuardTest {
 
     @Test
     void genericEnginesMatchingAndHopTemplateAreUnchangedSinceTheBaseline() throws Exception {
-        var command = new ArrayList<>(List.of("git", "diff", "--name-only", BASELINE, "--"));
+        var command = new ArrayList<>(List.of("git", "diff", "-M", "--name-status", BASELINE, "--"));
         command.addAll(List.of(PROTECTED_PATHS));
         var process = new ProcessBuilder(command).directory(ROOT.toFile())
                 .redirectError(ProcessBuilder.Redirect.DISCARD).start();
         String changed = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
         assertEquals(0, process.waitFor(), changed);
-        List<String> unexpected = new ArrayList<>(changed.isEmpty() ? List.of() : List.of(changed.split("\\R")));
+        List<String> unexpected = new ArrayList<>();
+        for (String line : changed.isEmpty() ? List.<String>of() : List.of(changed.split("\\R"))) {
+            String[] parts = line.split("\t");
+            if (parts[0].equals("R100")) {
+                continue; // moved to the engine module unchanged
+            }
+            unexpected.add(movedBack(parts[parts.length - 1]));
+        }
         unexpected.removeAll(STUDIO_GENERIC_CHANGES);
         assertEquals(List.of(), unexpected, "Protected generic code changed since " + BASELINE
                 + " outside the listed engine changes; onboarding a state must stay configuration-only");
-        List<String> added = new ArrayList<>(untracked());
+        List<String> added = new ArrayList<>(untracked().stream().map(M10PortabilityGuardTest::movedBack).toList());
         added.removeAll(STUDIO_GENERIC_CHANGES);
         assertEquals(List.of(), added, "New files in protected generic paths");
     }
@@ -197,12 +213,14 @@ class M10PortabilityGuardTest {
     private static List<Path> productionFiles() throws IOException {
         List<Path> files = new ArrayList<>();
         Path migrations = ROOT.resolve("common-core/src/main/resources/db/migration");
-        try (Stream<Path> java = Files.walk(ROOT.resolve("common-core/src/main"))) {
-            java.filter(Files::isRegularFile)
-                    // Historical migrations are immutable upgrade records. They may contain legacy sample pack IDs
-                    // required to migrate old installations and are not runtime state-specific application logic.
-                    .filter(file -> !file.startsWith(migrations))
-                    .forEach(files::add);
+        for (String module : List.of("common-core/src/main", "engine/src/main")) {
+            try (Stream<Path> java = Files.walk(ROOT.resolve(module))) {
+                java.filter(Files::isRegularFile)
+                        // Historical migrations are immutable upgrade records. They may contain legacy sample pack IDs
+                        // required to migrate old installations and are not runtime state-specific application logic.
+                        .filter(file -> !file.startsWith(migrations))
+                        .forEach(files::add);
+            }
         }
         try (Stream<Path> python = Files.list(ROOT.resolve("matching"))) {
             python.filter(file -> file.toString().endsWith(".py"))
@@ -214,6 +232,11 @@ class M10PortabilityGuardTest {
                     .forEach(files::add);
         }
         return files;
+    }
+
+    /** An engine file under its former common-core path, so the listed engine changes keep applying. */
+    private static String movedBack(String path) {
+        return path.startsWith(MOVED_TO) ? MOVED_FROM + path.substring(MOVED_TO.length()) : path;
     }
 
     private static List<String> untracked() throws Exception {

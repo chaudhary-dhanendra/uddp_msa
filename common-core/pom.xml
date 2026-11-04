@@ -18,6 +18,8 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
     <!-- MSA Phase 2: event contracts and the outbox (docs/msa-design.md). -->
     <dependency><groupId>gov.uddp</groupId><artifactId>uddp-messaging</artifactId><version>0.1.0-SNAPSHOT</version></dependency>
+    <!-- The engines (State Pack, shaping, mapping, validation, canonical, Golden), shared with the services. -->
+    <dependency><groupId>gov.uddp</groupId><artifactId>uddp-engine</artifactId><version>0.1.0-SNAPSHOT</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-oauth2-client</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
@@ -48,22 +50,6 @@
     <plugins>
       <!-- MSA Phase 3: the executable jar gets the "exec" classifier so the plain jar can be a library (registry-service). -->
       <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><configuration><classifier>exec</classifier></configuration></plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <!-- The contract Tier-3 plugin authors compile against: only the shaping API, no platform internals. -->
-          <execution>
-            <id>shaping-api-jar</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>shaping-api</classifier>
-              <includes><include>gov/uddp/shaping/api/**</include></includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
