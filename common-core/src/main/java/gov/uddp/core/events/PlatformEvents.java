@@ -45,8 +45,16 @@ public class PlatformEvents {
         this.enabled = enabled;
     }
 
+    private boolean remoteIdentity;
+
     public boolean enabled() {
         return enabled;
+    }
+
+    /** With identity-service (MSA Phase 3) matching runs are its events; this service must not republish them. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setRemoteIdentity(@Value("${uddp.identity.remote:false}") boolean remoteIdentity) {
+        this.remoteIdentity = remoteIdentity;
     }
 
     /** ingestion: one raw-record-received per landed row of the batch, then batch-completed. Idempotent. */
@@ -164,7 +172,7 @@ public class PlatformEvents {
      * may call it for the same run.
      */
     public void matchRunCompleted(UUID runId) {
-        if (!enabled) {
+        if (!enabled || remoteIdentity) {
             return;
         }
         inOwnTransaction(c -> {

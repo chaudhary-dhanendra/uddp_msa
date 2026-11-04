@@ -338,6 +338,17 @@ that every baseline Golden ID is unchanged in the incremental run.
 1. **identity-service.** Move `matching/*` Java services and tables. Build `candidate_resident` and
    `current_membership`. Change `matching/run.py` to read those two tables in `uddp_identity` (same columns, so the
    Splink model and its tests do not change). Triggered by `canonical.batch-processed` or `cmd.identity.matching-requested`.
+   *As built (Phase 3a, 2026-11-04):* identity-service V2/V3 hold the matching tables (no FKs to canonical), the
+   projections `candidate_resident`, `current_membership`, `known_golden_resident`, `review_outcome`, and
+   compatibility views with the monolith's names (`canonical_resident_current`, `canonical_resident_match_v`,
+   `golden_resident_membership`, `golden_resident`, `stewardship_decision`, `stewardship_review_task`), so
+   `matching/run.py` runs **unchanged** (proven: the 7 sample residents give the 3 Ram Singh AUTO_MATCH pairs).
+   `MatchingRuns` publishes match-decided / cluster-assigned / match-run-completed (with `correlationId`). The monolith
+   gets `MatchingRunner` (local `PythonMatchingRunner` stays the default) and, with `uddp.identity.remote=true`,
+   `RemoteMatchingRunner` (command + wait) and `RemoteMatchingProjection` (V113: runs stay RECEIVING until complete).
+   Still in the monolith: matching profile, label, training, monitoring and identity-policy management (their tables
+   exist in identity-service but are not synced yet), and stewardship.decision-recorded (so `review_outcome` stays
+   empty and run metrics show no acceptance by band in remote mode).
 2. **ingestion-service.** Move Hop runner, connectors, schedules, delivery change detection and Raw tables. Point
    Hop's logical connection at `uddp_raw`. canonical consumes `raw-record-received` instead of reading
    `raw_record`; `RawRecordRepository` becomes an in-memory view of the received batch.
