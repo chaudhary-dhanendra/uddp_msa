@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uddp.gov/events/ingestion.batch-completed.v1.schema.json",
+  "title": "Batch completed v1: every raw-record-received of the batch has been written to the outbox before it",
+  "type": "object",
+  "required": ["batchId", "recordCount", "status"],
+  "properties": {
+    "batchId": { "type": "string", "format": "uuid" },
+    "recordCount": { "type": "integer", "minimum": 0 },
+    "status": { "type": "string", "enum": ["COMPLETED", "FAILED", "LANDED"] },
+    "message": { "type": ["string", "null"], "description": "Redacted Hop output when the batch failed." },
+    "sourceSystem": { "type": ["string", "null"] },
+    "pipelineTemplate": { "type": ["string", "null"] }
+  }
+}

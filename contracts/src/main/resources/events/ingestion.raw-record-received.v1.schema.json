@@ -12,6 +12,12 @@
     "payloadFormat": { "type": "string", "enum": ["CSV_ROW", "XLSX_ROW", "DB_ROW", "JSON"] },
     "rawPayload": { "type": "string", "description": "The original payload, unchanged." },
     "landedAt": { "type": "string", "format": "date-time" },
-    "replayRunId": { "type": ["string", "null"], "format": "uuid" }
+    "replayRunId": { "type": ["string", "null"], "format": "uuid" },
+    "sourceRecordId": { "type": ["string", "null"] },
+    "sourceMetadata": { "type": ["object", "null"] },
+    "sourceType": { "type": ["string", "null"] },
+    "sourceSchemaVersion": { "type": ["string", "null"] },
+    "statePackVersion": { "type": ["string", "null"] },
+    "pipelineTemplate": { "type": ["string", "null"] }
   }
 }

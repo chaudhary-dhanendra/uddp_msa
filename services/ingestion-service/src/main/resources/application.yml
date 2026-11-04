@@ -9,6 +9,9 @@ spring:
     url: ${UDDP_INGESTION_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_raw}
     username: ${UDDP_INGESTION_POSTGRES_USER:uddp_ingestion}
     password: ${UDDP_INGESTION_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+    hikari:
+      # Unqualified SQL (and Hop, through RAW_SCHEMA) resolves to the service's own schema.
+      schema: ingestion
   flyway:
     # Own schema(s) and own history table; this service never touches another schema.
     schemas: ingestion
@@ -22,3 +25,12 @@ management:
     web:
       exposure:
         include: health,info
+uddp:
+  kafka:
+    # Empty: no consumers and no relay (the service still serves its API). Set to enable messaging.
+    bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  ingestion:
+    # Root of the repository that holds hop/pipelines (the generic templates).
+    repository-root: ${UDDP_REPOSITORY_ROOT:../..}
+    hop-home: ${HOP_HOME:}
+    hop-project: ${UDDP_HOP_PROJECT:uddp-mvp}

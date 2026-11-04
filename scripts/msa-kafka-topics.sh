@@ -58,4 +58,7 @@ dlt identity-service-projections uddp.canonical.resident-created.v1 uddp.registr
 dlt identity-service-commands uddp.cmd.identity.matching-requested.v1
 dlt common-core-identity-projection uddp.identity.match-decided.v1 uddp.identity.cluster-assigned.v1   uddp.identity.match-run-completed.v1
 
+dlt ingestion-service-commands uddp.cmd.ingestion.ingest-requested.v1 uddp.cmd.ingestion.replay-requested.v1
+dlt common-core-raw-projection uddp.ingestion.raw-record-received.v1 uddp.ingestion.raw-record-replayed.v1   uddp.ingestion.batch-completed.v1
+
 echo "UDDP topics ready on $BOOTSTRAP"

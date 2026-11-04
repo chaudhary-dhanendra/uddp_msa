@@ -42,6 +42,11 @@
         <description>existing ingestion_batch UUID</description>
         <default_value/>
       </parameter>
+      <parameter>
+        <name>RAW_SCHEMA</name>
+        <description>schema of the raw_record table (public in the monolith, ingestion in ingestion-service)</description>
+        <default_value>public</default_value>
+      </parameter>
     </parameters>
     <name>generic-db-ingest</name>
     <name_sync_with_filename>Y</name_sync_with_filename>
@@ -250,7 +255,7 @@
     <partitioning_monthly>Y</partitioning_monthly>
     <return_keys>N</return_keys>
     <specify_fields>Y</specify_fields>
-    <schema>public</schema>
+    <schema>${RAW_SCHEMA}</schema>
     <table>raw_record</table>
     <tablename_in_field>N</tablename_in_field>
     <tablename_in_table>Y</tablename_in_table>
