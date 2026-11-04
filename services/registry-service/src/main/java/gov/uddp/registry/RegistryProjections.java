@@ -35,7 +35,7 @@ public final class RegistryProjections {
      * applies them exactly as the monolith's build did (ProjectedStewardship reads the effective view).
      */
     public static void decisionRecorded(Connection c, JsonNode envelope) throws SQLException {
-        gov.uddp.core.events.RowReplication.apply(c, envelope.path("payload").path("rows"),
+        gov.uddp.messaging.RowReplication.apply(c, envelope.path("payload").path("rows"),
                 java.util.List.of("stewardship_decision", "stewardship_link_constraint"), java.util.Map.of());
         lineage(c, envelope, envelope.path("payload").path("decisionId").asText());
     }

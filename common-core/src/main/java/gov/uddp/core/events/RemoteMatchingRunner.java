@@ -42,10 +42,22 @@ public class RemoteMatchingRunner implements MatchingRunner {
         return request("INCREMENTAL");
     }
 
+    /** All matching profiles and identity policies, the APPROVED ones last (at most one may be APPROVED). */
+    static com.fasterxml.jackson.databind.node.ObjectNode matchingSettings(java.sql.Connection c)
+            throws java.sql.SQLException {
+        return gov.uddp.messaging.RowReplication.read(c, java.util.List.of(
+                new gov.uddp.messaging.RowReplication.Selection("matching_profile",
+                        "true order by (status = 'APPROVED'), created_at", java.util.List.of()),
+                new gov.uddp.messaging.RowReplication.Selection("identity_policy",
+                        "true order by (status = 'APPROVED'), version", java.util.List.of())));
+    }
+
     private UUID request(String mode) {
         UUID correlation = UUID.randomUUID();
         try (var c = connections.open()) {
             var payload = Outbox.json().createObjectNode().put("mode", mode);
+            // The steward-managed matching settings travel with the request; identity-service applies them first.
+            payload.set("settings", matchingSettings(c));
             Outbox.append(c, Topics.CMD_MATCHING_REQUESTED, new EventEnvelope(UUID.randomUUID(),
                     "uddp.cmd.identity.matching-requested", 1, Instant.now(), "common-core", correlation.toString(),
                     correlation, null, null, null, payload));

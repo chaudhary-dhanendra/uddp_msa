@@ -81,6 +81,10 @@ class RemoteIdentityTest {
         var connections = TestDatabase.freshMigrated();
         var sql = new Sql(connections);
         processSample(connections);
+        sql.execute("insert into matching_profile (profile_id, name, version, status, config, created_by)"
+                + " values (gen_random_uuid(), 'resident', 1, 'RETIRED', '{}'::jsonb, 'maker'),"
+                + " (gen_random_uuid(), 'resident', 2, 'APPROVED', '{\"thresholds\":{\"autoMatch\":0.9}}'::jsonb,"
+                + " 'maker')");
         var runner = new RemoteMatchingRunner(connections, Duration.ofMinutes(2));
         CompletableFuture<UUID> result = CompletableFuture.supplyAsync(runner::run);
 
@@ -95,6 +99,10 @@ class RemoteIdentityTest {
                 UUID.class, Topics.CMD_MATCHING_REQUESTED).getFirst();
         assertEquals("FULL", sql.column("select payload->'payload'->>'mode' from outbox_event where topic = ?",
                 String.class, Topics.CMD_MATCHING_REQUESTED).getFirst());
+        assertEquals(List.of("RETIRED", "APPROVED"), sql.column("select p->>'status' from outbox_event,"
+                + " jsonb_array_elements(payload->'payload'->'settings'->'matching_profile') p where topic = ?",
+                String.class, Topics.CMD_MATCHING_REQUESTED), "the steward-managed settings travel with the request,"
+                + " the approved profile last");
 
         UUID run = UUID.randomUUID();
         List<JsonNode> events = new ArrayList<>(runEvents(sql, run, correlation));

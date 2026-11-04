@@ -1,5 +1,6 @@
 package gov.uddp.core.events;
 
+import gov.uddp.messaging.RowReplication;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.JsonNode;

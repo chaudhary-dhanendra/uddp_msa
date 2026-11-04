@@ -1,5 +1,6 @@
 package gov.uddp.core.events;
 
+import gov.uddp.messaging.RowReplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;

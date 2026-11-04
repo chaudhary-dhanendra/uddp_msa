@@ -1,8 +1,9 @@
 package gov.uddp.core.events;
 
+import gov.uddp.messaging.RowReplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.uddp.core.events.RowReplication.Selection;
+import gov.uddp.messaging.RowReplication.Selection;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
