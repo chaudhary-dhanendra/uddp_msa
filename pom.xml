@@ -92,6 +92,8 @@
             <!-- Tests never register with a developer's discovery server. -->
             <systemPropertyVariables>
               <eureka.client.enabled>false</eureka.client.enabled>
+              <!-- ...and export no traces. -->
+              <management.tracing.enabled>false</management.tracing.enabled>
             </systemPropertyVariables>
           </configuration>
         </plugin>

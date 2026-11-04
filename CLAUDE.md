@@ -64,6 +64,8 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
 - Python tests: `pip install -r matching/requirements-dev.txt && python -m pytest matching` (integration tests need Docker)
 - Run order: discovery-service (8761), then the services (8101-8106, each registers by name), then
   gateway-service (8080, the only public entry; point the UI at it). Service URLs default to `lb://<name>`.
+- Observability: `docker compose --profile observability up -d` (Grafana 3000, Prometheus 9090, Tempo, Loki;
+  `docs/observability.md`)
 - Infrastructure: `docker compose up -d kafka kafka-init` (topics from `deploy/kafka/create-topics.sh`);
   `docker compose --profile postgres up -d postgres` creates the service databases and roles from `deploy/postgres/`
   (or run those two SQL files with psql against an existing server)

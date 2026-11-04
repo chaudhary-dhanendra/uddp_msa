@@ -13,6 +13,19 @@
   <artifactId>uddp-canonical-service</artifactId>
 
   <dependencies>
+    <!-- Observability: Prometheus metrics and OpenTelemetry traces (OTLP), see docs/observability.md. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+    </dependency>
     <!-- Registers with the service registry (Eureka) and resolves lb:// service addresses through it. -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
