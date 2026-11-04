@@ -9,8 +9,12 @@ spring:
     url: ${UDDP_CANONICAL_POSTGRES_URL:jdbc:postgresql://${UDDP_POSTGRES_HOST:localhost}:${UDDP_POSTGRES_PORT:5432}/uddp_platform}
     username: ${UDDP_CANONICAL_POSTGRES_USER:uddp_canonical}
     password: ${UDDP_CANONICAL_POSTGRES_PASSWORD:${UDDP_POSTGRES_PASSWORD:}}
+    hikari:
+      schema: canonical
   flyway:
-    # Own schema(s) and own history table; this service never touches another schema.
+    # Own schema(s) and own history table; this service never touches another schema. Its own location, because the
+    # monolith's jar (reused for the canonical engine) carries the monolith's migrations under db/migration.
+    locations: classpath:db/canonical
     schemas: canonical
     default-schema: canonical
     create-schemas: true
@@ -22,3 +26,18 @@ management:
     web:
       exposure:
         include: health,info
+uddp:
+  # Read by the engine's own components (shaping parsers' word lists): the same platform directory.
+  platform-directory: ${uddp.canonical.platform-directory}
+  kafka:
+    # Empty: no consumers and no relay. Set to enable messaging.
+    bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  canonical:
+    # statepack-service: every pack is fetched by version, verified by digest and cached here before it is used.
+    statepack-url: ${UDDP_STATEPACK_URL:http://127.0.0.1:8105}
+    pack-cache: ${UDDP_PACK_CACHE:${java.io.tmpdir}/uddp-canonical-packs}
+    # Platform metadata (reference sets, scheme catalogue) and the shaping plugin settings.
+    platform-directory: ${UDDP_PLATFORM_DIRECTORY:../../platform}
+    shaping-plugins-dir: ${UDDP_SHAPING_PLUGINS_DIR:plugins}
+    shaping-approved-plugins: ${UDDP_SHAPING_APPROVED_PLUGINS:../../platform/shaping/approved-plugins.yaml}
+    batch-wait: PT10M

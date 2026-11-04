@@ -29,13 +29,14 @@ import org.springframework.stereotype.Component;
 @ConditionalOnExpression("'${uddp.kafka.bootstrap-servers:}' != ''")
 public class RegistryMessaging implements DisposableBean {
 
+    static final String RESIDENT_CONSUMER = "registry-service-residents";
     static final String PROJECTION_CONSUMER = "registry-service-projections";
     static final String COMMAND_CONSUMER = "registry-service-commands";
 
     private final KafkaProducer<String, String> producer;
     private final OutboxRelay relay;
     private final List<KafkaEventLoop> loops = new ArrayList<>();
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(3, r -> {
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4, r -> {
         Thread thread = new Thread(r, "registry-messaging");
         thread.setDaemon(true);
         return thread;
@@ -46,8 +47,10 @@ public class RegistryMessaging implements DisposableBean {
         this.producer = new KafkaProducer<>(Map.of("bootstrap.servers", bootstrapServers, "enable.idempotence", "true",
                 "acks", "all", "client.id", "registry-service"), new StringSerializer(), new StringSerializer());
         this.relay = new OutboxRelay(registryConnections::open, producer, 500);
+        // Residents have their own consumer: a family observation that waits for its Resident must not block it.
+        loops.add(new KafkaEventLoop(bootstrapServers, RESIDENT_CONSUMER, registryConnections::open, Map.of(
+                Topics.RESIDENT_CREATED, RegistryProjections::residentCreated), producer));
         loops.add(new KafkaEventLoop(bootstrapServers, PROJECTION_CONSUMER, registryConnections::open, Map.of(
-                Topics.RESIDENT_CREATED, RegistryProjections::residentCreated,
                 Topics.FAMILY_OBSERVED, RegistryProjections::familyObserved,
                 Topics.MATCH_DECIDED, RegistryProjections.MATCH_DECIDED,
                 Topics.CLUSTER_ASSIGNED, RegistryProjections.CLUSTER_ASSIGNED,

@@ -104,6 +104,20 @@ public class Ingestions {
             p.put("status", result.succeeded() ? "COMPLETED" : "FAILED");
             p.put("message", result.succeeded() ? null : "Generic Hop exited " + result.exitCode() + ": "
                     + result.output());
+            // The batch's own fields, so a consumer that sees this report before any record can record it.
+            try (var s = c.prepareStatement("select source_system, source_type, source_schema_version,"
+                    + " state_pack_version, pipeline_template from ingestion_batch where batch_id = ?")) {
+                s.setObject(1, batch);
+                try (var r = s.executeQuery()) {
+                    if (r.next()) {
+                        p.put("sourceSystem", r.getString(1));
+                        p.put("sourceType", r.getString(2));
+                        p.put("sourceSchemaVersion", r.getString(3));
+                        p.put("statePackVersion", r.getString(4));
+                        p.put("pipelineTemplate", r.getString(5));
+                    }
+                }
+            }
             append(c, Topics.BATCH_COMPLETED, "uddp.ingestion.batch-completed", batch.toString(), batch.toString(),
                     stateCode, correlationId, p);
             return count;

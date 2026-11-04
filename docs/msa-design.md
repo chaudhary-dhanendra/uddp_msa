@@ -381,6 +381,20 @@ that every baseline Golden ID is unchanged in the incremental run.
    wired here), and an automatic build on match-run-completed (builds are commanded).
 4. **canonical + statepack last, together** (per the brief). Split what remains into canonical-service and
    statepack-service; packs are then fetched by digest over HTTP.
+   *As built (Phase 3d, 2026-11-04):* **statepack-service** (V2: `state_pack_version`, immutable `state_pack_file`,
+   append-only `state_pack_decision`) publishes, approves (checker must differ from maker), activates (retiring the
+   previous ACTIVE version) and serves packs by version, by state+version and by digest; lifecycle events go through
+   its outbox. `contracts.StatePackDigest` defines the digest and `contracts.StatePackClient` verifies it before a pack
+   is cached for the loader. **canonical-service** reuses the monolith's canonical engine and State Pack loader
+   together (plain jar), with its own schema (canonical tables, Raw projection, LGD master, identifier types); it
+   maps a batch once ingestion-service reported it and every record arrived, using only packs fetched from
+   statepack-service and verified by digest, and publishes resident-created, family-observed, the DLQ and
+   batch-processed. The monolith gets `CanonicalBatchProcessor` and, with `uddp.canonical.remote=true` (needs
+   `uddp.ingestion.remote=true`), `RemoteCanonicalProcessor` + `RemoteCanonicalProjection` (V115). Residents are
+   consumed by their own consumer group because a family observation may arrive first (`Inbox.NotYetApplicable`
+   waits instead of parking it). Not evented yet: benefit, application and asset observations (in remote canonical
+   mode the monolith's benefit reports stay empty), held-record decisions, and replay of a batch with a different
+   pack version in canonical-service.
 5. **api-stewardship-service.** What is left of the monolith (API controllers, security, onboarding saga,
    stewardship, read models, setup) becomes this service and the `common-core` module is removed.
 

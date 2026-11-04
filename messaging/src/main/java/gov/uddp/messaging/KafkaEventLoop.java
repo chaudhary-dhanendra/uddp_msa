@@ -25,6 +25,9 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaEventLoop.class);
     private static final int ATTEMPTS = 3;
+    /** How long a record whose prerequisite has not arrived is retried before it is parked (2 minutes). */
+    private static final int WAIT_ATTEMPTS = 240;
+    private static final long WAIT_MILLIS = 500;
 
     private final KafkaConsumer<String, String> consumer;
     private final Producer<String, String> deadLetters;
@@ -80,10 +83,22 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
 
     private void handle(ConsumerRecord<String, String> record) {
         Exception last = null;
+        int waits = 0;
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             try {
                 inbox.handle(record, handlers.get(record.topic()));
                 return;
+            } catch (Inbox.NotYetApplicable e) {
+                last = e;
+                if (++waits < WAIT_ATTEMPTS && running.get()) {
+                    attempt--;
+                    try {
+                        Thread.sleep(WAIT_MILLIS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
             } catch (Exception e) {
                 last = e;
                 LOG.warn("{} failed on {} offset {} (attempt {})", consumerName, record.topic(), record.offset(),
