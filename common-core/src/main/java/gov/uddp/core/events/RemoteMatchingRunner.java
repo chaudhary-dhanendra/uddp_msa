@@ -25,11 +25,15 @@ public class RemoteMatchingRunner implements MatchingRunner {
 
     private final PostgresConnectionFactory connections;
     private final Duration timeout;
+    private final boolean studioRemote;
 
     public RemoteMatchingRunner(PostgresConnectionFactory connections,
-                                @Value("${uddp.identity.remote-timeout:PT30M}") Duration timeout) {
+                                @Value("${uddp.identity.remote-timeout:PT30M}") Duration timeout,
+                                @Value("${uddp.identity.url:}") String identityUrl) {
         this.connections = connections;
         this.timeout = timeout;
+        // With the Matching Studio in identity-service, matching profiles are owned there and are not sent.
+        this.studioRemote = !identityUrl.isBlank();
     }
 
     @Override
@@ -43,13 +47,17 @@ public class RemoteMatchingRunner implements MatchingRunner {
     }
 
     /** All matching profiles and identity policies, the APPROVED ones last (at most one may be APPROVED). */
-    static com.fasterxml.jackson.databind.node.ObjectNode matchingSettings(java.sql.Connection c)
+    static com.fasterxml.jackson.databind.node.ObjectNode matchingSettings(java.sql.Connection c,
+                                                                          boolean profiles)
             throws java.sql.SQLException {
-        return gov.uddp.messaging.RowReplication.read(c, java.util.List.of(
-                new gov.uddp.messaging.RowReplication.Selection("matching_profile",
-                        "true order by (status = 'APPROVED'), created_at", java.util.List.of()),
-                new gov.uddp.messaging.RowReplication.Selection("identity_policy",
-                        "true order by (status = 'APPROVED'), version", java.util.List.of())));
+        var selections = new java.util.ArrayList<gov.uddp.messaging.RowReplication.Selection>();
+        if (profiles) {
+            selections.add(new gov.uddp.messaging.RowReplication.Selection("matching_profile",
+                    "true order by (status = 'APPROVED'), created_at", java.util.List.of()));
+        }
+        selections.add(new gov.uddp.messaging.RowReplication.Selection("identity_policy",
+                "true order by (status = 'APPROVED'), version", java.util.List.of()));
+        return gov.uddp.messaging.RowReplication.read(c, selections);
     }
 
     private UUID request(String mode) {
@@ -57,7 +65,7 @@ public class RemoteMatchingRunner implements MatchingRunner {
         try (var c = connections.open()) {
             var payload = Outbox.json().createObjectNode().put("mode", mode);
             // The steward-managed matching settings travel with the request; identity-service applies them first.
-            payload.set("settings", matchingSettings(c));
+            payload.set("settings", matchingSettings(c, !studioRemote));
             Outbox.append(c, Topics.CMD_MATCHING_REQUESTED, new EventEnvelope(UUID.randomUUID(),
                     "uddp.cmd.identity.matching-requested", 1, Instant.now(), "common-core", correlation.toString(),
                     correlation, null, null, null, payload));

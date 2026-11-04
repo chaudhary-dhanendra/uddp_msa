@@ -421,8 +421,8 @@ Not done yet, in priority order:
    registry-service does not consume them yet (scheme eligibility and benefit reads are computed at the edge).
 3. ~~Matching profiles and identity policy~~ (done 2026-11-04: every matching-requested command carries the edge's
    `matching_profile` and `identity_policy` rows, APPROVED ones last, and identity-service applies them row for row
-   before the run, so the Splink adapter uses the approved profile and policy). Profile training, steward labels and
-   threshold proposals still run at the edge against its own read models.
+   before the run, so the Splink adapter uses the approved profile and policy). Profile training, labels and
+   threshold proposals moved to identity-service later the same day (item 5).
 4. **common-core split done (2026-11-04):** the engine classes moved unchanged, in their packages, out of
    common-core into three modules chosen by class-level reachability (the packages themselves are cyclic, but the
    classes split cleanly): `engine` (48 classes: the shared kernel, i.e. State Pack model and loader, connection
@@ -458,8 +458,16 @@ Not done yet, in priority order:
      ConnectorService and LandingFolder delegate to it and keep no source credential. Schedules stay with the edge's
      onboarding orchestration: a schedule starts an onboarding run, which the edge drives.
 
-   Still at the edge, to move next: the Studio (to statepack-service) and matching-profile training, steward labels
-   and threshold suggestions (to identity-service). Known pre-existing failures unrelated to the MSA work:
+   - **Matching Studio moved to identity-service (2026-11-04):** profiles, training jobs, steward labels, impact
+     previews, monitoring bounds and alerts, and threshold proposals run there (`/api/v1/matching/**`, the same
+     paths; V4 views over its canonical and stewardship projections, V5 tables). The 13 classes moved unchanged into
+     a `matching-engine` module; the Python modules run on identity's schema (PGOPTIONS search_path). With
+     `uddp.identity.url` the edge keeps each endpoint's permission check, audit and masking and forwards the call
+     (`RemoteStudioDelegation`, user name in X-UDDP-Actor); matching requests then carry only identity policies,
+     since profiles are owned by identity-service. Steward link constraints reach identity from
+     `stewardship.decision-recorded`.
+
+   Still at the edge, to move next: the Studio (to statepack-service). Known pre-existing failures unrelated to the MSA work:
    StudioDatabaseSourceTest and StudioEquivalenceTest (LGD district not resolved; they fail on the untouched import).
 
 ### Phase 4: cross-service portability proof

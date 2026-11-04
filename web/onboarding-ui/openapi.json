@@ -7196,6 +7196,7 @@
         "properties" : {
           "batchId" : {
             "format" : "uuid",
+            "nullable" : true,
             "type" : "string"
           },
           "count" : {

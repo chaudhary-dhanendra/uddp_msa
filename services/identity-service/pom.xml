@@ -21,6 +21,12 @@
       <groupId>gov.uddp</groupId>
       <artifactId>uddp-messaging</artifactId>
     </dependency>
+    <!-- The matching studio engine (profiles, training, labels, impact, monitoring), moved out of the edge. -->
+    <dependency>
+      <groupId>gov.uddp</groupId>
+      <artifactId>uddp-matching-engine</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>

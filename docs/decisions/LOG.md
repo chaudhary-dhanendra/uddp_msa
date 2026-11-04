@@ -74,3 +74,4 @@
 - 2026-11-04 MSA: engine split into engine (kernel), canonical-engine and golden-engine by class reachability from each service's roots; the shared kernel is exactly the classes both engines reach, so no package cycle had to be broken.
 - 2026-11-04 MSA: files reach ingestion-service by upload (content-hash fileRef) and database sources by connectionRef with credentials held only by ingestion-service; ingestion-service runs Hop without a registered project, using the repository metadata folder.
 - 2026-11-04 MSA: connectors and landing folders moved to ingestion-service (credentials encrypted there); schedules stay at the edge because a schedule starts an onboarding run, which the edge orchestrates.
+- 2026-11-04 MSA: Matching Studio moved to identity-service; the edge keeps permission checks, audit and masking and forwards by an aspect around its unchanged controller, so the UI contract and the security tests stay as they were.
