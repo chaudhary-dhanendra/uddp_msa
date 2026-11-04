@@ -413,9 +413,8 @@ Done: Phases 0-4. Every service has its own database/schema, Flyway location and
 cross-service test (`mvn test -pl e2e -Dmsa.e2e=true`) onboards States 2 and 4 by pack data alone with real Splink.
 Not done yet, in priority order:
 
-1. **Review tasks in remote mode.** The monolith creates POSSIBLE_MATCH review tasks inside its Golden build;
-   registry-service does not (they are the edge's), and the edge does not yet create them from identity's
-   match-decided events, so in remote mode the review queue stays empty.
+1. ~~Review tasks in remote mode~~ (done 2026-11-04: after each replicated remote build the edge turns the run's
+   POSSIBLE_MATCH pairs into review tasks, as the monolith's build does; `RemoteReviewTasksTest`).
 2. **Benefit, application and asset observations** are not published as events, so in remote canonical mode the
    edge's benefit, scheme-eligibility and application reports are empty.
 3. **Matching profiles, labels, training and identity policy** are still managed at the edge and not sent to

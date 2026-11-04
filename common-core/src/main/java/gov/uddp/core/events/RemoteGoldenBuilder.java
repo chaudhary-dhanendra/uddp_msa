@@ -29,11 +29,21 @@ public class RemoteGoldenBuilder implements GoldenBuildRunner {
 
     private final PostgresConnectionFactory connections;
     private final Duration timeout;
+    private gov.uddp.core.golden.StewardshipConstraints stewardship;
 
     public RemoteGoldenBuilder(PostgresConnectionFactory connections,
                                @Value("${uddp.registry.remote-timeout:PT30M}") Duration timeout) {
         this.connections = connections;
         this.timeout = timeout;
+    }
+
+    /**
+     * Review tasks are the edge's (M13, ADR-0010): registry-service creates none, so after each replicated build the
+     * run's POSSIBLE_MATCH pairs become review tasks here, as the monolith's build creates them.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setStewardship(gov.uddp.core.golden.StewardshipConstraints stewardship) {
+        this.stewardship = stewardship;
     }
 
     @Override
@@ -56,13 +66,16 @@ public class RemoteGoldenBuilder implements GoldenBuildRunner {
         while (Instant.now().isBefore(deadline)) {
             try (var c = connections.open()) {
                 if (builds(c, matchingRunId) > before) {
-                    try (var s = c.prepareStatement("select summary::text from golden_build where matching_run_id = ?"
-                            + " and completed_at is not null order by completed_at desc limit 1")) {
+                    try (var s = c.prepareStatement("select summary::text, golden_build_id from golden_build"
+                            + " where matching_run_id = ? and completed_at is not null order by completed_at desc limit 1")) {
                         s.setObject(1, matchingRunId);
                         try (var r = s.executeQuery()) {
                             r.next();
-                            return Outbox.json().copy().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                            var summary = Outbox.json().copy()
+                                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                                     .readValue(r.getString(1), GoldenBuildSummary.class);
+                            createReviewTasks(matchingRunId, r.getObject(2, UUID.class));
+                            return summary;
                         }
                     }
                 }
@@ -75,6 +88,20 @@ public class RemoteGoldenBuilder implements GoldenBuildRunner {
             }
         }
         throw new IllegalStateException("registry-service did not build run " + matchingRunId + " within " + timeout);
+    }
+
+    private void createReviewTasks(UUID run, UUID build) throws Exception {
+        if (stewardship == null) {
+            return;
+        }
+        try (var c = connections.open()) {
+            c.setAutoCommit(false);
+            try (var s = c.prepareStatement("select pg_advisory_xact_lock(hashtext('uddp.golden-resident-build'))")) {
+                s.execute();
+            }
+            stewardship.createReviewTasks(c, run, build);
+            c.commit();
+        }
     }
 
     private static long builds(Connection c, UUID run) throws Exception {
