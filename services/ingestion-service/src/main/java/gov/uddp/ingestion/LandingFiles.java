@@ -25,7 +25,7 @@ public class LandingFiles {
 
     private final Path directory;
 
-    public LandingFiles(@Value("${uddp.ingestion.landing-directory}") String directory) {
+    public LandingFiles(@Value("${uddp.ingestion.landing-directory:${java.io.tmpdir}/uddp-landing}") String directory) {
         this.directory = Path.of(directory).toAbsolutePath().normalize();
     }
 
