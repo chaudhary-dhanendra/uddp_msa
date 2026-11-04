@@ -1,0 +1,14 @@
+# M14 Family fixture: a household-member register with a relationship code per member.
+mappingVersion: 1.0.0
+sourceId: household-register
+entities:
+  Resident:
+    - { sourceField: member_name, target: name, required: true }
+    - { sourceField: birth_date, target: dateOfBirth, conversion: date:DD-MM-YYYY }
+    - { sourceField: sex, target: gender, crosswalk: gender }
+    - { sourceField: district_code, target: address.districtLGD, crosswalk: district }
+    - { sourceField: mobile, target: mobile }
+  Family:
+    - { sourceField: household_no, target: "sourceFamilyIds[]" }
+    - { sourceField: relation_cd, target: membership.relationshipType, crosswalk: relationship }
+    - { sourceField: ration_category, target: extensions.rationCategory }

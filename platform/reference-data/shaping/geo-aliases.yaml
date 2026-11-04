@@ -1,0 +1,3 @@
+# The platform keeps only generic address tokens. Place-specific aliases belong in a pack's free-address
+# parse config `aliases`.
+aliases:

@@ -1,0 +1,12 @@
+packId: state-3
+stateCode: ST3
+departmentCode: DEPT-3
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/beneficiaries.yaml]
+mappings: [mappings/beneficiaries-resident.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml, crosswalks/scheme.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

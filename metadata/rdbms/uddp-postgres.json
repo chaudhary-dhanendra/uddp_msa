@@ -1,0 +1,22 @@
+{
+  "rdbms": {
+    "PostgreSQL": {
+      "databaseName": "${UDDP_POSTGRES_DB}",
+      "pluginId": "PostgreSQL",
+      "accessType": 0,
+      "hostname": "${UDDP_POSTGRES_HOST}",
+      "password": "${UDDP_POSTGRES_PASSWORD}",
+      "pluginName": "PostgreSQL",
+      "port": "${UDDP_POSTGRES_PORT}",
+      "attributes": {
+        "FORCE_IDENTIFIERS_TO_LOWERCASE": "N",
+        "QUOTE_ALL_FIELDS": "N",
+        "PRESERVE_RESERVED_WORD_CASE": "Y",
+        "PREFERRED_SCHEMA_NAME": "public",
+        "EXTRA_OPTION_PostgreSQL.stringtype": "unspecified"
+      },
+      "username": "${UDDP_POSTGRES_USER}"
+    }
+  },
+  "name": "uddp-postgres"
+}

@@ -1,0 +1,3 @@
+# fx-alpha is authoritative for mobile; it claims name too (as does fx-beta), so a name conflict falls back.
+entity: Resident
+fieldPriority: { name: [registry], mobile: [registry] }

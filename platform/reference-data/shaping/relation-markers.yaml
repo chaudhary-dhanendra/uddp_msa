@@ -1,0 +1,16 @@
+# Relation markers in "<name> S/O <relation name>" cells. A form containing a non-letter (slash or dot) is a clean
+# marker (confidence 1.0); a plain-letter form such as SO is accepted at 0.8. Packs may add markers (parse config extraMarkers).
+markers:
+  - relation: FATHER
+    gender: MALE
+    forms: ["S/O", "S.O.", "SO"]
+  - relation: FATHER
+    gender: FEMALE
+    forms: ["D/O", "D.O.", "DO"]
+  - relation: HUSBAND
+    gender: FEMALE
+    forms: ["W/O", "W.O.", "WO"]
+  - relation: HUSBAND
+    forms: ["H/O"]
+  - relation: GUARDIAN
+    forms: ["C/O"]

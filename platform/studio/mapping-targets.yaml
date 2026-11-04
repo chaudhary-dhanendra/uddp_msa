@@ -1,0 +1,288 @@
+# Onboarding Studio mapping targets (platform metadata, ADR-0015). Every target here is one the generic mapping
+# engines accept (ResidentMappingEngine, FamilyMappingEngine, BenefitMappingEngine).
+#
+# Suggestions read this file only; nothing here names a state or a source column:
+# - `keywords` is a list of word groups; a column name matches when it contains a word from EVERY group
+#   (column names are split into words at _, -, spaces and camelCase);
+# - `excludes` are words that rule a column out;
+# - `valueKind` is a value pattern the profiler detects (date, mobile, number, national-id);
+# - `codeSet` names the platform code list a coded column is crosswalked onto;
+# - `group: benefit` targets are suggested only for columns that share the scheme column's name prefix, when
+#   the source has a scheme column.
+version: 1.0.0
+codeSets:
+  gender: { values: [MALE, FEMALE, OTHER, UNKNOWN] }
+  lgd-district: { referenceSet: lgd-district }
+  # Track F5: every LGD level is a live code set over the LGD master (lgd-<type>); before a master is loaded only
+  # lgd-district has values (the platform file), so the other levels then get no crosswalk suggestion.
+  lgd-state: { referenceSet: lgd-state }
+  lgd-sub-district: { referenceSet: lgd-sub-district }
+  lgd-block: { referenceSet: lgd-block }
+  lgd-gram-panchayat: { referenceSet: lgd-gram-panchayat }
+  lgd-local-body: { referenceSet: lgd-local-body }
+  lgd-village: { referenceSet: lgd-village }
+  lgd-ward: { referenceSet: lgd-ward }
+  scheme: { catalogue: true }
+  benefit-status: { values: [ACTIVE, SUSPENDED, CLOSED] }
+  asset-type: { values: [VEHICLE, LIVESTOCK, SOLAR_INSTALLATION, LAND, EQUIPMENT, OTHER] }
+  units: { values: [KANAL, MARLA, ACRE, HECTARE, SQFT, SQM, UNIT, KW, HEAD, KG, LITRE] }
+  relationship: { values: [HEAD, SPOUSE, CHILD, PARENT, SIBLING, OTHER, UNKNOWN] }
+targets:
+  - entity: Resident
+    target: nationalIds.AADHAAR
+    label: National ID (Aadhaar), kept only as a keyed hash and last 4 digits
+    type: national-id
+    valueKind: national-id
+    keywords: [[aadhaar, aadhar, uid, uidai]]
+  - entity: Resident
+    target: name
+    label: Full name
+    type: text
+    keywords: [[name, nm, label, person, beneficiary, applicant, citizen]]
+    excludes: [district, father, mother, scheme, village]
+  - entity: Resident
+    target: dateOfBirth
+    label: Date of birth
+    type: date
+    valueKind: date
+    keywords: [[dob, birth, born, birthdate]]
+  - entity: Resident
+    target: gender
+    label: Gender
+    type: code
+    codeSet: gender
+    keywords: [[gender, sex]]
+  - entity: Resident
+    target: mobile
+    label: Mobile number
+    type: text
+    valueKind: mobile
+    keywords: [[mobile, phone, contact, cell]]
+  - entity: Resident
+    target: nameNormalised
+    label: Name, normalised for matching
+    type: text
+    keywords: [[normalised, normalized, clean], [name, nm]]
+  - entity: Resident
+    target: relations[].name
+    label: Parentage or spouse name (father, mother, husband, wife)
+    type: text
+    keywords: [[parentage, father, mother, husband, wife, guardian, relative, relation]]
+  - entity: Resident
+    target: relations[].type
+    label: Relation type (FATHER, MOTHER, HUSBAND, WIFE, GUARDIAN)
+    type: text
+    keywords: [[relation, relationship, parentage], [type, kind]]
+  - entity: Resident
+    target: relations[].nameNormalised
+    label: Relation name, normalised for matching
+    type: text
+    keywords: [[father, mother, husband, wife, parentage], [normalised, normalized, clean]]
+  - entity: Resident
+    target: relations[].deceased
+    label: Relation is deceased
+    type: text
+    keywords: [[late, deceased, expired], [father, mother, husband, wife, parentage, relation]]
+  - entity: Resident
+    target: age.years
+    label: Age in years (dated by the source's asOfDate)
+    type: text
+    valueKind: number
+    keywords: [[age, years]]
+    excludes: [group, limit]
+  - entity: Resident
+    target: socialCategory
+    label: Social category (caste or community category)
+    type: text
+    keywords: [[category, caste, community, class, social]]
+  - entity: Resident
+    target: geography.freeText
+    label: Free-text address (resolved against the LGD master)
+    type: text
+    keywords: [[address, addr, locality, residence, location]]
+  - entity: Resident
+    target: address.districtLGD
+    label: District (legacy LGD compatibility)
+    type: geography
+    codeSet: lgd-district
+    keywords: [[district, dist]]
+  - entity: Resident
+    target: geography.state.lgd
+    label: State (LGD code)
+    type: geography
+    codeSet: lgd-state
+    keywords: [[state]]
+  - entity: Resident
+    target: geography.state.name
+    label: State (name)
+    type: geography
+    codeSet: lgd-state
+    keywords: [[state]]
+  - entity: Resident
+    target: geography.district.lgd
+    label: District (LGD code)
+    type: geography
+    codeSet: lgd-district
+    keywords: [[district, dist]]
+  - entity: Resident
+    target: geography.district.name
+    label: District (name)
+    type: geography
+    codeSet: lgd-district
+    keywords: [[district, dist]]
+  - entity: Resident
+    target: geography.subDistrict.lgd
+    label: Sub-district (LGD code)
+    type: geography
+    codeSet: lgd-sub-district
+    keywords: [[sub, tehsil, taluk]]
+  - entity: Resident
+    target: geography.subDistrict.name
+    label: Sub-district (name)
+    type: geography
+    codeSet: lgd-sub-district
+    keywords: [[sub, tehsil, taluk]]
+  - entity: Resident
+    target: geography.block.lgd
+    label: Block (LGD code)
+    type: geography
+    codeSet: lgd-block
+    keywords: [[block]]
+  - entity: Resident
+    target: geography.block.name
+    label: Block (name)
+    type: geography
+    codeSet: lgd-block
+    keywords: [[block]]
+  - entity: Resident
+    target: geography.gramPanchayat.lgd
+    label: Gram panchayat (LGD code)
+    type: geography
+    codeSet: lgd-gram-panchayat
+    keywords: [[panchayat, gp]]
+  - entity: Resident
+    target: geography.gramPanchayat.name
+    label: Gram panchayat (name)
+    type: geography
+    codeSet: lgd-gram-panchayat
+    keywords: [[panchayat, gp]]
+  - entity: Resident
+    target: geography.localBody.lgd
+    label: Local body (LGD code)
+    type: geography
+    codeSet: lgd-local-body
+    keywords: [[local, municipality, municipal]]
+  - entity: Resident
+    target: geography.localBody.name
+    label: Local body (name)
+    type: geography
+    codeSet: lgd-local-body
+    keywords: [[local, municipality, municipal]]
+  - entity: Resident
+    target: geography.village.lgd
+    label: Village (LGD code)
+    type: geography
+    codeSet: lgd-village
+    keywords: [[village]]
+  - entity: Resident
+    target: geography.village.name
+    label: Village (name)
+    type: geography
+    codeSet: lgd-village
+    keywords: [[village]]
+  - entity: Resident
+    target: geography.ward.lgd
+    label: Ward (LGD code)
+    type: geography
+    codeSet: lgd-ward
+    keywords: [[ward]]
+  - entity: Resident
+    target: geography.ward.name
+    label: Ward (name)
+    type: geography
+    codeSet: lgd-ward
+    keywords: [[ward]]
+  - entity: Resident
+    target: geography.pincode
+    label: Pincode
+    type: geography
+    keywords: [[pincode, pin, postal]]
+  - entity: Resident
+    target: extensions.familyReference
+    label: Family reference (kept on the Resident)
+    type: text
+    keywords: [[family, household, ration, hh]]
+  - entity: Family
+    target: "sourceFamilyIds[]"
+    label: Household / family ID
+    type: identifier
+    keywords: [[family, household, ration, hh]]
+  - entity: Family
+    target: membership.relationshipType
+    label: Relationship to the head of household
+    type: code
+    codeSet: relationship
+    keywords: [[relation, relationship]]
+  - entity: Benefit
+    target: schemeCode
+    label: Scheme
+    type: code
+    codeSet: scheme
+    keywords: [[scheme, programme, program, type, category]]
+    excludes: [blood, id, no, number]
+  - entity: Benefit
+    target: sourceBenefitId
+    label: Benefit / enrolment ID
+    type: identifier
+    group: benefit
+    keywords: [[id, no, number, order, ref]]
+  - entity: Benefit
+    target: sourceFamilyId
+    label: Household holding the benefit
+    type: identifier
+    keywords: []
+  - entity: Benefit
+    target: status
+    label: Benefit status
+    type: code
+    codeSet: benefit-status
+    group: benefit
+    keywords: [[status]]
+  - entity: Benefit
+    target: startDate
+    label: Benefit start date
+    type: date
+    valueKind: date
+    keywords: [[since, issued, sanctioned, start, enrolled, from]]
+  - entity: Benefit
+    target: entitlement.amount
+    label: Entitlement amount
+    type: number
+    valueKind: number
+    keywords: [[amount, amt]]
+    excludes: [last, paid, lifted, disbursed]
+  - entity: Benefit
+    target: entitlement.quantity
+    label: Entitlement quantity
+    type: number
+    valueKind: number
+    keywords: [[kg, qty, quantity, grain]]
+    excludes: [last, paid, lifted, disbursed]
+  - entity: Benefit
+    target: disbursement.date
+    label: Last disbursement date
+    type: date
+    valueKind: date
+    keywords: [[last, paid, lifted, disbursed]]
+  - entity: Benefit
+    target: disbursement.amount
+    label: Last disbursement amount
+    type: number
+    valueKind: number
+    keywords: [[last, paid, disbursed], [amount, amt]]
+  - entity: Benefit
+    target: disbursement.quantity
+    label: Last disbursement quantity
+    type: number
+    valueKind: number
+    keywords: [[last, lifted, disbursed], [kg, qty, quantity]]

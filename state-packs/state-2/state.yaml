@@ -1,0 +1,12 @@
+packId: state-2
+stateCode: ST2
+departmentCode: DEPT-2
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/pension.yaml]
+mappings: [mappings/pension-resident.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml, crosswalks/scheme.yaml, crosswalks/benefit-status.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

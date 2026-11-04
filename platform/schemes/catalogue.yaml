@@ -1,0 +1,35 @@
+# Platform scheme catalogue (M15, docs/benefit-domain.md, ADR-0011). State Packs crosswalk their own scheme codes onto
+# these scheme IDs; nothing here names a state.
+catalogueVersion: 1.0.0
+departments:
+  - { code: FOOD_CIVIL_SUPPLIES, name: Food and Civil Supplies }
+  - { code: SOCIAL_WELFARE, name: Social Welfare }
+schemes:
+  - schemeId: PDS-RATION
+    name: Public Distribution System ration
+    department: FOOD_CIVIL_SUPPLIES
+    benefitType: ENTITLEMENT
+    benefitForm: IN_KIND
+    beneficiaryLevel: FAMILY
+    unit: KG
+    frequency: MONTHLY
+  - schemeId: OLD-AGE-PENSION
+    name: Old age pension
+    department: SOCIAL_WELFARE
+    benefitType: ENTITLEMENT
+    benefitForm: CASH
+    beneficiaryLevel: RESIDENT
+    unit: INR
+    frequency: MONTHLY
+    exclusivityGroup: SOCIAL-PENSION
+    # Sample threshold: the synthetic residents are 32-51 years old (ADR-0012).
+    eligibility: { minAgeYears: 45 }
+  - schemeId: DISABILITY-PENSION
+    name: Disability pension
+    department: SOCIAL_WELFARE
+    benefitType: ENTITLEMENT
+    benefitForm: CASH
+    beneficiaryLevel: RESIDENT
+    unit: INR
+    frequency: MONTHLY
+    exclusivityGroup: SOCIAL-PENSION

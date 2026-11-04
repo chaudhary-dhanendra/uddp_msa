@@ -1,0 +1,8 @@
+entity: Resident
+version: resident-survivorship-v3
+fields:
+  name: { strategy: DETERMINISTIC_FALLBACK }
+  dateOfBirth: { strategy: DETERMINISTIC_FALLBACK }
+  gender: { strategy: DETERMINISTIC_FALLBACK }
+  mobile: { strategy: DETERMINISTIC_FALLBACK }
+  address.districtLGD: { strategy: DETERMINISTIC_FALLBACK }

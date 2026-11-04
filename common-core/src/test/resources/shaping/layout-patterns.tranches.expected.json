@@ -1,0 +1,8 @@
+[
+  {"sheet": "tranches", "row": 3, "cells": ["Asha Test", "A1", "1000", "1-Apr-26", "2000", "1-Jul-26"],
+   "carried": {"@h0": "Name", "@h1": "Id", "@h2": "Tranche 1 Amount", "@h3": "Tranche 1 Date",
+               "@h4": "Tranche 2 Amount", "@h5": "Tranche 2 Date"}},
+  {"sheet": "tranches", "row": 4, "cells": ["Ravi Sample", "A2", "3000", "1-May-26", "", ""],
+   "carried": {"@h0": "Name", "@h1": "Id", "@h2": "Tranche 1 Amount", "@h3": "Tranche 1 Date",
+               "@h4": "Tranche 2 Amount", "@h5": "Tranche 2 Date"}}
+]

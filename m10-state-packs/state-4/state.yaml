@@ -1,0 +1,12 @@
+packId: state-4
+stateCode: ST4
+departmentCode: DEPT-4
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: active
+sources: [sources/citizen-register.yaml]
+mappings: [mappings/citizen-register-resident.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

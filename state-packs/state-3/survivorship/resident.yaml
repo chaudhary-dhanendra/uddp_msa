@@ -1,0 +1,2 @@
+entity: Resident
+fieldPriority: { name: [beneficiaries], mobile: [beneficiaries], address.districtLGD: [beneficiaries] }

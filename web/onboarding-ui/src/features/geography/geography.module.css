@@ -1,0 +1,51 @@
+.dropzone {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-5);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  text-align: center;
+}
+
+.dropzoneActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.dropzone:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.fileInput {
+  max-width: 100%;
+}
+
+.errors td:first-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(27, 36, 48, 0.55);
+  z-index: 20;
+}
+
+.dialog {
+  width: min(480px, 100%);
+  padding: var(--space-5);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}

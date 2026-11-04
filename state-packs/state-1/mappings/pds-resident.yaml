@@ -1,0 +1,22 @@
+mappingVersion: 1.0.0
+sourceId: pds
+entities:
+  Resident:
+    - { sourceField: beneficiary_nm, target: name, required: true }
+    - { sourceField: dob, target: dateOfBirth, conversion: date:DD-MM-YYYY }
+    - { sourceField: sex_cd, target: gender, crosswalk: gender }
+    - { sourceField: dist_cd, target: address.districtLGD, crosswalk: district }
+    - { sourceField: ration_no, target: extensions.familyReference }
+    - { sourceField: mobile, target: mobile }
+  Family:
+    - { sourceField: ration_no, target: "sourceFamilyIds[]" }
+  Benefit:
+    - { sourceField: card_type, target: schemeCode, crosswalk: scheme }
+    - { sourceField: ration_no, target: sourceBenefitId }
+    - { sourceField: ration_no, target: sourceFamilyId }
+    - { sourceField: card_status, target: status, crosswalk: benefit-status }
+    - { sourceField: card_issued_on, target: startDate, conversion: date:DD-MM-YYYY }
+    - { sourceField: monthly_grain_kg, target: entitlement.quantity }
+    - { sourceField: last_lifted_on, target: disbursement.date, conversion: date:DD-MM-YYYY }
+    - { sourceField: last_lifted_kg, target: disbursement.quantity }
+    - { sourceField: card_type, target: extensions.cardCategory }

@@ -1,0 +1,3 @@
+-- Milestone 1 deliberately creates no application tables.
+-- Flyway and PostgreSQL are dependency/orchestration foundations; Raw and Registry
+-- migrations begin only when their respective milestones are authorised.

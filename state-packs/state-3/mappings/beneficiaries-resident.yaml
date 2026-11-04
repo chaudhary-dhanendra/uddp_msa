@@ -1,0 +1,20 @@
+mappingVersion: 1.0.0
+sourceId: beneficiaries
+entities:
+  Resident:
+    - { sourceField: person_name, target: name, required: true }
+    - { sourceField: dob, target: dateOfBirth, conversion: date:YYYY-MM-DD }
+    - { sourceField: gender, target: gender, crosswalk: gender }
+    - { sourceField: district, target: address.districtLGD, crosswalk: district }
+    - { sourceField: family_id, target: extensions.familyReference }
+    - { sourceField: mobile, target: mobile }
+  Family:
+    - { sourceField: family_id, target: "sourceFamilyIds[]" }
+  Benefit:
+    - { sourceField: welfare_scheme, target: schemeCode, crosswalk: scheme }
+    - { sourceField: welfare_id, target: sourceBenefitId }
+    - { sourceField: welfare_status, target: status }
+    - { sourceField: welfare_since, target: startDate, conversion: date:YYYY-MM-DD }
+    - { sourceField: monthly_amount, target: entitlement.amount }
+    - { sourceField: last_paid_on, target: disbursement.date, conversion: date:YYYY-MM-DD }
+    - { sourceField: last_paid_amount, target: disbursement.amount }

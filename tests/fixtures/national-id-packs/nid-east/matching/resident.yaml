@@ -1,0 +1,3 @@
+entity: Resident
+fields: [name, dateOfBirth, gender]
+thresholds: { autoMatch: 0.95, possibleMatch: 0.75 }

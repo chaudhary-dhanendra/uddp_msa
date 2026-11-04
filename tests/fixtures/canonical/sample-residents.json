@@ -1,0 +1,9 @@
+[
+  {"stateCode": "ST1", "sourceSystem": "pds", "resident": {"name": "Ram Singh", "dateOfBirth": "1980-03-12", "gender": "MALE", "mobile": "9876543210", "address": {"districtLGD": "100001"}}},
+  {"stateCode": "ST1", "sourceSystem": "pds", "resident": {"name": "Ramesh Kumar", "dateOfBirth": "1975-01-01", "gender": "MALE", "mobile": "9876543220", "address": {"districtLGD": "100002"}}},
+  {"stateCode": "ST1", "sourceSystem": "pds", "resident": {"name": "Sita Singh", "dateOfBirth": "1984-07-14", "gender": "FEMALE", "mobile": "9876543211", "address": {"districtLGD": "100001"}}},
+  {"stateCode": "ST2", "sourceSystem": "pension", "resident": {"name": "Anita Devi", "dateOfBirth": "1978-02-17", "gender": "FEMALE", "mobile": "9876543230", "address": {"districtLGD": "100002"}}},
+  {"stateCode": "ST2", "sourceSystem": "pension", "resident": {"name": "Ram Singh", "dateOfBirth": "1980-03-12", "gender": "MALE", "mobile": "9876543210", "address": {"districtLGD": "100001"}}},
+  {"stateCode": "ST3", "sourceSystem": "beneficiaries", "resident": {"name": "Ram Singh", "dateOfBirth": "1980-03-12", "gender": "MALE", "mobile": "9876543210", "address": {"districtLGD": "100001"}}},
+  {"stateCode": "ST3", "sourceSystem": "beneficiaries", "resident": {"name": "Sunita Devi", "dateOfBirth": "1985-05-15", "gender": "FEMALE", "mobile": "9876543222", "address": {"districtLGD": "100002"}}}
+]

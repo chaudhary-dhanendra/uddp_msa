@@ -1,0 +1,13 @@
+sourceId: citizen-register
+mappingVersion: 1.0.0
+entities:
+  Resident:
+    - { sourceField: resident_label, target: name, required: true }
+    - { sourceField: born_on, target: dateOfBirth, conversion: date:YYYY/MM/DD }
+    - { sourceField: identity_marker, target: gender, crosswalk: gender }
+    - { sourceField: district_text, target: address.districtLGD, crosswalk: district }
+    - { sourceField: contact_number, target: mobile }
+    - { sourceField: household_token, target: extensions.familyReference }
+    - { sourceField: enrollment_channel, target: extensions.enrollmentChannel }
+  Family:
+    - { sourceField: household_token, target: "sourceFamilyIds[]" }

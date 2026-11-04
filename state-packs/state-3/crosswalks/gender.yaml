@@ -1,0 +1,2 @@
+id: gender
+values: { M: MALE, F: FEMALE }

@@ -1,0 +1,3 @@
+# fx-beta is authoritative for district; it does not rank mobile, so fx-alpha wins mobile.
+entity: Resident
+fieldPriority: { name: [welfare], address.districtLGD: [welfare] }

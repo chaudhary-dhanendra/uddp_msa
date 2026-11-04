@@ -1,0 +1,155 @@
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.step[aria-current="step"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.stepNumber {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  font-size: 0.78rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--color-surface-muted);
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+}
+
+.errorRow td {
+  background: var(--color-danger-bg);
+}
+
+.warningRow td {
+  background: var(--color-warning-bg);
+}
+
+.targetRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.confidence {
+  font-size: 0.78rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  white-space: nowrap;
+}
+
+.basis {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.values {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.yaml {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  overflow-x: auto;
+  margin: 0 0 var(--space-3);
+  white-space: pre;
+}
+
+.ok {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+}
+
+.error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+}
+
+.notice {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+}
+
+.zero {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.small {
+  width: 7rem;
+}
+
+.links {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* The row a "Fix in pack" link points at (?focus=). */
+.focusedRow,
+.focusedRow td {
+  outline: 2px solid var(--color-focus, currentColor);
+  outline-offset: -2px;
+}

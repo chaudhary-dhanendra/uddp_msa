@@ -1,0 +1,6 @@
+# Tier-3 shaping plugins the platform may load. A jar in the plugins directory is loaded only when its SHA-256
+# is listed here (and it carries a plugin.yaml with apiVersion 1.x).
+approved: []
+# approved:
+#   - sha256: <64 hex chars>
+#     name: example-plugin

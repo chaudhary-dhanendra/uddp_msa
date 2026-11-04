@@ -1,0 +1,7 @@
+[
+  {"sheet": "numbers", "row": 1, "cells": ["Name", "Indian", "Western"], "carried": {}},
+  {"sheet": "numbers", "row": 2, "cells": ["Asha Test", "2523809", "2523809"], "carried": {}},
+  {"sheet": "numbers", "row": 3, "cells": ["Ravi Sample", "100000.50", "12345"], "carried": {}},
+  {"sheet": "numbers", "row": 4, "cells": ["Meena Demo", "750", "7,50"], "carried": {}},
+  {"sheet": "numbers", "row": 5, "cells": ["Dev Sample", "", "-1234567"], "carried": {}}
+]

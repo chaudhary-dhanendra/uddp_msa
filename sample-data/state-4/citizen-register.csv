@@ -1,0 +1,3 @@
+household_token,resident_label,born_on,identity_marker,district_text,contact_number,enrollment_channel,unmapped_indicator
+H4-RAM,Ram Singh,1980/03/12,1,North-Patna,9000000001,doorstep,portable-existing
+H4-NEHA,Neha Verma,1994/09/21,2,South-Gaya,9222222222,kiosk,portable-distinct

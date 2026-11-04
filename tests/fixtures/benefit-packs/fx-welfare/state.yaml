@@ -1,0 +1,11 @@
+packId: fx-welfare
+stateCode: FXW
+version: 1.0.0
+commonModelVersion: 1.0.0
+status: draft
+sources: [sources/welfare-register.yaml]
+mappings: [mappings/welfare-register.yaml]
+crosswalks: [crosswalks/gender.yaml, crosswalks/district.yaml, crosswalks/scheme.yaml, crosswalks/benefit-status.yaml]
+validation: [validation/resident.yaml]
+matching: [matching/resident.yaml]
+survivorship: [survivorship/resident.yaml]

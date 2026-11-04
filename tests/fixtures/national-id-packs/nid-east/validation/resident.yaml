@@ -1,0 +1,3 @@
+entity: Resident
+rules:
+  - { field: name, required: true, severity: error }

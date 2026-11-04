@@ -1,0 +1,5 @@
+[
+  {"sheet": "skip", "row": 2, "cells": ["Name", "Amount", "Remarks"], "carried": {}},
+  {"sheet": "skip", "row": 3, "cells": ["Asha Test", "10", "ok"], "carried": {}},
+  {"sheet": "skip", "row": 6, "cells": ["Ravi Sample", "20", "ok"], "carried": {}}
+]

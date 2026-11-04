@@ -1,0 +1,56 @@
+# Java / Maven
+common-core/target/
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Node
+node_modules/
+dist/
+
+# Python / Splink
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment, runtime data, logs, secrets
+.env
+.env.*
+!*.env.example
+data/
+runtime/
+logs/
+*.log
+*.key
+*.pem
+secrets/
+.local-trust/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Test caches and local archives
+.pytest_cache/
+*.zip
+
+# Local database backups (scripts/clean-local-golden.ps1)
+backups/
+*.dump
+screenshots/
+*.tsbuildinfo
+
+# Onboarding Studio: generated packs, drafts and uploaded sources (never committed)
+studio-packs/
+studio-workspace/
+.pytest-*/
+
+# Transfer archives and IDE files
+.xfer/
+*.tgz
+.project
+.classpath
+test-results/

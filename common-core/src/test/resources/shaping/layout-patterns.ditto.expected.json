@@ -1,0 +1,9 @@
+[
+  {"sheet": "ditto", "row": 1, "cells": ["Name", "Department"], "carried": {}},
+  {"sheet": "ditto", "row": 2, "cells": ["Asha Test", "Dept A"], "carried": {}},
+  {"sheet": "ditto", "row": 3, "cells": ["Ravi Sample", "Dept A"], "carried": {}},
+  {"sheet": "ditto", "row": 4, "cells": ["Meena Demo", "Dept A"], "carried": {}},
+  {"sheet": "ditto", "row": 5, "cells": ["Dev Sample", "Dept A"], "carried": {}},
+  {"sheet": "ditto", "row": 6, "cells": ["Kiran Test", "Dept B"], "carried": {}},
+  {"sheet": "ditto", "row": 7, "cells": ["Lata Demo", "Dept B"], "carried": {}}
+]
