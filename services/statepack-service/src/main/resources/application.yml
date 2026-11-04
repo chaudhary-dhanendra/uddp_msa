@@ -30,3 +30,13 @@ uddp:
   kafka:
     # Empty: no relay (the service still serves its API). Set to publish pack lifecycle events.
     bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
+  studio:
+    # The Onboarding Studio hosted here: repository root (platform metadata, scheme catalogue), its workspace folder
+    # (uploads, evidence) and its settings folder (encrypted preview connections). Maker-checker is on by default.
+    repository-root: ${UDDP_REPOSITORY_ROOT:../..}
+    workspace-directory: ${UDDP_STUDIO_WORKSPACE:../../studio-workspace-statepack}
+    settings-directory: ${UDDP_STATEPACK_SETTINGS_DIRECTORY:}
+    maker-checker: true
+  shaping:
+    plugins-dir: ${UDDP_SHAPING_PLUGINS_DIR:plugins}
+    approved-plugins-file: ${UDDP_SHAPING_APPROVED_PLUGINS:../../platform/shaping/approved-plugins.yaml}

@@ -475,9 +475,25 @@ Not done yet, in priority order:
      ACTIVE, the previous version retired; `RemoteStatePackMessaging`), so packs published straight into
      statepack-service are onboardable as well.
 
-   Still at the edge, to move next (Studio stages 2 and 3): draft authoring (drafts, uploads, profiling,
-   suggestions, shaping, preview) to statepack-service behind the same forwarding aspect; "onboard this draft"
-   stays with the edge's onboarding orchestration, and database previews go through ingestion-service. Known pre-existing failures unrelated to the MSA work:
+   - **The Onboarding Studio is hosted by statepack-service (2026-11-04, Studio stage 2):** the 21 Studio classes,
+     the AI advisor, StudioProperties and DatabaseSources moved unchanged into a `studio-engine` module; where runs
+     happen and where versions are published are two ports (`StudioOnboarding`, `StudioPublications`). The edge
+     implements them as before (`EdgeStudioOnboarding`, `EdgeStudioPublications`); statepack-service implements them
+     on its own versions and maker-checker (`ServiceStudioPublications`: a submission is published there by its
+     maker, the checker's approval activates it, which installs it at the edge) and on the runs the edge reports
+     (`ServiceStudioOnboarding`, V3 `studio_run`). Drafts, approvals and suggestion reviews are statepack tables
+     (V3); uploads and evidence are in its workspace folder. With `uddp.studio.remote=true` the edge's Studio API
+     keeps its permission checks, state scope and audit and runs every Studio operation in statepack-service
+     (`RemoteStudioService` around `StudioService`, `/api/studio-operations/<operation>`, user in X-UDDP-Actor);
+     the edge answers only the status and onboarding: "onboard" installs the approved version (digest verified),
+     copies the uploaded file to the location the pack names, starts the run and reports its start and end.
+
+   Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
+   types (V5) for previews; identifier types seed themselves, but the geography master still has to be loaded or
+   replicated from canonical-service (until then, previews here resolve no geography). Studio preview connections
+   for database sources are kept in statepack-service's encrypted settings, not yet in ingestion-service. Studio
+   auto-approval (gates) and the exception inbox's mapping suggestions stay with the edge's own Studio, so with
+   `uddp.studio.remote` every publication needs a checker and those suggestions are not in the edge's inbox. Known pre-existing failures unrelated to the MSA work:
    StudioDatabaseSourceTest and StudioEquivalenceTest (LGD district not resolved; they fail on the untouched import).
 
 ### Phase 4: cross-service portability proof

@@ -23,4 +23,8 @@ public interface StudioOnboarding {
 
     /** Runs the created run to its end in the background; {@code finished} receives its final status. */
     void runInBackground(String runId, Consumer<String> finished);
+
+    /** A run of a draft started or finished (status RUNNING, COMPLETED, FAILED...); kept where runs are not local. */
+    default void recorded(String draftId, String runId, String status) {
+    }
 }
