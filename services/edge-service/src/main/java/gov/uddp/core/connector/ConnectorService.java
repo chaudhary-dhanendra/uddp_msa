@@ -56,7 +56,7 @@ public class ConnectorService {
     @Autowired
     public ConnectorService(PostgresConnectionFactory connections, ObjectMapper json, ConnectorSecrets secrets,
                             CsvProfiler profiler, List<SourceConnector> connectors,
-                            @Value("${uddp.connector.staging-directory:../../studio-workspace/deliveries}") String staging) {
+                            @Value("${uddp.connector.staging-directory:target/studio-workspace/deliveries}") String staging) {
         this.connections = connections;
         this.json = json;
         this.secrets = secrets;
