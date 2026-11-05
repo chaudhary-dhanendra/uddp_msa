@@ -1,0 +1,176 @@
+# UDDP microservices CI: builds every module, runs each service's tests, the Python matcher's tests, the UI's checks,
+# the cross-service end-to-end test (real Kafka, PostgreSQL and Splink in Testcontainers) and checks that the
+# deployment files render. No secret is needed: every test uses disposable containers.
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MAVEN_OPTS: -Xmx2g
+  MVN: mvn -B -ntp
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compile and package every module
+        run: $MVN install -DskipTests
+      - name: Keep the built modules for the test jobs
+        run: tar -czf m2-uddp.tgz -C ~/.m2/repository gov/uddp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m2-uddp
+          path: m2-uddp.tgz
+          retention-days: 1
+
+  service-tests:
+    name: Service tests (${{ matrix.module }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - contracts
+          - messaging
+          - services/ingestion-service
+          - services/canonical-service
+          - services/identity-service
+          - services/registry-service
+          - services/statepack-service
+          - services/discovery-service
+          - services/gateway-service
+          - services/edge-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/identity-service/matching/requirements-dev.txt
+      - name: Python adapter (identity-service runs it)
+        run: pip install -r services/identity-service/matching/requirements-dev.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: m2-uddp
+      - name: Built modules
+        run: mkdir -p ~/.m2/repository && tar -xzf m2-uddp.tgz -C ~/.m2/repository
+      - name: Tests
+        run: $MVN test -pl ${{ matrix.module }}
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ strategy.job-index }}
+          path: "**/target/surefire-reports/*.txt"
+          retention-days: 7
+
+  python-tests:
+    name: Python matcher tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/identity-service/matching/requirements-dev.txt
+      - run: pip install -r services/identity-service/matching/requirements-dev.txt
+      - name: pytest (integration tests use Testcontainers PostgreSQL)
+        run: python -m pytest services/identity-service/matching -q
+
+  ui:
+    name: UI checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web/onboarding-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/onboarding-ui/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  e2e:
+    name: Cross-service end-to-end
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/identity-service/matching/requirements.txt
+      - name: Splink adapter for identity-service
+        run: pip install -r services/identity-service/matching/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: m2-uddp
+      - name: Built modules
+        run: mkdir -p ~/.m2/repository && tar -xzf m2-uddp.tgz -C ~/.m2/repository
+      - name: States 1-4 across the services, discovery and gateway (9/9/6/6, 8 families)
+        run: $MVN test -pl e2e -Dmsa.e2e=true
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-e2e
+          path: e2e/target/surefire-reports/*.txt
+          retention-days: 7
+
+  deployment-files:
+    name: Deployment files render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kubernetes overlay renders
+        run: |
+          cp deploy/k8s/overlays/local/secrets.env.example deploy/k8s/overlays/local/secrets.env
+          kubectl kustomize deploy/k8s/overlays/local > /dev/null
+      - name: Compose file is valid
+        run: |
+          UDDP_POSTGRES_DB=ci UDDP_POSTGRES_USER=ci UDDP_POSTGRES_PASSWORD=ci UDDP_POSTGRES_PORT=5432 \
+            docker compose --profile postgres --profile observability config -q
+      - name: Kafka topic script is valid shell
+        run: bash -n deploy/kafka/create-topics.sh
