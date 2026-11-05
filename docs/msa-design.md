@@ -393,8 +393,14 @@ that every baseline Golden ID is unchanged in the incremental run.
    `uddp.ingestion.remote=true`), `RemoteCanonicalProcessor` + `RemoteCanonicalProjection` (V115). Residents are
    consumed by their own consumer group because a family observation may arrive first (`Inbox.NotYetApplicable`
    waits instead of parking it). Not evented yet: benefit, application and asset observations (in remote canonical
-   mode the monolith's benefit reports stay empty), held-record decisions, and replay of a batch with a different
-   pack version in canonical-service.
+   mode the monolith's benefit reports stay empty) and replay of a batch with a different pack version in
+   canonical-service. Held records live in canonical-service (V6: `held_record`, `held_record_event`,
+   `held_reprocess_job`): it holds the rows a steward can fix and serves `/api/canonical/held-records` (service token
+   only, contract `http-contracts/canonical-service.json`); the edge's held-record API keeps permissions, state scope,
+   audit and bulk-reject maker-checker and calls it through `RemoteHeldStore`. A group reprocess runs there in the
+   background (progress in `held_reprocess_job`, resumed after a restart) and a group exports as CSV with each row as
+   the source delivered it. Not yet in canonical-service: the final-rejected report and the retention purge of held
+   payloads, which still read the edge's own (empty) held tables.
 5. **edge-service.** What is left of the monolith (API controllers, security, onboarding saga,
    stewardship, read models, setup) becomes this service and the `common-core` module is removed.
 

@@ -149,6 +149,30 @@ describe("Held records tab", () => {
     expect((await screen.findByTestId("needs-second-approver")).textContent).toContain("Needs second approver");
   });
 
+  it("reprocesses a group in the background with progress and offers the group as CSV", async () => {
+    const user = userEvent.setup();
+    const JOB = "44444444-4444-4444-4444-444444444444";
+    const job = (status: string, processed: number) => ({
+      jobId: JOB, batchId: BATCH, reasonCode: "ID_FORMAT", status, total: 12, processed, released: 9,
+      stillHeld: processed - 9, requestedBy: "sam", startedAt: null, finishedAt: null, error: null,
+    });
+    let polls = 0;
+    setup(DECIDE, {
+      [`/api/v1/held-records/groups/${BATCH}/ID_FORMAT/reprocess-jobs`]: () => job("RUNNING", 0),
+      [`/api/v1/held-records/reprocess-jobs/${JOB}`]: () => (++polls < 2 ? job("RUNNING", 5) : job("COMPLETED", 12)),
+    });
+    renderAt("/stewardship?tab=held");
+    await user.click(await screen.findByRole("button", { name: /ID_FORMAT · batch/ }));
+    expect((await screen.findByTestId("held-export")).getAttribute("href"))
+      .toBe(`/api/v1/held-records/groups/${BATCH}/ID_FORMAT/export`);
+    await user.click(screen.getByRole("button", { name: "Reprocess group" }));
+    expect((await screen.findByTestId("held-reprocess-progress")).textContent).toContain("Reprocessing:");
+    await vi.waitFor(
+      () => expect(screen.getByTestId("held-reprocess-progress").textContent).toContain("9 released, 3 still held"),
+      { timeout: 5000 },
+    );
+  });
+
   it("hides every decision from a viewer without STEWARD_HELD_DECIDE", async () => {
     const user = userEvent.setup();
     setup(VIEW);

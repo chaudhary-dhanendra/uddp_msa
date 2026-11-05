@@ -12,6 +12,8 @@ import gov.uddp.core.canonical.PostgresConnectionFactory;
 import gov.uddp.core.canonical.PostgresRawRecordRepository;
 import gov.uddp.core.config.StatePackProperties;
 import gov.uddp.core.events.PlatformEvents;
+import gov.uddp.core.held.HeldRecordOperations;
+import gov.uddp.core.held.HeldRecordRepository;
 import gov.uddp.core.mapping.ApplicationMappingEngine;
 import gov.uddp.core.mapping.AssetMappingEngine;
 import gov.uddp.core.mapping.BenefitMappingEngine;
@@ -118,7 +120,11 @@ public class CanonicalConfiguration {
                                                            StatePackLoader statePacks,
                                                            StatePackProperties statePackProperties,
                                                            PlatformEvents canonicalEvents,
-                                                           @Value("${uddp.canonical.platform-directory}") String platform) {
+                                                           @Value("${uddp.canonical.platform-directory}") String platform,
+                                                           @Value("${uddp.processing.hold-low-confidence:false}")
+                                                           boolean holdLowConfidence,
+                                                           @Value("${uddp.processing.hold-invalid-identifiers:false}")
+                                                           boolean holdInvalidIdentifiers) {
         var json = new ObjectMapper().findAndRegisterModules();
         var canonicals = new PostgresCanonicalResidentRepository(canonicalConnections);
         canonicals.setEvents(canonicalEvents);
@@ -137,6 +143,18 @@ public class CanonicalConfiguration {
         service.setApplicationProcessor(new CanonicalApplicationProcessor(canonicalConnections,
                 new ApplicationMappingEngine(new RawCsvRecordParser(json), new SchemeCatalogue(catalogue)), json));
         service.setEvents(canonicalEvents);
+        // Rows a steward can fix are held here (held_record), not rejected; the edge decides them through this service.
+        service.setHeldRecords(new HeldRecordRepository(canonicalConnections, json), holdLowConfidence,
+                holdInvalidIdentifiers);
         return service;
+    }
+
+    @Bean
+    HeldRecordOperations heldRecords(PostgresConnectionFactory canonicalConnections,
+                                     CanonicalResidentProcessingService canonicalProcessing,
+                                     StatePackLoader statePacks) {
+        var operations = new HeldRecordOperations(new HeldRecordRepository(canonicalConnections,
+                new ObjectMapper().findAndRegisterModules()), canonicalProcessing, statePacks, canonicalConnections);
+        return operations;
     }
 }
