@@ -1,4 +1,5 @@
-# ingestion-service with Apache Hop, which runs the generic ingest templates (hop/pipelines) as a child process.
+# ingestion-service with Apache Hop, which runs its generic ingest templates (services/ingestion-service/hop) as a
+# child process.
 #   docker build -f deploy/docker/Dockerfile.ingestion -t uddp-ingestion-service:0.1.0-SNAPSHOT .
 # HOP_VERSION must match the templates' Hop version (developed on 2.19.0).
 FROM eclipse-temurin:21-jre
@@ -10,8 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && r
     && unzip -q /tmp/hop.zip -d /opt && rm /tmp/hop.zip && chmod +x /opt/hop/*.sh
 RUN groupadd --system --gid 10001 uddp && useradd --system --uid 10001 --gid uddp --home-dir /app uddp
 WORKDIR /app
-COPY hop/ hop/
-COPY metadata/ metadata/
+COPY services/ingestion-service/hop/ services/ingestion-service/hop/
 COPY platform/ platform/
 COPY services/ingestion-service/target/uddp-ingestion-service-${VERSION}-exec.jar services/ingestion-service/app.jar
 RUN mkdir -p /var/log/uddp /data/landing && chown -R uddp:uddp /var/log/uddp /data /app /opt/hop

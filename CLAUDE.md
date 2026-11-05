@@ -34,7 +34,7 @@ M14) adds stewardship: review queue, manual merge/split, decision log. M15 adds 
 `Benefit:` rules crosswalked onto it, Resident 360 benefits and duplicate/eligible-not-enrolled reports. The Onboarding
 Studio (ADR-0013..0016, `docs/milestones/STUDIO_ACCEPTANCE.md`) adds setup mode (`setup/`, `/api/setup`), an encrypted
 local settings store, a generic Studio (`studio/`, `/api/studio`) that generates ordinary State Packs into
-`studio-packs/`, database-table sources (`hop/pipelines/generic-db-ingest.hpl`) and the UI wizard. The shaping layer (ADR-0020, `docs/shaping-operations.md`, `shaping/`) turns raw CSV/xlsx rows into tidy records from a source's `layout`/`parse` steps; Shaping is proven by unit and Studio tests on synthetic workbooks (no reference dataset is kept in the repo). Dev OS is Windows
+`studio-packs/`, database-table sources (`generic-db-ingest.hpl`) and the UI wizard. The shaping layer (ADR-0020, `docs/shaping-operations.md`, `shaping/`) turns raw CSV/xlsx rows into tidy records from a source's `layout`/`parse` steps; Shaping is proven by unit and Studio tests on synthetic workbooks (no reference dataset is kept in the repo). Dev OS is Windows
 (PowerShell); prefer cross-platform commands. Read
 `ARCHITECTURE.md`, `MVP_SCOPE.md`, `IMPLEMENTATION_PLAN.md` and `docs/` before larger changes.
 
@@ -43,25 +43,26 @@ local settings store, a generic Studio (`studio/`, `/api/studio`) that generates
   services are in `services/` and the shared engines in `engine/`, `canonical-engine/`, `golden-engine/`,
   `matching-engine/`, `studio-engine/` (docs/msa-design.md)
   - `statepack/` loader, `mapping/` engine, `canonical/` persistence, `golden/` survivorship, `api/` controllers
-- `matching/` — Python Splink 4.0.17 adapter (`resident-match-v1`)
+- `services/identity-service/matching/` — Python Splink 4.0.17 adapter (`resident-match-v1`)
   - `scheme/` platform scheme catalogue and declarative eligibility (M15); `read/Benefit*Service` benefit reads and reports
   - `services/edge-service/src/main/resources/db/migration/` — the edge's Flyway path; each service has
     its own `db/<schema>` location
-- `state-packs/state-{1,2,3}/` — YAML: sources, mappings, crosswalks, validation, matching, survivorship
-- `m10-state-packs/state-4/` — State 4 portability fixture (combined with `state-packs/` only by the M10 e2e)
-- `hop/pipelines/generic-file-ingest.hpl` and `generic-db-ingest.hpl` — the ONLY ingest pipelines (generic)
+- `services/statepack-service/seed/state-packs/state-{1,2,3}/` — YAML: sources, mappings, crosswalks, validation, matching, survivorship
+- `services/statepack-service/seed/m10-state-packs/state-4/` — State 4 portability fixture (used by the e2e)
+- `services/ingestion-service/hop/pipelines/generic-*-ingest.hpl` — the ONLY ingest pipelines (generic)
 - `platform/studio/` — Studio metadata: mapping targets, keyword groups, rule defaults (no state names)
 - Studio drafts, uploads and evidence are runtime data in statepack-service (`UDDP_STUDIO_WORKSPACE`, default its
   `target/studio-workspace`); nothing is written to the repository root
 - `common-model/` — JSON Schemas for Resident, Family, Scheme, Benefit
-- `sample-data/` — tiny CSVs per state (7 residents total; 3 are "Ram Singh")
+- `services/ingestion-service/seed/sample-data/` — tiny CSVs per state (7 residents total; 3 are "Ram Singh")
 
 ## Commands
 - Start DB: `docker compose up -d postgres`
 - Java tests: `mvn test -pl services/<service>` (needs Docker: Postgres proofs use Testcontainers, never your DB);
   cross-service: `mvn test -pl e2e -Dmsa.e2e=true`; real Hop: `mvn test -pl services/ingestion-service
   -Dtest=RealHopIngestionTest -Dmsa.hop=true`
-- Python tests: `pip install -r matching/requirements-dev.txt && python -m pytest matching` (integration tests need Docker)
+- Python tests: `pip install -r services/identity-service/matching/requirements-dev.txt && python -m pytest
+  services/identity-service/matching` (integration tests need Docker)
 - Run order: discovery-service (8761), then the services (8101-8106, each registers by name), then
   gateway-service (8080, the only public entry; point the UI at it). Service URLs default to `lb://<name>`.
 - Observability: `docker compose --profile observability up -d` (Grafana 3000, Prometheus 9090, Tempo, Loki;

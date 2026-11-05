@@ -43,9 +43,10 @@ public class PortabilityEvidenceService {
     private static final Logger log = LoggerFactory.getLogger(PortabilityEvidenceService.class);
     /** The generic platform code: every service and engine module, the matcher, the Hop templates, platform data. */
     static final List<String> PLATFORM_PATHS = List.of("services", "engine", "canonical-engine", "golden-engine",
-            "matching-engine", "studio-engine", "contracts", "messaging", "matching", "hop", "platform");
+            "matching-engine", "studio-engine", "contracts", "messaging", "platform");
     private static final List<String> EXCLUDED = List.of(":(exclude)services/*/seed/**", ":(exclude)**/src/test/**",
-            ":(exclude)matching/test_*", ":(exclude)matching/conftest.py",
+            ":(exclude)services/identity-service/matching/test_*",
+            ":(exclude)services/identity-service/matching/conftest.py",
             ":(exclude)**/__pycache__/**");
     private static final String GUARD = "gov.uddp.core.portability.M10PortabilityGuardTest";
 

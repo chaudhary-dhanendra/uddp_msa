@@ -27,8 +27,10 @@ uddp:
     # Empty: no consumers and no relay (the service still serves its API). Set to enable messaging.
     bootstrap-servers: ${UDDP_KAFKA_BOOTSTRAP_SERVERS:}
   ingestion:
-    # Root of the repository that holds hop/pipelines (the generic templates).
+    # Root of the repository: delivered files named by a pack's relative location are read from here.
     repository-root: ${UDDP_REPOSITORY_ROOT:../..}
+    # This service's generic Hop templates (pipelines/) and Hop metadata (metadata/).
+    hop-directory: ${UDDP_HOP_DIRECTORY:hop}
     hop-home: ${HOP_HOME:}
     # Empty: run without a registered Hop project, with this repository's metadata folder (HOP_METADATA_FOLDER).
     hop-project: ${UDDP_HOP_PROJECT:}

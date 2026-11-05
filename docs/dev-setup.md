@@ -6,7 +6,7 @@
 | --- | --- |
 | Java 21, Maven 3.9+ | Common Core build and tests |
 | Docker Desktop (running) | Testcontainers in `mvn test` and pytest, plus the e2e throwaway database |
-| Python 3.12 + `pip install -r matching/requirements-dev.txt` | Splink matching and its tests |
+| Python 3.12 + `pip install -r services/identity-service/matching/requirements-dev.txt` | Splink matching and its tests |
 | Apache Hop 2.19 with `HOP_HOME` set | Real ingestion in the e2e scripts only |
 
 PostgreSQL settings come only from the `UDDP_POSTGRES_*` variables (see `CLAUDE.md`). Tests never read
@@ -74,7 +74,8 @@ a known Hop issue, described in `docs/etl-design.md`. The pipeline still exits 0
 ## M10 State 4 end to end
 
 ```powershell
-scriptseset-and-run-m10-e2e.ps1
+scripts
+eset-and-run-m10-e2e.ps1
 ```
 
 Runs the same script with the `m10-state-packs/state-4` pack added to the M9 packs in a temporary directory,

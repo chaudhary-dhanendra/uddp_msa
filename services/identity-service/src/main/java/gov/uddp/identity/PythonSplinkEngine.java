@@ -63,6 +63,8 @@ public class PythonSplinkEngine implements MatchingEngine {
                 command.add("--incremental");
             }
             var builder = new ProcessBuilder(command).directory(repositoryRoot.toFile()).redirectErrorStream(true);
+            builder.environment().put("PYTHONPATH",
+                    repositoryRoot.resolve("services").resolve("identity-service").toString());
             var env = builder.environment();
             env.keySet().removeIf(name -> name.startsWith("UDDP_POSTGRES_"));
             URI uri = URI.create(database.getJdbcUrl().substring("jdbc:".length()));

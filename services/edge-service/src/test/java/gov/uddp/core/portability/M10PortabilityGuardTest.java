@@ -44,7 +44,7 @@ class M10PortabilityGuardTest {
     static final Set<String> STUDIO_GENERIC_CHANGES = Set.of(
             "common-core/src/main/java/gov/uddp/core/statepack/StatePackLoader.java",
             "common-core/src/main/java/gov/uddp/core/statepack/StatePackAssets.java",
-            "hop/pipelines/generic-db-ingest.hpl",
+            "services/ingestion-service/hop/pipelines/generic-db-ingest.hpl",
             "common-core/src/main/java/gov/uddp/core/canonical/PostgresConnectionFactory.java",
             // V14: published State Packs are versioned database documents (ADR-0015), for every state alike.
             "common-core/src/main/java/gov/uddp/core/statepack/DatabaseStatePackRepository.java",
@@ -52,8 +52,8 @@ class M10PortabilityGuardTest {
             "common-core/src/main/java/gov/uddp/core/mapping/ResidentMappingEngine.java",
             "common-core/src/main/java/gov/uddp/core/canonical/CanonicalResidentProcessingService.java",
             // P1 Part 5b: optional exact comparison on the national ID keyed hash (UDDP_MATCH_NATIONAL_ID), any state.
-            "matching/config.py",
-            "matching/run.py",
+            "services/identity-service/matching/config.py",
+            "services/identity-service/matching/run.py",
             // Track A: generic rules/scheme integration, identical for every department/state.
             "common-core/src/main/java/gov/uddp/core/golden/DmnSurvivorshipRules.java",
             "common-core/src/main/java/gov/uddp/core/golden/GoldenResidentService.java",
@@ -96,9 +96,9 @@ class M10PortabilityGuardTest {
             // Shaping: xlsx rows keep their sheet in the source record key; generic Excel ingest and row reader.
             "common-core/src/main/java/gov/uddp/core/canonical/SourceRecordKey.java",
             "common-core/src/main/java/gov/uddp/core/mapping/RawRowReader.java",
-            "hop/pipelines/generic-excel-ingest.hpl",
+            "services/ingestion-service/hop/pipelines/generic-excel-ingest.hpl",
             // WP7d: every landed row keeps its physical line in the delivered file (raw_record.source_line, V111).
-            "hop/pipelines/generic-file-ingest.hpl",
+            "services/ingestion-service/hop/pipelines/generic-file-ingest.hpl",
             // Held records: reason codes on issues and processing errors, held rows counted in the summary.
             "common-core/src/main/java/gov/uddp/core/canonical/CanonicalProcessingError.java",
             "common-core/src/main/java/gov/uddp/core/canonical/CanonicalProcessingSummary.java",
@@ -143,9 +143,13 @@ class M10PortabilityGuardTest {
         "golden-engine/src/main/java/gov/uddp/core/golden",
         "golden-engine/src/main/java/gov/uddp/core/statepack",
         "golden-engine/src/main/java/gov/uddp/core/scheme",
+        // The matcher and the Hop templates, at their former and current paths (a move shows as a rename).
         "matching/config.py",
         "matching/run.py",
-        "hop/pipelines"
+        "hop/pipelines",
+        "services/identity-service/matching/config.py",
+        "services/identity-service/matching/run.py",
+        "services/ingestion-service/hop/pipelines"
     };
     private static final Pattern STATE_FILE_NAME = Pattern.compile("(?i)state[-_]?\\d+|\\bst\\d+\\b");
 
@@ -175,7 +179,7 @@ class M10PortabilityGuardTest {
 
     @Test
     void theOnlyHopPipelinesAreTheGenericOnes() throws IOException {
-        try (Stream<Path> files = Files.list(ROOT.resolve("hop/pipelines"))) {
+        try (Stream<Path> files = Files.list(ROOT.resolve("services/ingestion-service/hop/pipelines"))) {
             assertEquals(List.of("generic-db-ingest.hpl", "generic-excel-ingest.hpl", "generic-file-ingest.hpl"),
                     files.map(file -> file.getFileName().toString()).filter(name -> name.endsWith(".hpl")).sorted().toList(),
                     "State-specific Hop pipelines are not allowed");
@@ -247,7 +251,7 @@ class M10PortabilityGuardTest {
                         .forEach(files::add);
             }
         }
-        try (Stream<Path> python = Files.list(ROOT.resolve("matching"))) {
+        try (Stream<Path> python = Files.list(ROOT.resolve("services/identity-service/matching"))) {
             python.filter(file -> file.toString().endsWith(".py"))
                     .filter(file -> !file.getFileName().toString().startsWith("test_"))
                     .filter(file -> !file.getFileName().toString().equals("conftest.py"))
