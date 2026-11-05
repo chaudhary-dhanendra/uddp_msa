@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.uddp.contracts.EventEnvelope;
 import gov.uddp.contracts.StatePackRef;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -96,6 +97,29 @@ class OutboxKafkaIntegrationTest {
         assertThat(received).extracting(ConsumerRecord::key).containsExactly("k1", "k2", "k3");
         assertThat(new String(received.get(0).headers().lastHeader("eventId").value()))
                 .isEqualTo(duplicateId.toString());
+    }
+
+    @Test
+    void reportsBacklogAndPublishedEventsAsMetrics() throws Exception {
+        var registry = new SimpleMeterRegistry();
+        OutboxRelay relay = new OutboxRelay(connections, producer, 10, registry);
+        try (Connection c = connections.open()) {
+            Outbox.append(c, topic, envelope(UUID.randomUUID(), "k1"));
+            Outbox.append(c, topic, envelope(UUID.randomUUID(), "k2"));
+            try (var s = c.createStatement()) {
+                s.execute("update outbox_event set created_at = now() - interval '90 seconds'");
+            }
+        }
+
+        relay.measureBacklog();
+        assertThat(registry.get("uddp.outbox.backlog").gauge().value()).isEqualTo(2);
+        assertThat(registry.get("uddp.outbox.oldest.unpublished.age").gauge().value()).isGreaterThanOrEqualTo(90);
+
+        assertThat(relay.drain()).isEqualTo(2);
+        assertThat(registry.get("uddp.outbox.published").counter().count()).isEqualTo(2);
+        assertThat(registry.get("uddp.outbox.backlog").gauge().value()).isZero();
+        assertThat(registry.get("uddp.outbox.oldest.unpublished.age").gauge().value()).isZero();
+        assertThat(registry.get("uddp.outbox.relay.failures").counter().count()).isZero();
     }
 
     @Test

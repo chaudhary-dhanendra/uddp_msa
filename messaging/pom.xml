@@ -24,6 +24,11 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
+    <!-- Outbox metrics (OutboxRelay). -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
     <!-- Optional: trace propagation over Kafka in applications that trace (TraceContextAutoConfiguration). -->
     <dependency>
       <groupId>io.micrometer</groupId>
