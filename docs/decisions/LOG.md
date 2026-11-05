@@ -91,3 +91,4 @@
 - 2026-11-05 MSA: CI is a GitHub Actions workflow (build once, service tests as a matrix, Python, UI, e2e with real Splink, deployment files); not pushed to any remote.
 - 2026-11-05 MSA: inter-service HTTP resilience is a small in-house retry + circuit breaker (contracts.ServiceCalls), not a library, because the calls are few and plain java.net.http; HTTP contracts are shared JSON files verified by providers and consumers.
 - 2026-11-05 MSA: the LGD master is replicated as whole snapshots (chunked events, re-imported with the same LgdImportService) rather than as row changes, so every copy runs the same validation and versioning; the edge, where LGD is uploaded and synced, publishes.
+- 2026-11-05: lb:// resolution waits up to 10s for a service with no registered instance and then fails as ServiceCalls.Unavailable (startup race seen on the local stack).
