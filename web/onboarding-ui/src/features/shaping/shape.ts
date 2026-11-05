@@ -41,7 +41,14 @@ export function outputName(prefix: string, key: string): string {
 const DITTO = "ditto@1.0";
 const HEADER_DETECT = "header-detect@";
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/** JSON with every object's keys sorted, so a step saved and read back with its keys in another order still matches. */
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)))
+      : v,
+  );
+const same = (a: unknown, b: unknown) => canonical(a) === canonical(b);
 
 function onlyKeys(step: Step, keys: string[]): boolean {
   const own = Object.keys(step).sort();

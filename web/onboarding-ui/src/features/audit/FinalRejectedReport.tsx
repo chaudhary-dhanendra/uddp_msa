@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, unwrap } from "../../api/client";
-import type { components } from "../../api/schema";
+import type { RejectedRow, WeekCount } from "../../api/types";
 import { optional, useListParams } from "../../shared/hooks";
 import { DataTable, Field, FilterBar, Panel, Pagination, QueryState, TextInput } from "../../shared/components";
 import { useSession } from "../auth";
 
-type Row = components["schemas"]["RejectedRow"];
+type Row = RejectedRow;
 
 const FILTERS = ["batch", "source", "department", "state", "reason", "decidedBy", "from", "to"] as const;
 
@@ -27,7 +27,7 @@ export function FinalRejectedSummary() {
                 Open the report
               </button>
             </p>
-            <DataTable<components["schemas"]["WeekCount"]>
+            <DataTable<WeekCount>
               caption="Final rejected per source per week"
               testId="final-rejected-trend"
               rows={data.perSourcePerWeek}

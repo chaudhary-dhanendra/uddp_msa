@@ -178,3 +178,12 @@ export type IdentityPolicyVersion = Schemas["IdentityPolicyVersion"];
 export type GeographyPreview = Schemas["SnapshotPreview"];
 export type GeographyChange = Schemas["SnapshotChange"];
 export type GeographySyncRun = Schemas["SyncRun"];
+
+export type RejectedRow = Schemas["RejectedRow"];
+export type WeekCount = Schemas["WeekCount"];
+export type HeldRecord = Schemas["HeldRecord"];
+export type HeldReason = Schemas["HeldReason"];
+export type HeldEvent = Schemas["HeldEvent"];
+export type RectifyResult = Schemas["RectifyResult"];
+export type GroupActionResult = Schemas["GroupActionResult"];
+export type BulkAction = Schemas["BulkAction"];

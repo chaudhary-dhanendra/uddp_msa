@@ -49,6 +49,9 @@ function mockBackend() {
       if (path === "/api/v1/audit-events/actions") {
         return json(["LOGIN"]);
       }
+      if (path === "/api/v1/audit-reports/final-rejected/summary") {
+        return json({ total: 0, reopened: 0, perSourcePerWeek: [] });
+      }
       if (path === "/api/v1/audit-events") {
         return json({ items: [], page: 0, size: 50, totalItems: 0, totalPages: 0, sort: "occurredAt,desc" });
       }
