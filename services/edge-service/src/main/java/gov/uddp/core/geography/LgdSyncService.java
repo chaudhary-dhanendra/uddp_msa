@@ -95,6 +95,13 @@ public class LgdSyncService implements PlatformScheduledJob, PlatformMetricsSour
         this.runTimeout = runTimeout;
     }
 
+    private gov.uddp.core.events.GeographyPublisher publisher;
+
+    @Autowired(required = false)
+    public void setPublisher(gov.uddp.core.events.GeographyPublisher publisher) {
+        this.publisher = publisher;
+    }
+
     @Override
     public String name() {
         return "lgd-master-sync";
@@ -157,9 +164,14 @@ public class LgdSyncService implements PlatformScheduledJob, PlatformMetricsSour
         int changes = 0;
         String error = null;
         try {
-            var result = imports.importSnapshot(snapshotSource.get(), actor);
+            LgdSnapshotData snapshot = snapshotSource.get();
+            var result = imports.importSnapshot(snapshot, actor);
             snapshotId = result.snapshotId();
             changes = result.changeCount();
+            // MSA: the services' copies of the master follow every snapshot that changed it.
+            if (publisher != null && changes > 0 && !"FAILED".equals(result.status())) {
+                publisher.publish(snapshotId, snapshot);
+            }
             status = switch (result.status()) {
                 case "FAILED" -> "FAILED";
                 case "UNCHANGED" -> "UNCHANGED";

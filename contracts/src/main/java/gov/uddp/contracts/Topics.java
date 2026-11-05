@@ -28,6 +28,8 @@ public final class Topics {
     public static final String GOLDEN_BUILD_COMPLETED = "uddp.registry.golden-build-completed.v1";
     /** The Golden rows one build wrote, for read models (edge-service). */
     public static final String GOLDEN_REPLICA = "uddp.registry.golden-replica.v1";
+    /** An LGD snapshot that changed the edge's geography master, in ordered chunks, for the services' copies. */
+    public static final String GEOGRAPHY_SNAPSHOT_PUBLISHED = "uddp.geography.snapshot-published.v1";
 
     public static final String PACK_PUBLISHED = "uddp.statepack.pack-published.v1";
     public static final String PACK_APPROVED = "uddp.statepack.pack-approved.v1";

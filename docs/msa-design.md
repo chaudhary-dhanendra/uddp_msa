@@ -530,8 +530,10 @@ Not done yet, in priority order:
 
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, and an empty geography master is
-   seeded from `UDDP_LGD_SEED` (default: the platform demo snapshot, `platform/reference-data/lgd`); LGD updates
-   after that are not yet replicated from canonical-service. Studio database-source
+   seeded from `UDDP_LGD_SEED` (default: the platform demo snapshot, `platform/reference-data/lgd`); every later
+   LGD snapshot that changes the edge's master (upload or scheduled sync) is published as
+   `geography.snapshot-published` in chunks of 2000 rows and imported by canonical-service and statepack-service
+   into their own masters (`GeographyReplication`; proven over Kafka by the e2e test). Studio database-source
    connections and their passwords are ingestion-service's; the Studio lists and previews them through it
    (docs/security.md). Studio
    auto-approval (gates) and the exception inbox's mapping suggestions stay with the edge's own Studio, so with
