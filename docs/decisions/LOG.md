@@ -87,3 +87,4 @@
 - 2026-11-05 MSA: Kubernetes via kustomize (base + overlays), gateway as the only Ingress, dependencies external and named in a ConfigMap, the DB password a per-overlay generated Secret; images keep the repository layout under /app.
 - 2026-11-05 MSA: the Hop templates and metadata belong to ingestion-service (services/ingestion-service/hop) and the Splink adapter to identity-service (services/identity-service/matching, found through PYTHONPATH).
 - 2026-11-05 MSA: a platform demo LGD snapshot (platform/reference-data/lgd) seeds statepack-service's empty geography read model and the Studio tests, which pass again.
+- 2026-11-05 MSA: internal APIs require a shared service token (X-UDDP-Service-Token from UDDP_INTERNAL_TOKEN; the gateway strips it from outside requests); source credentials only in ingestion-service, which the Studio previews through.

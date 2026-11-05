@@ -138,7 +138,7 @@ public class RemoteStudioService {
             }
         }
         String actor = CurrentUser.username();
-        var request = HttpRequest.newBuilder(URI.create(gov.uddp.contracts.ServiceUrls.resolve(statepack)
+        var request = gov.uddp.contracts.ServiceUrls.request(URI.create(gov.uddp.contracts.ServiceUrls.resolve(statepack)
                         + "/api/studio-operations/" + operation)).timeout(Duration.ofMinutes(10))
                 .header("Content-Type", "application/json")
                 .header("X-UDDP-Actor", actor == null ? "platform" : actor)

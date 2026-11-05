@@ -102,6 +102,57 @@ public class SourceConnections {
         return settings;
     }
 
+    /** The configured connection names and where they point (never the password), for the Studio's list. */
+    public List<Map<String, Object>> describe() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        connections.forEach((name, c) -> {
+            Map<String, Object> view = new LinkedHashMap<>();
+            view.put("name", name);
+            view.put("host", c.host);
+            view.put("port", c.port);
+            view.put("database", c.database);
+            view.put("user", c.user);
+            view.put("passwordSet", c.password != null && !c.password.isEmpty());
+            out.add(view);
+        });
+        return out;
+    }
+
+    /** Up to {@code limit} rows of the source's SELECT, read-only, for a Studio preview (values as text). */
+    public Map<String, Object> rows(String name, String select, int limit) {
+        Connection c = get(name);
+        try (var connection = DriverManager.getConnection(c.jdbcUrl(), c.user, c.password)) {
+            connection.setReadOnly(true);
+            try (var s = connection.createStatement();
+                    var r = s.executeQuery(select + " limit " + Math.max(1, Math.min(limit, 100_000)))) {
+                int count = r.getMetaData().getColumnCount();
+                List<String> header = new ArrayList<>();
+                for (int i = 1; i <= count; i++) {
+                    header.add(r.getMetaData().getColumnLabel(i));
+                }
+                List<Map<String, String>> rows = new ArrayList<>();
+                while (r.next()) {
+                    Map<String, String> row = new LinkedHashMap<>();
+                    for (int i = 1; i <= count; i++) {
+                        String value = r.getString(i);
+                        row.put(header.get(i - 1), value == null ? "" : value);
+                    }
+                    rows.add(row);
+                }
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("header", header);
+                out.put("rows", rows);
+                return out;
+            }
+        } catch (java.sql.SQLException e) {
+            String message = e.getMessage() == null ? "" : e.getMessage();
+            if (c.password != null && !c.password.isEmpty()) {
+                message = message.replace(c.password, "********");
+            }
+            throw new IllegalArgumentException("Cannot read source " + name + ": " + message, e);
+        }
+    }
+
     /** The source's column names in order (the CSV header of its raw lines), read without fetching rows. */
     public String header(String name, String select) {
         Connection c = get(name);

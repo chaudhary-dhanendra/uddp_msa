@@ -107,6 +107,8 @@ final class Platform implements AutoCloseable {
         p.put("server.address", "127.0.0.1");
         p.put("server.port", "0");
         p.put("spring.jmx.enabled", "false");
+        // Internal APIs require the service token, as in a deployment (the services send it to each other).
+        p.put("uddp.internal.token", "e2e-service-token");
         // The gateway's jars are on this JVM's classpath (DiscoveryAndGatewayTest); these services are not gateways.
         p.put("spring.cloud.gateway.server.webflux.enabled", "false");
         p.put("uddp.kafka.bootstrap-servers", kafka.getBootstrapServers());

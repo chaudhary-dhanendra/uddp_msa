@@ -166,6 +166,23 @@ class IngestionSourcesTest {
                 "%" + SOURCE.getPassword() + "%")).as("no event carries the source password").isZero();
     }
 
+    @Test
+    void studioPreviewsReadRowsWithThisServicesCredentialsAndNeverReturnThePassword() throws Exception {
+        try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
+                var s = c.createStatement()) {
+            s.execute("create table if not exists preview_people (person_id text, full_name text)");
+            s.execute("insert into preview_people values ('P1', 'Asha'), ('P2', 'Ravi'), ('P3', 'Mira')");
+        }
+        String listed = http.getForObject("/api/ingestion/connections", String.class);
+        assertThat(listed).contains("\"department\"").contains("\"passwordSet\":true")
+                .doesNotContain(SOURCE.getPassword());
+        var rows = json.readTree(http.postForObject("/api/ingestion/sources/rows",
+                Map.of("connectionRef", "department", "table", "preview_people", "limit", 2), String.class));
+        assertThat(rows.path("header").toString()).isEqualTo("[\"person_id\",\"full_name\"]");
+        assertThat(rows.path("rows")).hasSize(2);
+        assertThat(rows.path("rows").get(0).path("full_name").asText()).isEqualTo("Asha");
+    }
+
     private ObjectNode request(UUID batch, String template, String source) {
         ObjectNode r = json.createObjectNode();
         r.put("batchId", batch.toString());

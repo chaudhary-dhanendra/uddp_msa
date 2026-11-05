@@ -75,7 +75,7 @@ public class RemoteHopRunner implements HopRunner {
         body.put("table", source.table());
         body.put("query", source.query());
         try {
-            var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
+            var response = java.net.http.HttpClient.newHttpClient().send(gov.uddp.contracts.ServiceUrls.request(
                             java.net.URI.create(gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/sources/test"))
                     .header("Content-Type", "application/json")
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(Outbox.json().writeValueAsString(body)))
@@ -184,7 +184,7 @@ public class RemoteHopRunner implements HopRunner {
     private String upload(java.nio.file.Path file) throws Exception {
         String url = gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/files?name="
                 + java.net.URLEncoder.encode(file.getFileName().toString(), java.nio.charset.StandardCharsets.UTF_8);
-        var response = java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(
+        var response = java.net.http.HttpClient.newHttpClient().send(gov.uddp.contracts.ServiceUrls.request(
                         java.net.URI.create(url)).header("Content-Type", "application/octet-stream")
                         .POST(java.net.http.HttpRequest.BodyPublishers.ofFile(file)).build(),
                 java.net.http.HttpResponse.BodyHandlers.ofString());

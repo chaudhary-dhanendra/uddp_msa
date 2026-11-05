@@ -75,12 +75,12 @@ public class StatePackPublisher {
     }
 
     private JsonNode get(String packId, String version) {
-        return send(HttpRequest.newBuilder(URI.create(base() + path(packId, version))).GET());
+        return send(gov.uddp.contracts.ServiceUrls.request(URI.create(base() + path(packId, version))).GET());
     }
 
     private JsonNode post(String suffix, Object body) {
         try {
-            return send(HttpRequest.newBuilder(URI.create(base() + suffix)).header("Content-Type", "application/json")
+            return send(gov.uddp.contracts.ServiceUrls.request(URI.create(base() + suffix)).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))));
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Cannot write the statepack-service request", e);

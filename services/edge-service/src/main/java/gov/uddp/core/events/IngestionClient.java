@@ -32,17 +32,17 @@ public class IngestionClient {
     }
 
     public Optional<JsonNode> get(String path) {
-        var response = send(HttpRequest.newBuilder(at(path)).GET());
+        var response = send(gov.uddp.contracts.ServiceUrls.request(at(path)).GET());
         return response.statusCode() == 404 ? Optional.empty() : Optional.of(body(response));
     }
 
     public JsonNode post(String path, Object body) {
-        return body(send(HttpRequest.newBuilder(at(path)).header("Content-Type", "application/json")
+        return body(send(gov.uddp.contracts.ServiceUrls.request(at(path)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(write(body)))));
     }
 
     public JsonNode put(String path, Object body) {
-        return body(send(HttpRequest.newBuilder(at(path)).header("Content-Type", "application/json")
+        return body(send(gov.uddp.contracts.ServiceUrls.request(at(path)).header("Content-Type", "application/json")
                 .PUT(HttpRequest.BodyPublishers.ofString(write(body)))));
     }
 
