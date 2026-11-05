@@ -1,0 +1,9 @@
+# Only the built jars and the data the images copy are needed in the build context.
+.git
+**/node_modules
+web
+docs
+logs
+deploy/local
+**/target/*
+!**/target/*-exec.jar

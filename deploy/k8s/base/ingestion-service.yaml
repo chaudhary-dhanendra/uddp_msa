@@ -1,0 +1,112 @@
+# ingestion-service: Deployment, Service, storage (generated layout; see deploy/k8s/README.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-service
+  labels:
+    app.kubernetes.io/name: ingestion-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingestion-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ingestion-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: ingestion-service
+          image: uddp-ingestion-service
+          ports:
+            - name: http
+              containerPort: 8101
+          envFrom:
+            - configMapRef:
+                name: uddp-config
+            - secretRef:
+                name: uddp-database
+          env:
+            # Registered in Eureka at the pod's own address, and bound to every interface inside the pod.
+            - name: UDDP_INSTANCE_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: HOP_HOME
+              value: "/opt/hop"
+            - name: UDDP_LANDING_DIRECTORY
+              value: "/data/landing"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/uddp
+            - name: tmp
+              mountPath: /tmp
+            - name: landing
+              mountPath: /data/landing
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: landing
+          persistentVolumeClaim:
+            claimName: ingestion-service-landing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestion-service
+  labels:
+    app.kubernetes.io/name: ingestion-service
+spec:
+  selector:
+    app.kubernetes.io/name: ingestion-service
+  ports:
+    - name: http
+      port: 8101
+      targetPort: http
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ingestion-service-landing
+  labels:
+    app.kubernetes.io/name: ingestion-service
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi

@@ -57,3 +57,6 @@ test-results/
 
 # Local-only development credentials (never committed).
 /deploy/local/
+
+# Kubernetes overlay secrets (copy secrets.env.example).
+deploy/k8s/overlays/*/secrets.env

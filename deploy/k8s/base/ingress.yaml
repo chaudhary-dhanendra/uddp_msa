@@ -1,0 +1,17 @@
+# The gateway is the platform's only public entry; every other service is ClusterIP and never exposed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: uddp
+spec:
+  rules:
+    - host: uddp.example.gov.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  name: http

@@ -1,0 +1,93 @@
+# identity-service: Deployment, Service (generated layout; see deploy/k8s/README.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  labels:
+    app.kubernetes.io/name: identity-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: identity-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: identity-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: identity-service
+          image: uddp-identity-service
+          ports:
+            - name: http
+              containerPort: 8103
+          envFrom:
+            - configMapRef:
+                name: uddp-config
+            - secretRef:
+                name: uddp-database
+          env:
+            # Registered in Eureka at the pod's own address, and bound to every interface inside the pod.
+            - name: UDDP_INSTANCE_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: UDDP_PYTHON
+              value: "python3"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 3Gi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/uddp
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  labels:
+    app.kubernetes.io/name: identity-service
+spec:
+  selector:
+    app.kubernetes.io/name: identity-service
+  ports:
+    - name: http
+      port: 8103
+      targetPort: http
