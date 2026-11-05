@@ -93,6 +93,7 @@ export type MappingTargets = Schemas["MappingTargets"];
 export type MappingTarget = Schemas["MappingTarget"];
 export type CodeValue = Schemas["CodeValue"];
 export type StudioPreview = Schemas["Preview"];
+export type DryRun = Schemas["DryRun"];
 export type PreviewRow = Schemas["PreviewRow"];
 export type GeneratedPack = Schemas["GeneratedPack"];
 export type StudioStateEntry = Schemas["StateEntry"];

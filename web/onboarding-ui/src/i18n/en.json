@@ -248,6 +248,21 @@
       "fields": "Compared fields",
       "survivorship": "Survivorship (trusted sources per field)"
     },
+    "dryRun": {
+      "title": "Check a large sample",
+      "intro": "Runs the pack over up to 50,000 rows of the source in the background, exactly as onboarding would, without loading anything. Fix the pack here before a large source is loaded.",
+      "start": "Check {{rows}} rows",
+      "running": "Checking the source…",
+      "failed": "The check stopped: {{message}}",
+      "summary": "{{rows}} rows checked · {{errors}} would be held · {{warnings}} with warnings.",
+      "more": "The source has more rows than were checked.",
+      "clean": "No row in the sample would be held.",
+      "reason": "Reason",
+      "rows": "Rows",
+      "example": "Examples",
+      "sampleRows": "Rows {{rows}}",
+      "fix": "Fix"
+    },
     "preview": {
       "intro": "A dry run of the first {{rows}} rows through the existing mapping and validation engines. Nothing is written.",
       "run": "Refresh preview",

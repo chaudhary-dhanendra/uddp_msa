@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button, Panel, QueryState } from "../../../shared/components";
 import { usePreview } from "../hooks";
 import { StepFooter } from "./StepFooter";
+import { DryRunPanel } from "./DryRunPanel";
 import styles from "../studio.module.css";
 
 type PreviewIssue = PreviewRow["issues"][number];
@@ -139,6 +140,7 @@ export function PreviewStep({
             )}
           </Panel>
           <HeldPreviewCounts rows={p.rows} draftId={draft.draftId ?? ""} />
+          <DryRunPanel draftId={draft.draftId ?? ""} />
           <Panel>
             <div style={{ overflowX: "auto" }}>
               <table className={styles.table} data-testid="preview-table">

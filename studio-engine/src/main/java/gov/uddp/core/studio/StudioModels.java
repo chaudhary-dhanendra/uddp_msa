@@ -450,6 +450,43 @@ public final class StudioModels {
         }
     }
 
+    @Schema(description = "A dry run of the draft's pack over a large sample of its source: issues grouped by reason,"
+            + " nothing written")
+    public record DryRun(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"NONE", "RUNNING", "COMPLETED",
+                    "FAILED"}) String status,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int rowsRequested,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int rowsChecked,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "The source has more rows than were"
+                    + " checked") boolean moreRows,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Rows that would be held")
+            int rowsWithErrors,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int rowsWithWarnings,
+            @Schema(nullable = true, description = "Why the dry run stopped (configuration or source problem)")
+            String problem,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<DryRunGroup> groups,
+            @Schema(nullable = true) OffsetDateTime startedAt,
+            @Schema(nullable = true) OffsetDateTime finishedAt) {
+
+        static DryRun none() {
+            return new DryRun("NONE", 0, 0, false, 0, 0, null, List.of(), null, null);
+        }
+    }
+
+    @Schema(description = "Rows of a dry run that share a reason code and field, with where in the pack it is fixed")
+    public record DryRunGroup(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String code,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"error", "warning"})
+            String severity,
+            @Schema(nullable = true) String field,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int count,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "The first row's message") String message,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) gov.uddp.core.held.FixTarget fix,
+            @Schema(nullable = true) String suggestion,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Row numbers of up to three examples")
+            List<Integer> sampleRows) {
+    }
+
     @Schema(description = "One previewed source row")
     public record PreviewRow(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int rowNumber,

@@ -2052,6 +2052,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/studio/drafts/{draftId}/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The draft's latest dry run: progress or issues grouped by reason */
+        get: operations["getDryRun"];
+        put?: never;
+        /** Check the pack against a large sample of the source in the background (default 50,000 rows, at most 100,000); writes nothing */
+        post: operations["startDryRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/studio/drafts/{draftId}/generated": {
         parameters: {
             query?: never;
@@ -4823,6 +4841,46 @@ export interface components {
             packId: string | null;
             /** @description Upper-case state code, e.g. ST5 */
             stateCode: string | null;
+        };
+        /** @description A dry run of the draft's pack over a large sample of its source: issues grouped by reason, nothing written */
+        DryRun: {
+            /** Format: date-time */
+            finishedAt: string | null;
+            groups: components["schemas"]["DryRunGroup"][];
+            /** @description The source has more rows than were checked */
+            moreRows: boolean;
+            /** @description Why the dry run stopped (configuration or source problem) */
+            problem: string | null;
+            /** Format: int32 */
+            rowsChecked: number;
+            /** Format: int32 */
+            rowsRequested: number;
+            /**
+             * Format: int32
+             * @description Rows that would be held
+             */
+            rowsWithErrors: number;
+            /** Format: int32 */
+            rowsWithWarnings: number;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** @enum {string|null} */
+            status: "NONE" | "RUNNING" | "COMPLETED" | "FAILED" | null;
+        };
+        /** @description Rows of a dry run that share a reason code and field, with where in the pack it is fixed */
+        DryRunGroup: {
+            code: string | null;
+            /** Format: int32 */
+            count: number;
+            field: string | null;
+            fix: components["schemas"]["FixTarget"] | null;
+            /** @description The first row's message */
+            message: string | null;
+            /** @description Row numbers of up to three examples */
+            sampleRows: number[];
+            /** @enum {string|null} */
+            severity: "error" | "warning" | null;
+            suggestion: string | null;
         };
         DuplicateBenefitFinding: {
             /** Format: int32 */
@@ -11135,6 +11193,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Draft"];
+                };
+            };
+        };
+    };
+    getDryRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DryRun"];
+                };
+            };
+        };
+    };
+    startDryRun: {
+        parameters: {
+            query?: {
+                rows?: number;
+            };
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DryRun"];
                 };
             };
         };
