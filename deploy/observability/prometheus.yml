@@ -17,6 +17,11 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__meta_eureka_app_name]
         target_label: application
+      # On one machine the services register 127.0.0.1; from this container that is the Docker host.
+      - source_labels: [__address__]
+        regex: 127\.0\.0\.1:(.*)
+        target_label: __address__
+        replacement: host.docker.internal:$1
   # The registry itself does not register; scrape it directly.
   - job_name: discovery-service
     metrics_path: /actuator/prometheus

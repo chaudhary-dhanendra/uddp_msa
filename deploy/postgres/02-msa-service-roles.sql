@@ -1,7 +1,8 @@
 -- One login role per service, each owning only its own schema (docs/msa-design.md, section 6).
 -- Run after 01-msa-databases.sql, by the postgres container on first start (docker compose) or as a superuser:
 --   UDDP_MSA_SERVICE_PASSWORD=... psql -X -h <host> -p <port> -U <superuser> -d postgres -f deploy/postgres/02-msa-service-roles.sql
--- Idempotent: re-running syncs the role passwords and grants.
+-- Idempotent: re-running syncs the role passwords and grants. Each role may connect to and create temporary tables
+-- in its own database only (REVOKE ALL FROM PUBLIC removes both from everyone else).
 -- The service password is read from the environment variable UDDP_MSA_SERVICE_PASSWORD; it never appears here.
 \set ON_ERROR_STOP on
 \getenv svc_password UDDP_MSA_SERVICE_PASSWORD
@@ -26,7 +27,7 @@ FROM unnest(ARRAY['uddp_ingestion', 'uddp_canonical', 'uddp_identity',
 \connect uddp_raw
 REVOKE ALL ON DATABASE uddp_raw FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT CONNECT ON DATABASE uddp_raw TO uddp_ingestion;
+GRANT CONNECT, TEMPORARY ON DATABASE uddp_raw TO uddp_ingestion;
 CREATE SCHEMA IF NOT EXISTS ingestion AUTHORIZATION uddp_ingestion;
 ALTER ROLE uddp_ingestion IN DATABASE uddp_raw SET search_path = ingestion;
 
@@ -34,7 +35,7 @@ ALTER ROLE uddp_ingestion IN DATABASE uddp_raw SET search_path = ingestion;
 \connect uddp_identity
 REVOKE ALL ON DATABASE uddp_identity FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT CONNECT ON DATABASE uddp_identity TO uddp_identity;
+GRANT CONNECT, TEMPORARY ON DATABASE uddp_identity TO uddp_identity;
 CREATE SCHEMA IF NOT EXISTS identity AUTHORIZATION uddp_identity;
 ALTER ROLE uddp_identity IN DATABASE uddp_identity SET search_path = identity;
 
@@ -42,16 +43,18 @@ ALTER ROLE uddp_identity IN DATABASE uddp_identity SET search_path = identity;
 \connect uddp_registry
 REVOKE ALL ON DATABASE uddp_registry FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT CONNECT ON DATABASE uddp_registry TO uddp_registry;
+GRANT CONNECT, TEMPORARY ON DATABASE uddp_registry TO uddp_registry;
 CREATE SCHEMA IF NOT EXISTS registry AUTHORIZATION uddp_registry;
 CREATE SCHEMA IF NOT EXISTS lineage AUTHORIZATION uddp_registry;
 ALTER ROLE uddp_registry IN DATABASE uddp_registry SET search_path = registry, lineage;
 
 -- uddp_platform: canonical, statepack and edge, each with its own role and no access to the others
 \connect uddp_platform
+-- The edge's baseline migration declares pgcrypto; only a superuser may create it, so it is created here once.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 REVOKE ALL ON DATABASE uddp_platform FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-GRANT CONNECT ON DATABASE uddp_platform TO uddp_canonical, uddp_statepack, uddp_edge;
+GRANT CONNECT, TEMPORARY ON DATABASE uddp_platform TO uddp_canonical, uddp_statepack, uddp_edge;
 CREATE SCHEMA IF NOT EXISTS canonical AUTHORIZATION uddp_canonical;
 CREATE SCHEMA IF NOT EXISTS statepack AUTHORIZATION uddp_statepack;
 CREATE SCHEMA IF NOT EXISTS edge AUTHORIZATION uddp_edge;

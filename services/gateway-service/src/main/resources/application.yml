@@ -14,6 +14,9 @@ eureka:
       defaultZone: ${UDDP_EUREKA_URL:http://127.0.0.1:8761/eureka/}
   instance:
     prefer-ip-address: true
+    # The address other services reach this one at; the default suits one machine (services bind 127.0.0.1).
+    # Each deployment sets UDDP_INSTANCE_ADDRESS to the host or pod address.
+    ip-address: ${UDDP_INSTANCE_ADDRESS:127.0.0.1}
 uddp:
   gateway:
     # The edge by its registered name (load balanced); a fixed http:// address works without discovery.

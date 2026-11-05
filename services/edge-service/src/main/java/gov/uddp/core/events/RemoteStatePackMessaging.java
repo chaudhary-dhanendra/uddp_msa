@@ -68,8 +68,28 @@ public class RemoteStatePackMessaging implements DisposableBean {
 
         public void activated(Connection ignored, JsonNode envelope) throws Exception {
             JsonNode payload = envelope.path("payload");
-            install(payload.path("packId").asText(), payload.path("version").asText(),
-                    payload.path("digest").asText(null));
+            try {
+                install(payload.path("packId").asText(), payload.path("version").asText(),
+                        payload.path("digest").asText(null));
+            } catch (IllegalStateException e) {
+                // statepack-service is not reachable (yet): wait for it instead of parking the event.
+                if (unreachable(e)) {
+                    throw new gov.uddp.messaging.Inbox.NotYetApplicable("statepack-service is not reachable: "
+                            + e.getMessage());
+                }
+                throw e;
+            }
+        }
+
+        private static boolean unreachable(Throwable e) {
+            for (Throwable t = e; t != null; t = t.getCause()) {
+                String message = String.valueOf(t.getMessage());
+                if (t instanceof java.net.ConnectException || message.startsWith("Cannot reach statepack-service")
+                        || message.startsWith("No instance of") || message.startsWith("No service registry")) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public LoadedStatePack install(String packId, String version, String digest) throws Exception {

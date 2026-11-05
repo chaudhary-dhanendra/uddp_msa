@@ -57,7 +57,8 @@ dlt() { # consumer topic...
   shift
   for t in "$@"; do create "$t.dlt.$consumer" 1 "retention.ms=$((90 * DAY))"; done
 }
-dlt identity-service-projections uddp.canonical.resident-created.v1 uddp.registry.golden-resident-changed.v1
+dlt identity-service-projections uddp.canonical.resident-created.v1 uddp.registry.golden-resident-changed.v1 \
+  uddp.stewardship.decision-recorded.v1
 dlt identity-service-commands uddp.cmd.identity.matching-requested.v1
 dlt edge-identity-projection uddp.identity.match-decided.v1 uddp.identity.cluster-assigned.v1   uddp.identity.match-run-completed.v1
 
@@ -66,9 +67,11 @@ dlt edge-raw-projection uddp.ingestion.raw-record-received.v1 uddp.ingestion.raw
 
 dlt canonical-service-raw uddp.ingestion.raw-record-received.v1 uddp.ingestion.batch-completed.v1
 dlt registry-service-residents uddp.canonical.resident-created.v1
-dlt registry-service-projections uddp.canonical.family-observed.v1 uddp.identity.match-decided.v1   uddp.identity.cluster-assigned.v1 uddp.identity.match-run-completed.v1
+dlt registry-service-projections uddp.canonical.family-observed.v1 uddp.identity.match-decided.v1   uddp.identity.cluster-assigned.v1 uddp.identity.match-run-completed.v1 \
+  uddp.stewardship.decision-recorded.v1
 dlt registry-service-commands uddp.cmd.registry.golden-build-requested.v1
 dlt edge-golden-replica uddp.registry.golden-replica.v1
+dlt edge-statepack-installer uddp.statepack.pack-activated.v1
 dlt edge-canonical-residents uddp.canonical.resident-created.v1
 dlt edge-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1   uddp.canonical.batch-observed.v1
 

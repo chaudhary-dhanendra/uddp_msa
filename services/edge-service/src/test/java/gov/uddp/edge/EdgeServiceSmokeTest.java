@@ -30,7 +30,8 @@ class EdgeServiceSmokeTest {
         try (var context = EdgeServiceApplication.builder()
                 .properties("server.port=0", "server.address=127.0.0.1", "uddp.settings-directory=target/test-settings",
                         "uddp.database.migrate-on-startup=false", "spring.jmx.enabled=false")
-                .run()) {
+                // As arguments, so they outrank edge.yml (its fixed port may be taken by a running edge).
+                .run("--server.port=0", "--server.address=127.0.0.1")) {
             assertThat(context.getBean(HopRunner.class)).isInstanceOf(RemoteHopRunner.class);
             assertThat(context.getBean(CanonicalBatchProcessor.class)).isInstanceOf(RemoteCanonicalProcessor.class);
             assertThat(context.getBean(MatchingRunner.class)).isInstanceOf(RemoteMatchingRunner.class);
