@@ -145,7 +145,8 @@ public class StudioController {
     public StudioModels.Draft databaseSource(@PathVariable String draftId,
                                              @RequestBody StudioModels.DatabaseSourceRequest request) {
         inScope(draftId);
-        return studio.useDatabaseSource(draftId, request.connectionName(), request.table(), request.query());
+        return studio.useDatabaseSource(draftId, request.connectionName(), request.table(), request.query(),
+                request.changeColumn());
     }
 
     @GetMapping("/drafts/{draftId}/profile")

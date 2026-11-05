@@ -124,6 +124,8 @@ public class Ingestions {
             parameters.remove("FILE");
             parameters.put(template.contains("excel") ? "FILE" : "SOURCE_FILE", file);
         }
+        String stateCode = parameters.get("STATE_CODE");
+        Delta delta = null;
         if (template.equals("generic-db-ingest.hpl")) {
             // A database source: its connection and credentials are this service's own configuration.
             String ref = request.path("connectionRef").asText(null);
@@ -131,10 +133,23 @@ public class Ingestions {
             String query = request.path("query").asText(null);
             parameters.put("CSV_HEADER", connections.header(ref, gov.uddp.contracts.SourceSql.select(table, query)));
             secret.putAll(connections.hopSettings(ref));
-            secret.put("UDDP_SOURCE_SQL", gov.uddp.contracts.SourceSql.rawLineSelect(table, query));
+            String column = request.path("changeColumn").asText(null);
+            if (column == null || column.isBlank()) {
+                secret.put("UDDP_SOURCE_SQL", gov.uddp.contracts.SourceSql.rawLineSelect(table, query));
+            } else {
+                // A delta load: rows past the last loaded value, up to the source's current high-water mark.
+                String upTo = connections.scalar(ref, gov.uddp.contracts.SourceSql.maxChange(table, query, column));
+                String after = watermark(stateCode, request.path("sourceSystem").asText());
+                boolean unchanged = upTo == null || upTo.equals(after);
+                delta = new Delta(column, after, unchanged ? after : upTo);
+                secret.put("UDDP_SOURCE_SQL", unchanged
+                        ? gov.uddp.contracts.SourceSql.rawLineSelectOf(
+                                gov.uddp.contracts.SourceSql.select(table, query) + " where 1 = 0")
+                        : gov.uddp.contracts.SourceSql.rawLineSelectOf(
+                                gov.uddp.contracts.SourceSql.deltaSelect(table, query, column, after, upTo)));
+            }
         }
-        String stateCode = parameters.get("STATE_CODE");
-        if (!startBatch(request, batch, stateCode, correlationId)) {
+        if (!startBatch(request, batch, stateCode, correlationId, delta)) {
             // A redelivered command: a batch a crash left half announced continues where it stopped.
             if ("PUBLISHING".equals(status(batch))) {
                 publish(batch);
@@ -152,6 +167,35 @@ public class Ingestions {
         }
         finish(batch, stateCode, correlationId, result);
         return status(batch);
+    }
+
+    /** A delta load's change column, the value the last batch read up to, and the mark this one reads up to. */
+    private record Delta(String column, String after, String upTo) {
+    }
+
+    /** The change value the last successful delta load of this source read up to (null: none yet). */
+    private String watermark(String stateCode, String sourceSystem) {
+        return inTransaction(c -> {
+            try (var s = c.prepareStatement("select last_value from source_watermark where state_code = ?"
+                    + " and source_system = ?")) {
+                s.setString(1, stateCode);
+                s.setString(2, sourceSystem);
+                try (var r = s.executeQuery()) {
+                    return r.next() ? r.getString(1) : null;
+                }
+            }
+        });
+    }
+
+    /** Forgets a source's delta position, so its next delivery reads the whole table again; true when it had one. */
+    public boolean resetWatermark(String stateCode, String sourceSystem) {
+        return inTransaction(c -> {
+            try (var s = c.prepareStatement("delete from source_watermark where state_code = ? and source_system = ?")) {
+                s.setString(1, stateCode);
+                s.setString(2, sourceSystem);
+                return s.executeUpdate() > 0;
+            }
+        });
     }
 
     /** Runs a {@code cmd.ingestion.replay-requested} payload: re-publishes the batch's rows, never rewriting them. */
@@ -190,11 +234,16 @@ public class Ingestions {
     }
 
     /** Creates the batch; false when this batch already exists (a redelivered command), which then changes nothing. */
-    private boolean startBatch(JsonNode request, UUID batch, String stateCode, UUID correlationId) {
+    private boolean startBatch(JsonNode request, UUID batch, String stateCode, UUID correlationId, Delta delta) {
         return inTransaction(c -> {
             try (var s = c.prepareStatement("insert into ingestion_batch (batch_id, state_code, source_system,"
                     + " source_type, source_schema_version, state_pack_version, pipeline_template, status,"
-                    + " correlation_id) values (?, ?, ?, ?, ?, ?, ?, 'STARTED', ?) on conflict do nothing")) {
+                    + " correlation_id, delta_column, delta_after, delta_up_to)"
+                    + " values (?, ?, ?, ?, ?, ?, ?, 'STARTED', ?, ?, ?, ?)"
+                    + " on conflict do nothing")) {
+                s.setString(9, delta == null ? null : delta.column());
+                s.setString(10, delta == null ? null : delta.after());
+                s.setString(11, delta == null ? null : delta.upTo());
                 s.setObject(1, batch);
                 s.setString(2, stateCode);
                 s.setString(3, request.path("sourceSystem").asText());
@@ -225,6 +274,15 @@ public class Ingestions {
         }
         inTransaction(c -> {
             try (var s = c.prepareStatement("update ingestion_batch set status = 'PUBLISHING' where batch_id = ?")) {
+                s.setObject(1, batch);
+                s.executeUpdate();
+            }
+            // A delta load landed its rows: the source's next delivery starts after this batch's high-water mark.
+            try (var s = c.prepareStatement("insert into source_watermark (state_code, source_system, change_column,"
+                    + " last_value, batch_id) select state_code, source_system, delta_column, delta_up_to, batch_id"
+                    + " from ingestion_batch where batch_id = ? and delta_up_to is not null"
+                    + " on conflict (state_code, source_system) do update set change_column = excluded.change_column,"
+                    + " last_value = excluded.last_value, batch_id = excluded.batch_id, updated_at = now()")) {
                 s.setObject(1, batch);
                 s.executeUpdate();
             }

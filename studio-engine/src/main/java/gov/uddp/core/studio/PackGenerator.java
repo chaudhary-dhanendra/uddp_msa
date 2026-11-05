@@ -96,6 +96,10 @@ public class PackGenerator {
             } else {
                 lines.add("table: " + scalar(source.table()));
             }
+            if (source.changeColumn() != null && !source.changeColumn().isBlank()) {
+                // Delta loads: each delivery reads only the rows past the last loaded change value.
+                lines.add("changeColumn: " + scalar(source.changeColumn()));
+            }
         } else {
             lines.add("connectionRef: studio-landing");
             lines.add("location: " + scalar(location(source.location(), repositoryRoot)));

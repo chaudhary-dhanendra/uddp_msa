@@ -167,6 +167,43 @@ class IngestionSourcesTest {
     }
 
     @Test
+    void aSourceWithAChangeColumnLoadsOnlyRowsChangedSinceTheLastBatch() throws Exception {
+        try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
+                var s = c.createStatement()) {
+            s.execute("create table ration_cards (card_no text, holder text, updated_at timestamp)");
+            s.execute("insert into ration_cards values ('R1', 'Asha', '2026-01-01 10:00'),"
+                    + " ('R2', 'Ravi', '2026-01-02 10:00')");
+        }
+        assertThat(delta(UUID.randomUUID())).containsExactly("R1,Asha,2026-01-01T10:00:00",
+                "R2,Ravi,2026-01-02T10:00:00");
+        assertThat(delta(UUID.randomUUID())).as("nothing changed").isEmpty();
+
+        try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
+                var s = c.createStatement()) {
+            s.execute("update ration_cards set holder = 'Ravi Kumar', updated_at = '2026-02-01 09:00'"
+                    + " where card_no = 'R2'");
+            s.execute("insert into ration_cards values ('R3', 'Meera', '2026-02-02 09:00')");
+        }
+        assertThat(delta(UUID.randomUUID())).containsExactly("R2,Ravi Kumar,2026-02-01T09:00:00",
+                "R3,Meera,2026-02-02T09:00:00");
+
+        assertThat(http.exchange("/api/ingestion/sources/XX/ration-cards/watermark",
+                org.springframework.http.HttpMethod.DELETE, null, Map.class).getBody()).containsEntry("reset", true);
+        assertThat(delta(UUID.randomUUID())).as("after a reset the whole table is read again").hasSize(3);
+    }
+
+    /** Ingests the ration_cards delta source as a new batch; returns the raw lines it landed. */
+    private List<String> delta(UUID batch) throws Exception {
+        ObjectNode request = request(batch, "generic-db-ingest.hpl", "ration-cards");
+        request.put("connectionRef", "department");
+        request.put("table", "ration_cards");
+        request.put("changeColumn", "updated_at");
+        assertThat(ingestions.ingest(request, null)).isEqualTo("COMPLETED");
+        return jdbc.queryForList("select raw_payload::json->>'rawLine' from raw_record where batch_id = ?"
+                + " order by source_line", String.class, batch);
+    }
+
+    @Test
     void studioPreviewsReadRowsWithThisServicesCredentialsAndNeverReturnThePassword() throws Exception {
         try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
                 var s = c.createStatement()) {

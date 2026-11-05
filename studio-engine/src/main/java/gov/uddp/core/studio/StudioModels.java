@@ -84,7 +84,18 @@ public final class StudioModels {
             List<Map<String, Object>> layout,
             @Schema(nullable = true, description = "Accepted field parsers, written to the pack's source parse:")
             List<Map<String, Object>> parse,
-            @Schema(nullable = true, description = "Workbook sheets read (xlsx files)") List<String> sheets) {
+            @Schema(nullable = true, description = "Workbook sheets read (xlsx files)") List<String> sheets,
+            @Schema(nullable = true, description = "Database sources: the change column a delivery reads past (delta"
+                    + " load); none reads the whole table every time") String changeColumn) {
+
+        /** A source without a change column. */
+        public Source(String sourceId, String sourceType, String fileName, String location, Long sizeBytes,
+                      String recordIdField, List<String> recordKeyFields, String connectionName, String table,
+                      String query, List<Map<String, Object>> layout, List<Map<String, Object>> parse,
+                      List<String> sheets) {
+            this(sourceId, sourceType, fileName, location, sizeBytes, recordIdField, recordKeyFields, connectionName,
+                    table, query, layout, parse, sheets, null);
+        }
 
         /** A source without shaping (plain CSV or database table). */
         public Source(String sourceId, String sourceType, String fileName, String location, Long sizeBytes,
@@ -97,12 +108,12 @@ public final class StudioModels {
         public Source withShaping(List<Map<String, Object>> layout, List<Map<String, Object>> parse,
                                   List<String> sheets) {
             return new Source(sourceId, sourceType, fileName, location, sizeBytes, recordIdField, recordKeyFields,
-                    connectionName, table, query, layout, parse, sheets);
+                    connectionName, table, query, layout, parse, sheets, changeColumn);
         }
 
         public Source withRecordKey(String recordId, List<String> keys) {
             return new Source(sourceId, sourceType, fileName, location, sizeBytes, recordId, keys, connectionName,
-                    table, query, layout, parse, sheets);
+                    table, query, layout, parse, sheets, changeColumn);
         }
     }
 
@@ -281,7 +292,9 @@ public final class StudioModels {
     public record DatabaseSourceRequest(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String connectionName,
             @Schema(nullable = true) String table,
-            @Schema(nullable = true) String query) {
+            @Schema(nullable = true) String query,
+            @Schema(nullable = true, description = "A column that grows on every change (update time or increasing"
+                    + " id): each delivery then reads only rows past the last loaded value") String changeColumn) {
     }
 
     // ---- responses -------------------------------------------------------------------------------------------

@@ -31,6 +31,10 @@
     "location": { "type": ["string", "null"], "description": "The source's file or landing-folder location." },
     "table": { "type": ["string", "null"] },
     "query": { "type": ["string", "null"] },
+    "changeColumn": {
+      "type": ["string", "null"],
+      "description": "Delta loads: the database source's change column; only rows past the last loaded value are read."
+    },
     "parameters": {
       "type": "object",
       "propertyNames": {

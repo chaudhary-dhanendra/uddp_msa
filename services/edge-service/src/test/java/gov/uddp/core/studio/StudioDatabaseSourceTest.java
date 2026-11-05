@@ -118,7 +118,7 @@ class StudioDatabaseSourceTest {
         String id = json.readTree(send("POST", "/api/studio/drafts",
                 Map.of("packId", "db-pack", "stateCode", "DB9", "displayName", "Database source"))).path("draftId").asText();
         send("POST", "/api/studio/drafts/" + id + "/database-source",
-                Map.of("connectionName", "registry-db", "table", "citizen_register"));
+                Map.of("connectionName", "registry-db", "table", "citizen_register", "changeColumn", "born_on"));
         JsonNode suggestions = json.readTree(send("GET", "/api/studio/drafts/" + id + "/suggestions", null));
         JsonNode draft = json.readTree(send("GET", "/api/studio/drafts/" + id, null));
 
@@ -158,6 +158,7 @@ class StudioDatabaseSourceTest {
         JsonNode publishedSource = json.readTree(document).path("sources").get(0);
         assertEquals("generic-db-ingest.hpl", publishedSource.path("hopTemplate").asText(), document);
         assertEquals("registry-db", publishedSource.path("connectionRef").asText(), document);
+        assertEquals("born_on", publishedSource.path("changeColumn").asText(), "delta loads read past this column");
         assertFalse(document.contains(server[3]), "no credential in the pack");
 
         String run = json.readTree(send("POST", "/api/studio/drafts/" + id + "/onboard", Map.of())).path("runId").asText();

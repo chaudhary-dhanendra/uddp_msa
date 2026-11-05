@@ -1843,6 +1843,11 @@
       "DatabaseSourceRequest" : {
         "description" : "Use a table or a single SELECT of a named connection as the draft's source",
         "properties" : {
+          "changeColumn" : {
+            "description" : "A column that grows on every change (update time or increasing id): each delivery then reads only rows past the last loaded value",
+            "nullable" : true,
+            "type" : "string"
+          },
           "connectionName" : {
             "nullable" : true,
             "type" : "string"
@@ -1856,7 +1861,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "connectionName", "query", "table" ],
+        "required" : [ "changeColumn", "connectionName", "query", "table" ],
         "type" : "object"
       },
       "Decision" : {
@@ -9303,6 +9308,11 @@
         "description" : "Where the draft's records come from: an uploaded file or a database table",
         "nullable" : true,
         "properties" : {
+          "changeColumn" : {
+            "description" : "Database sources: the change column a delivery reads past (delta load); none reads the whole table every time",
+            "nullable" : true,
+            "type" : "string"
+          },
           "connectionName" : {
             "description" : "Named connection for database sources (credentials stay in the local store)",
             "nullable" : true,
@@ -9392,7 +9402,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "connectionName", "fileName", "layout", "location", "parse", "query", "recordIdField", "recordKeyFields", "sheets", "sizeBytes", "sourceId", "sourceType", "table" ],
+        "required" : [ "changeColumn", "connectionName", "fileName", "layout", "location", "parse", "query", "recordIdField", "recordKeyFields", "sheets", "sizeBytes", "sourceId", "sourceType", "table" ],
         "type" : "object"
       },
       "SourceConnection" : {
