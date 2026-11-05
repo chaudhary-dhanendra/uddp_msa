@@ -1,1 +1,2 @@
 gov.uddp.messaging.TraceContextAutoConfiguration
+gov.uddp.messaging.ServiceTokenAutoConfiguration

@@ -134,6 +134,7 @@ class DiscoveryAndGatewayTest {
         p.put("server.address", "127.0.0.1");
         p.put("server.port", "0");
         p.put("spring.jmx.enabled", "false");
+        p.put("uddp.internal.token", "e2e-service-token");
         p.put("eureka.client.enabled", "true");
         p.put("eureka.client.service-url.defaultZone", registry);
         p.put("eureka.client.registry-fetch-interval-seconds", "1");

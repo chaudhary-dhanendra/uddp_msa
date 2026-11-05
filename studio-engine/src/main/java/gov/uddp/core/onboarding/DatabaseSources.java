@@ -95,6 +95,39 @@ public class DatabaseSources {
         }
     }
 
+    /** The named connections this host keeps (passwords never returned). */
+    public List<gov.uddp.core.studio.StudioModels.SourceConnection> list() {
+        return store.connections().entrySet().stream()
+                .map(e -> new gov.uddp.core.studio.StudioModels.SourceConnection(e.getKey(), e.getValue().host(),
+                        e.getValue().port(), e.getValue().database(), e.getValue().user(), true))
+                .toList();
+    }
+
+    /** Tests and saves a named connection; the password is stored encrypted and never returned. */
+    public gov.uddp.core.studio.StudioModels.SourceConnection save(String name,
+            gov.uddp.core.studio.StudioModels.SourceConnectionRequest request) {
+        requireName(name);
+        if (request.port() == null) {
+            throw new IllegalArgumentException("Port is required");
+        }
+        String password = request.password();
+        if (password == null || password.isEmpty()) {
+            var saved = store.connections().get(name);
+            password = saved == null ? null : saved.password();
+        }
+        DatabaseConnectionSettings settings = new DatabaseConnectionSettings(request.host(), request.port(),
+                request.database(), request.user(), password).validated();
+        try (var c = DriverManager.getConnection(settings.jdbcUrl(), settings.user(), settings.password())) {
+            c.isValid(5);
+        } catch (SQLException e) {
+            throw new IllegalArgumentException("Cannot connect: "
+                    + SecretRedactor.redact(e.getMessage(), List.of(settings.password())));
+        }
+        store.saveConnection(name, settings);
+        return new gov.uddp.core.studio.StudioModels.SourceConnection(name, settings.host(), settings.port(),
+                settings.database(), settings.user(), true);
+    }
+
     /** Opens the connection and runs the source's SELECT once, for the SOURCE_TESTED stage and the Studio's Test. */
     public void test(String connectionName, String table, String query) {
         read(connectionName, table, query, 1);

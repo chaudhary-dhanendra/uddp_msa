@@ -521,8 +521,9 @@ Not done yet, in priority order:
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, and an empty geography master is
    seeded from `UDDP_LGD_SEED` (default: the platform demo snapshot, `platform/reference-data/lgd`); LGD updates
-   after that are not yet replicated from canonical-service. Studio preview connections
-   for database sources are kept in statepack-service's encrypted settings, not yet in ingestion-service. Studio
+   after that are not yet replicated from canonical-service. Studio database-source
+   connections and their passwords are ingestion-service's; the Studio lists and previews them through it
+   (docs/security.md). Studio
    auto-approval (gates) and the exception inbox's mapping suggestions stay with the edge's own Studio, so with
    `uddp.studio.remote` every publication needs a checker and those suggestions are not in the edge's inbox. The two Studio tests that failed since the import (StudioDatabaseSourceTest, StudioEquivalenceTest: LGD district
    unresolved) pass since 2026-11-05: they load the demo LGD snapshot first.

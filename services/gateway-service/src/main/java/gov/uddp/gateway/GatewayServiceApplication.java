@@ -16,7 +16,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
  * The UDDP API gateway, the platform's single public entry. Everything the UI calls goes to the edge
  * (edge-service), found by name through discovery ({@code lb://}), which checks sign-in, permissions and
  * state scope; the pipeline services and their internal APIs are never routed here. The caller cannot impersonate the
- * edge: an incoming X-UDDP-Actor header is dropped.
+ * edge or another service: incoming X-UDDP-Actor and X-UDDP-Service-Token headers are dropped.
  */
 @SpringBootApplication
 public class GatewayServiceApplication {
@@ -33,7 +33,8 @@ public class GatewayServiceApplication {
     RouteLocator uddpRoutes(RouteLocatorBuilder routes, @Value("${uddp.gateway.edge-uri}") String edge) {
         return routes.routes()
                 .route("edge", r -> r.path(EDGE_PATHS)
-                        .filters(f -> f.removeRequestHeader("X-UDDP-Actor").preserveHostHeader())
+                        .filters(f -> f.removeRequestHeader("X-UDDP-Actor")
+                                .removeRequestHeader("X-UDDP-Service-Token").preserveHostHeader())
                         .uri(edge))
                 .build();
     }

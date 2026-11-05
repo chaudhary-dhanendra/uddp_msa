@@ -74,3 +74,7 @@ logging:
       file: ecs
   pattern:
     correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+# Service-to-service token (UDDP_INTERNAL_TOKEN): this service's /api/* accepts only callers that send it.
+uddp.internal:
+  token: ${UDDP_INTERNAL_TOKEN:}
+  require-token: true

@@ -48,12 +48,12 @@ class GatewayRoutingTest {
     void theUisCallsGoToTheEdgeAndNothingElseIsRouted() throws Exception {
         var http = HttpClient.newHttpClient();
         var api = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/golden-residents"))
-                .header("X-UDDP-Actor", "someone-else").header("Origin", "http://localhost:4173").build(),
+                .header("X-UDDP-Actor", "someone-else").header("X-UDDP-Service-Token", "forged").header("Origin", "http://localhost:4173").build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(api.statusCode()).isEqualTo(200);
         assertThat(api.body()).isEqualTo("edge");
         assertThat(api.headers().firstValue("Access-Control-Allow-Origin")).contains("http://localhost:4173");
-        assertThat(SEEN.get(0)).startsWith("GET /api/v1/golden-residents actor=null forwarded=");
+        assertThat(SEEN.get(0)).startsWith("GET /api/v1/golden-residents actor=nullnull forwarded=");
         assertThat(SEEN.get(0)).doesNotEndWith("forwarded=null");
 
         var login = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/oauth2/authorization/x"))
@@ -71,7 +71,8 @@ class GatewayRoutingTest {
             HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/", exchange -> {
                 SEEN.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " actor="
-                        + exchange.getRequestHeaders().getFirst("X-UDDP-Actor") + " forwarded="
+                        + exchange.getRequestHeaders().getFirst("X-UDDP-Actor")
+                        + exchange.getRequestHeaders().getFirst("X-UDDP-Service-Token") + " forwarded="
                         + exchange.getRequestHeaders().getFirst("Forwarded")
                         + exchange.getRequestHeaders().getFirst("X-Forwarded-For"));
                 byte[] body = "edge".getBytes(StandardCharsets.UTF_8);

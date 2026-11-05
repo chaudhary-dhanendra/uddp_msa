@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Import;
 @ComponentScan(basePackages = {"gov.uddp.core.studio", "gov.uddp.core.ai", "gov.uddp.shaping.ops",
         "gov.uddp.shaping.parsers"})
 @EnableConfigurationProperties(StudioProperties.class)
-@Import({DatabaseSources.class, gov.uddp.core.scheme.SchemeCatalogue.class,
+@Import({gov.uddp.core.scheme.SchemeCatalogue.class,
         gov.uddp.core.mapping.RawCsvRecordParser.class, gov.uddp.shaping.ShapingEngine.class,
         gov.uddp.shaping.OperationRegistry.class, gov.uddp.core.mapping.ResidentMappingEngine.class,
         gov.uddp.core.mapping.FamilyMappingEngine.class, gov.uddp.core.mapping.BenefitMappingEngine.class,
@@ -56,7 +56,14 @@ public class StudioHostConfiguration {
         return properties;
     }
 
-    /** The Studio's named database connections for previews (password encrypted in this service's settings). */
+    /** Database sources: listed and previewed through ingestion-service, which alone keeps their credentials. */
+    @Bean
+    DatabaseSources databaseSources(gov.uddp.core.setup.LocalSettingsStore store,
+                                    @Value("${uddp.studio.ingestion-url:lb://ingestion-service}") String ingestion) {
+        return new IngestionDatabaseSources(store, ingestion);
+    }
+
+    /** The local settings store the Studio engine expects; this service keeps no source password in it. */
     @Bean
     gov.uddp.core.setup.LocalSettingsStore localSettingsStore(StatePackProperties properties) {
         return new gov.uddp.core.setup.LocalSettingsStore(java.nio.file.Path.of(properties.getSettingsDirectory()));

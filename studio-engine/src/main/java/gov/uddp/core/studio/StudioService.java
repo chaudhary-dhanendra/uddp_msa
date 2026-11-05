@@ -291,35 +291,20 @@ public class StudioService {
     // ---- database-table sources (ADR-0016) -----------------------------------------------------------------
 
     public List<StudioModels.SourceConnection> connections() {
-        return store.connections().entrySet().stream()
-                .map(e -> new StudioModels.SourceConnection(e.getKey(), e.getValue().host(), e.getValue().port(),
-                        e.getValue().database(), e.getValue().user(), true))
-                .toList();
+        return databases.list();
     }
 
-    /** Tests and saves a named connection; the password is stored encrypted and never returned. */
+    /** Tests and saves a named connection where this host keeps source credentials (never returned). */
     public synchronized StudioModels.SourceConnection saveConnection(String name,
                                                                    StudioModels.SourceConnectionRequest request) {
-        DatabaseSources.requireName(name);
-        if (request.port() == null) {
-            throw new IllegalArgumentException("Port is required");
-        }
-        String password = request.password();
-        if (password == null || password.isEmpty()) {
-            var saved = store.connections().get(name);
-            password = saved == null ? null : saved.password();
-        }
-        DatabaseConnectionSettings settings = new DatabaseConnectionSettings(request.host(), request.port(),
-                request.database(), request.user(), password).validated();
-        try (var c = java.sql.DriverManager.getConnection(settings.jdbcUrl(), settings.user(), settings.password())) {
-            c.isValid(5);
-        } catch (java.sql.SQLException e) {
-            throw new IllegalArgumentException("Cannot connect: "
-                    + SecretRedactor.redact(e.getMessage(), List.of(settings.password())));
-        }
-        store.saveConnection(name, settings);
-        return new StudioModels.SourceConnection(name, settings.host(), settings.port(), settings.database(),
-                settings.user(), true);
+        return databases.save(name, request);
+    }
+
+    private DatabaseSources databases;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setDatabaseSources(DatabaseSources databases) {
+        this.databases = databases;
     }
 
     public Profile profile(String draftId) {

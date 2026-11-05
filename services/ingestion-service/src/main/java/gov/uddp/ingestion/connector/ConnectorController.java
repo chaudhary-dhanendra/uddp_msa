@@ -33,6 +33,21 @@ public class ConnectorController {
         this.sources = sources;
     }
 
+    /** The database connections configured here (names and addresses; passwords never leave this service). */
+    @GetMapping("/connections")
+    public List<Map<String, Object>> connections() {
+        return sources.describe();
+    }
+
+    /** A preview of a database source read with this service's credentials: body connectionRef, table or query, limit. */
+    @PostMapping("/sources/rows")
+    public Map<String, Object> sourceRows(@RequestBody Map<String, Object> source) {
+        String select = gov.uddp.contracts.SourceSql.select((String) source.get("table"), (String) source.get("query"));
+        Object limit = source.get("limit");
+        return sources.rows((String) source.get("connectionRef"), select,
+                limit instanceof Number n ? n.intValue() : 20);
+    }
+
     @GetMapping("/connectors/types")
     public List<String> types() {
         return connectors.types();

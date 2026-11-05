@@ -62,7 +62,7 @@ public class RemoteStudioDelegation {
         String target = request.getRequestURI().substring(request.getContextPath().length())
                 + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        var builder = HttpRequest.newBuilder(URI.create(gov.uddp.contracts.ServiceUrls.resolve(identity) + target)).timeout(Duration.ofMinutes(10))
+        var builder = gov.uddp.contracts.ServiceUrls.request(URI.create(gov.uddp.contracts.ServiceUrls.resolve(identity) + target)).timeout(Duration.ofMinutes(10))
                 .header("Content-Type", "application/json")
                 .header("X-UDDP-Actor", authentication == null ? "system" : authentication.getName())
                 .method(request.getMethod(), body == null ? HttpRequest.BodyPublishers.noBody()

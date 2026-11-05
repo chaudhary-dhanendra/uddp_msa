@@ -21,6 +21,7 @@ merged across three states), with metrics, one trace per call across the service
    `services/<name>` folder, with
    - `UDDP_POSTGRES_HOST`, `UDDP_POSTGRES_PORT`, `UDDP_POSTGRES_PASSWORD` (the service roles' password),
      `UDDP_KAFKA_BOOTSTRAP_SERVERS=localhost:9092`, `UDDP_LOG_DIR`, `HOP_HOME` (ingestion);
+   - `UDDP_INTERNAL_TOKEN` (the same random value for every service; docs/security.md);
    - for the edge only: `UDDP_POSTGRES_URL=jdbc:postgresql://<host>:<port>/uddp_platform?currentSchema=edge`,
      `UDDP_POSTGRES_USER=uddp_edge`, `UDDP_POSTGRES_DB=uddp_platform`. The edge reads `UDDP_POSTGRES_*` first, so a
      developer environment that still points them at the monolith's `uddp` database must be overridden.

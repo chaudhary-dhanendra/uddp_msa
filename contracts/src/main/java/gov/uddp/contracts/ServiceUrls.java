@@ -1,6 +1,7 @@
 package gov.uddp.contracts;
 
 import java.net.URI;
+import java.net.http.HttpRequest;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -16,6 +17,10 @@ public final class ServiceUrls {
     private static final String SCHEME = "lb://";
     private static volatile Function<String, List<URI>> registry;
     private static final AtomicInteger NEXT = new AtomicInteger();
+
+    /** The header that carries the platform's service-to-service token (UDDP_INTERNAL_TOKEN). */
+    public static final String TOKEN_HEADER = "X-UDDP-Service-Token";
+    private static volatile String token;
 
     private ServiceUrls() {
     }
@@ -46,5 +51,17 @@ public final class ServiceUrls {
         }
         URI instance = instances.get(Math.floorMod(NEXT.getAndIncrement(), instances.size()));
         return instance.toString().replaceAll("/+$", "") + path;
+    }
+
+    /** The service-to-service token this process sends (null: none configured). */
+    public static void useToken(String serviceToken) {
+        token = serviceToken == null || serviceToken.isBlank() ? null : serviceToken;
+    }
+
+    /** A request to another UDDP service, carrying the service token when one is configured. */
+    public static HttpRequest.Builder request(URI uri) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri);
+        String current = token;
+        return current == null ? builder : builder.header(TOKEN_HEADER, current);
     }
 }
