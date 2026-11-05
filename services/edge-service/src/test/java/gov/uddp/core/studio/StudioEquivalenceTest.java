@@ -131,6 +131,7 @@ class StudioEquivalenceTest {
     @Test
     void studioOnboardsAllFourStatesFromAnEmptyPlatformWithTheReferenceResults() throws Exception {
         deleteTree(WORKSPACE);
+        gov.uddp.core.testsupport.LgdSeed.load(connections);
         assertEquals(0, json.readTree(get("/api/studio/states")).size(), "the platform starts with zero states");
         assertEquals(0, json.readTree(get("/api/state-packs")).size(), "no pack is loaded before the Studio publishes");
         StringBuilder report = new StringBuilder("# Studio-generated packs compared with the hand-written packs\n\n");

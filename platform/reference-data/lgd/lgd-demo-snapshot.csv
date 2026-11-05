@@ -1,0 +1,5 @@
+# asOf=2024-01-01
+entityType,code,name,status,parentType,parentCode
+STATE,10,Demo State,ACTIVE,,
+DISTRICT,100001,Patna,ACTIVE,STATE,10
+DISTRICT,100002,Gaya,ACTIVE,STATE,10
