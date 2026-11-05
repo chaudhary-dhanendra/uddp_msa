@@ -532,6 +532,133 @@ public class StudioService {
         return preview(draft, rows == null ? PREVIEW_ROWS : Math.max(1, Math.min(rows, 500)));
     }
 
+    // ---- dry run over a large sample -----------------------------------------------------------------------
+
+    static final int DRY_RUN_ROWS = 50_000;
+    static final int DRY_RUN_MAX_ROWS = 100_000;
+    static final int DRY_RUN_PAGE = 2_000;
+
+    private final Map<String, StudioModels.DryRun> dryRuns = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.concurrent.ExecutorService dryRunner = java.util.concurrent.Executors
+            .newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "studio-dry-run");
+                thread.setDaemon(true);
+                return thread;
+            });
+
+    /**
+     * Starts a dry run of the draft's pack over up to {@code rows} source rows (default 50,000, at most 100,000) in
+     * the background: every row is mapped and validated exactly as onboarding would, nothing is written, and the
+     * issues are counted by reason code so the pack can be fixed before a large source is loaded.
+     */
+    public StudioModels.DryRun startDryRun(String draftId, Integer rows) {
+        Draft draft = draft(draftId);
+        requireSource(draft);
+        int limit = rows == null ? DRY_RUN_ROWS : Math.max(1, Math.min(rows, DRY_RUN_MAX_ROWS));
+        StudioModels.DryRun started = new StudioModels.DryRun("RUNNING", limit, 0, false, 0, 0, null, List.of(),
+                OffsetDateTime.now(ZoneOffset.UTC), null);
+        StudioModels.DryRun previous = dryRuns.putIfAbsent(draftId, started);
+        if (previous != null) {
+            if ("RUNNING".equals(previous.status())) {
+                throw new StudioConflictException("A dry run of this draft is already running");
+            }
+            dryRuns.put(draftId, started);
+        }
+        dryRunner.execute(() -> dryRuns.put(draftId, runDryRun(draft, limit, started.startedAt())));
+        return started;
+    }
+
+    /** The draft's latest dry run (status NONE when it has none). */
+    public StudioModels.DryRun dryRun(String draftId) {
+        draft(draftId);
+        return dryRuns.getOrDefault(draftId, StudioModels.DryRun.none());
+    }
+
+    private StudioModels.DryRun runDryRun(Draft draft, int limit, OffsetDateTime startedAt) {
+        Source source = draft.source();
+        if (draft.rules() == null) {
+            return failedDryRun(limit, "The draft has no rules yet", startedAt);
+        }
+        Path staging = null;
+        Draft mapped = "file".equals(source.sourceType()) && source.location() != null
+                && RawSheets.isWorkbook(Path.of(source.location()))
+                ? draft.withSource(new Source(source.sourceId(), source.sourceType(), source.sourceId() + ".csv",
+                        source.location(), source.sizeBytes(), source.recordIdField(), source.recordKeyFields(),
+                        null, null, null), draft.updatedAt())
+                : draft;
+        try {
+            staging = writeTemporary(mapped, generate(mapped, nextVersion(draft)));
+            LoadedStatePack pack = packs.load(staging);
+            var table = sourceRows.read(source, limit + 1);
+            boolean more = table.rows().size() > limit;
+            List<Map<String, String>> rows = more ? table.rows().subList(0, limit) : table.rows();
+            Map<String, GroupCount> groups = new java.util.LinkedHashMap<>();
+            int errors = 0;
+            int warnings = 0;
+            for (int from = 0; from < rows.size(); from += DRY_RUN_PAGE) {
+                var page = previews.preview(pack, source.sourceId(), table.header(),
+                        rows.subList(from, Math.min(rows.size(), from + DRY_RUN_PAGE)));
+                for (var row : page.rows()) {
+                    int number = from + row.rowNumber();
+                    boolean error = false;
+                    boolean warning = false;
+                    for (var issue : row.issues()) {
+                        error |= "error".equals(issue.severity());
+                        warning |= !"error".equals(issue.severity());
+                        groups.computeIfAbsent(issue.code() + "|" + issue.severity() + "|" + issue.field(),
+                                key -> new GroupCount(issue)).add(number);
+                    }
+                    if (error) {
+                        errors++;
+                    } else if (warning) {
+                        warnings++;
+                    }
+                }
+            }
+            List<StudioModels.DryRunGroup> out = groups.values().stream()
+                    .map(GroupCount::group)
+                    .sorted(java.util.Comparator.comparing((StudioModels.DryRunGroup g) -> !"error".equals(g.severity()))
+                            .thenComparing(StudioModels.DryRunGroup::count, java.util.Comparator.reverseOrder()))
+                    .toList();
+            return new StudioModels.DryRun("COMPLETED", limit, rows.size(), more, errors, warnings, null, out,
+                    startedAt, OffsetDateTime.now(ZoneOffset.UTC));
+        } catch (RuntimeException e) {
+            return failedDryRun(limit, e.getMessage(), startedAt);
+        } finally {
+            if (staging != null) {
+                deleteTree(staging.getParent());
+            }
+        }
+    }
+
+    private static StudioModels.DryRun failedDryRun(int limit, String problem, OffsetDateTime startedAt) {
+        return new StudioModels.DryRun("FAILED", limit, 0, false, 0, 0, problem, List.of(), startedAt,
+                OffsetDateTime.now(ZoneOffset.UTC));
+    }
+
+    /** The rows of one dry-run group: their count and up to three example row numbers. */
+    private static final class GroupCount {
+        private final StudioModels.PreviewIssue first;
+        private final List<Integer> samples = new ArrayList<>();
+        private int count;
+
+        GroupCount(StudioModels.PreviewIssue first) {
+            this.first = first;
+        }
+
+        void add(int row) {
+            count++;
+            if (samples.size() < 3) {
+                samples.add(row);
+            }
+        }
+
+        StudioModels.DryRunGroup group() {
+            return new StudioModels.DryRunGroup(first.code(), first.severity(), first.field(), count, first.message(),
+                    first.fix(), first.suggestion(), List.copyOf(samples));
+        }
+    }
+
     /**
      * Validates the draft and generates its next version. With maker-checker on (the default, ADR-0021) the version
      * is only submitted: it waits as PENDING_APPROVAL until a different user approves it; otherwise it is published

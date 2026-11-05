@@ -2464,6 +2464,108 @@
         "required" : [ "displayName", "packId", "stateCode" ],
         "type" : "object"
       },
+      "DryRun" : {
+        "description" : "A dry run of the draft's pack over a large sample of its source: issues grouped by reason, nothing written",
+        "properties" : {
+          "finishedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "groups" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DryRunGroup"
+            },
+            "type" : "array"
+          },
+          "moreRows" : {
+            "description" : "The source has more rows than were checked",
+            "type" : "boolean"
+          },
+          "problem" : {
+            "description" : "Why the dry run stopped (configuration or source problem)",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "rowsChecked" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rowsRequested" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rowsWithErrors" : {
+            "description" : "Rows that would be held",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rowsWithWarnings" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "NONE", "RUNNING", "COMPLETED", "FAILED" ],
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "finishedAt", "groups", "moreRows", "problem", "rowsChecked", "rowsRequested", "rowsWithErrors", "rowsWithWarnings", "startedAt", "status" ],
+        "type" : "object"
+      },
+      "DryRunGroup" : {
+        "description" : "Rows of a dry run that share a reason code and field, with where in the pack it is fixed",
+        "properties" : {
+          "code" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "field" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "fix" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/FixTarget"
+            } ],
+            "nullable" : true
+          },
+          "message" : {
+            "description" : "The first row's message",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "sampleRows" : {
+            "description" : "Row numbers of up to three examples",
+            "items" : {
+              "description" : "Row numbers of up to three examples",
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "severity" : {
+            "enum" : [ "error", "warning" ],
+            "nullable" : true,
+            "type" : "string"
+          },
+          "suggestion" : {
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "count", "field", "fix", "message", "sampleRows", "severity", "suggestion" ],
+        "type" : "object"
+      },
       "DuplicateBenefitFinding" : {
         "properties" : {
           "benefitCount" : {
@@ -15767,6 +15869,66 @@
           }
         },
         "summary" : "Change the state details",
+        "tags" : [ "Onboarding Studio" ]
+      }
+    },
+    "/api/studio/drafts/{draftId}/dry-run" : {
+      "get" : {
+        "operationId" : "getDryRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "draftId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DryRun"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The draft's latest dry run: progress or issues grouped by reason",
+        "tags" : [ "Onboarding Studio" ]
+      },
+      "post" : {
+        "operationId" : "startDryRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "draftId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "rows",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DryRun"
+                }
+              }
+            },
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Check the pack against a large sample of the source in the background (default 50,000 rows, at most 100,000); writes nothing",
         "tags" : [ "Onboarding Studio" ]
       }
     },

@@ -211,6 +211,26 @@ public class StudioController {
         return studio.preview(draftId, rows);
     }
 
+    @PostMapping("/drafts/{draftId}/dry-run")
+    @Operation(operationId = "startDryRun", summary = "Check the pack against a large sample of the source in the"
+            + " background (default 50,000 rows, at most 100,000); writes nothing")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    @PreAuthorize("hasAuthority('PERM_SOURCE_PROFILE')")
+    @Audited(action = "STUDIO_DRAFT_DRY_RUN", resource = "STUDIO_DRAFT", idVariable = "draftId")
+    public StudioModels.DryRun startDryRun(@PathVariable String draftId,
+                                           @RequestParam(required = false) Integer rows) {
+        inScope(draftId);
+        return studio.startDryRun(draftId, rows);
+    }
+
+    @GetMapping("/drafts/{draftId}/dry-run")
+    @Operation(operationId = "getDryRun", summary = "The draft's latest dry run: progress or issues grouped by reason")
+    @PreAuthorize("hasAuthority('PERM_SOURCE_PROFILE')")
+    public StudioModels.DryRun dryRun(@PathVariable String draftId) {
+        inScope(draftId);
+        return studio.dryRun(draftId);
+    }
+
     @GetMapping("/drafts/{draftId}/generated")
     @Operation(operationId = "getGeneratedPack", summary = "The State Pack YAML publishing would write")
     @PreAuthorize("hasAuthority('PERM_STATE_PACK_VIEW')")

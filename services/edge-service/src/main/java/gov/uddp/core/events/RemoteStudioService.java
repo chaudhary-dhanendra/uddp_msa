@@ -56,7 +56,7 @@ public class RemoteStudioService {
     /** Studio operations that change nothing. */
     private static final Set<String> READ_ONLY = Set.of("states", "draft", "profile", "suggestions", "shaping",
             "shapePreview", "preview", "generated", "approvals", "approval", "connections", "portability",
-            "sourceFile");
+            "sourceFile", "dryRun");
 
     private final String statepack;
     private final RemoteStatePackMessaging.Installer installer;

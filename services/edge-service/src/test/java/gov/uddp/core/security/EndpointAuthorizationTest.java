@@ -318,6 +318,8 @@ class EndpointAuthorizationTest {
         RULES.put("POST /api/shaping/changes/{id}/approve", any(Permission.SHAPING_APPROVE));
         RULES.put("POST /api/shaping/changes/{id}/reject", any(Permission.SHAPING_APPROVE));
         RULES.put("GET /api/studio/drafts/{draftId}/preview", any(Permission.SOURCE_PROFILE));
+        RULES.put("POST /api/studio/drafts/{draftId}/dry-run", any(Permission.SOURCE_PROFILE));
+        RULES.put("GET /api/studio/drafts/{draftId}/dry-run", any(Permission.SOURCE_PROFILE));
         RULES.put("GET /api/studio/drafts/{draftId}/generated", any(Permission.STATE_PACK_VIEW));
         RULES.put("POST /api/studio/drafts/{draftId}/publish", any(Permission.STATE_PACK_EDIT));
         RULES.put("POST /api/studio/drafts/{draftId}/onboard", any(Permission.ONBOARDING_RUN));
