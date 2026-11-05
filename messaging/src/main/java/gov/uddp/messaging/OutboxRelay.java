@@ -1,10 +1,15 @@
 package gov.uddp.messaging;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -16,19 +21,52 @@ import org.slf4j.LoggerFactory;
  * Publishes unpublished outbox rows to Kafka in creation order, then marks them published (section 5.1). Rows are
  * locked with {@code FOR UPDATE SKIP LOCKED}, so several relay instances may run. Delivery is at least once: a crash
  * after the send and before the commit resends the rows, and consumers absorb that through {@link Inbox}.
+ *
+ * <p>The relay reports its outbox as metrics (docs/observability.md): {@code uddp_outbox_backlog_events} (rows not yet
+ * published), {@code uddp_outbox_oldest_unpublished_age_seconds}, {@code uddp_outbox_published_events_total} and
+ * {@code uddp_outbox_relay_failures_total}. The backlog is measured after a drain, at most every few seconds.
  */
 public final class OutboxRelay {
 
     private static final Logger LOG = LoggerFactory.getLogger(OutboxRelay.class);
 
+    /** How often the backlog is measured at most (drains run far more often). */
+    static final long MEASURE_INTERVAL_MILLIS = 5_000;
+
     private final ConnectionSource connections;
     private final Producer<String, String> producer;
     private final int batchSize;
+    private final AtomicLong backlog = new AtomicLong();
+    private final AtomicLong oldestAgeSeconds = new AtomicLong();
+    private final Counter published;
+    private final Counter failures;
+    private volatile long lastMeasured;
 
+    /** A relay that reports to Micrometer's global registry (Spring Boot adds its own registry to it). */
     public OutboxRelay(ConnectionSource connections, Producer<String, String> producer, int batchSize) {
+        this(connections, producer, batchSize, Metrics.globalRegistry);
+    }
+
+    public OutboxRelay(ConnectionSource connections, Producer<String, String> producer, int batchSize,
+                       MeterRegistry registry) {
         this.connections = connections;
         this.producer = producer;
         this.batchSize = batchSize;
+        Gauge.builder("uddp.outbox.backlog", backlog, AtomicLong::get)
+                .description("Outbox events not yet published to Kafka")
+                .baseUnit("events")
+                .register(registry);
+        Gauge.builder("uddp.outbox.oldest.unpublished.age", oldestAgeSeconds, AtomicLong::get)
+                .description("Age of the oldest unpublished outbox event (0 when the outbox is empty)")
+                .baseUnit("seconds")
+                .register(registry);
+        this.published = Counter.builder("uddp.outbox.published")
+                .description("Outbox events published to Kafka")
+                .baseUnit("events")
+                .register(registry);
+        this.failures = Counter.builder("uddp.outbox.relay.failures")
+                .description("Relay batches that failed and were left for the next drain")
+                .register(registry);
     }
 
     /** Publishes up to one batch; returns how many rows were published. */
@@ -70,6 +108,7 @@ public final class OutboxRelay {
                     s.executeBatch();
                 }
                 c.commit();
+                published.increment(rows.size());
                 return rows.size();
             } catch (Exception e) {
                 c.rollback();
@@ -88,9 +127,30 @@ public final class OutboxRelay {
                 total += published;
             } while (published == batchSize);
         } catch (Exception e) {
+            failures.increment();
             LOG.warn("Outbox relay failed; unpublished events stay in the outbox and are retried", e);
         }
+        long now = System.currentTimeMillis();
+        if (now - lastMeasured >= MEASURE_INTERVAL_MILLIS) {
+            lastMeasured = now;
+            measureBacklog();
+        }
         return total;
+    }
+
+    /** Reads how many events wait in the outbox and how old the oldest is; keeps the last values on failure. */
+    public void measureBacklog() {
+        try (var c = connections.open();
+             var s = c.prepareStatement("select count(*), coalesce(extract(epoch from now() - min(created_at)), 0)"
+                     + " from outbox_event where published_at is null");
+             var r = s.executeQuery()) {
+            if (r.next()) {
+                backlog.set(r.getLong(1));
+                oldestAgeSeconds.set(Math.max(0, (long) r.getDouble(2)));
+            }
+        } catch (Exception e) {
+            LOG.debug("Cannot measure the outbox backlog", e);
+        }
     }
 
     private static byte[] bytes(String value) {

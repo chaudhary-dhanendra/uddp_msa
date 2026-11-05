@@ -1,4 +1,4 @@
-# Platform alerts (see them under Prometheus > Alerts; route them with an Alertmanager in production).
+# Platform alerts (Prometheus > Alerts); Prometheus sends firing alerts to Alertmanager (alertmanager.yml).
 groups:
   - name: uddp-platform
     rules:
@@ -35,3 +35,50 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.application }} uses more than 90% of its heap"
+
+  # Event flow: Kafka consumer lag (kafka-exporter) and the services' transactional outboxes (OutboxRelay metrics).
+  - name: uddp-events
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: sum by (consumergroup) (kafka_consumergroup_lag_sum) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Consumer group {{ $labels.consumergroup }} is {{ $value }} events behind"
+      - alert: KafkaConsumerStalled
+        expr: |
+          sum by (consumergroup) (kafka_consumergroup_lag_sum) > 0
+            and sum by (consumergroup) (increase(kafka_consumergroup_current_offset_sum[10m])) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Consumer group {{ $labels.consumergroup }} has events waiting but has committed nothing for 10 minutes"
+      - alert: EventsDeadLettered
+        expr: sum by (topic) (increase(kafka_topic_partition_current_offset{topic=~`.+\.dlt\..+`}[10m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Events were parked on {{ $labels.topic }}; inspect and replay them"
+      - alert: OutboxBacklogHigh
+        expr: max by (application) (uddp_outbox_backlog_events) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} has {{ $value }} outbox events waiting to be published"
+      - alert: OutboxStuck
+        expr: max by (application) (uddp_outbox_oldest_unpublished_age_seconds) > 300
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The oldest unpublished outbox event of {{ $labels.application }} is over 5 minutes old"
+      - alert: OutboxRelayFailing
+        expr: sum by (application) (rate(uddp_outbox_relay_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The outbox relay of {{ $labels.application }} keeps failing to publish to Kafka"

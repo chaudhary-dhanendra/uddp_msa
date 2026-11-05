@@ -1,0 +1,40 @@
+# Alertmanager for UDDP (docs/observability.md). Prometheus sends every firing rule from alerts.yml here.
+#
+# The default receiver keeps alerts in Alertmanager only (http://localhost:9093 and Grafana > Alerting), so a fresh
+# machine never sends anything. To notify people, add email_configs or webhook_configs to a receiver below; keep
+# secrets out of this file (Alertmanager reads them from files, e.g. auth_password_file, url_file).
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: uddp-default
+  # One notification per alert and service, so a down service is one message, not one per instance.
+  group_by: [alertname, application, consumergroup]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="critical"']
+      receiver: uddp-critical
+      group_wait: 10s
+      repeat_interval: 1h
+
+# A down service also trips its error, latency and backlog rules; send only the cause.
+inhibit_rules:
+  - source_matchers: ['alertname="ServiceDown"']
+    target_matchers: ['severity="warning"']
+    equal: [application]
+  - source_matchers: ['alertname="OutboxStuck"']
+    target_matchers: ['alertname=~"OutboxBacklogHigh|OutboxRelayFailing"']
+    equal: [application]
+  - source_matchers: ['alertname="KafkaConsumerStalled"']
+    target_matchers: ['alertname="KafkaConsumerLagHigh"']
+    equal: [consumergroup]
+
+receivers:
+  - name: uddp-default
+  - name: uddp-critical
+    # Example (uncomment and point at your on-call hook):
+    # webhook_configs:
+    #   - url_file: /etc/alertmanager/secrets/critical-webhook-url
+    #     send_resolved: true

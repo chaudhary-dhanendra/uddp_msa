@@ -1,4 +1,4 @@
-# Prometheus (metrics), Loki (logs) and Tempo (traces), linked: a log line opens its trace, a trace shows its logs.
+# Prometheus (metrics), Alertmanager (alerts), Loki (logs) and Tempo (traces), linked: a log line opens its trace, a trace shows its logs.
 apiVersion: 1
 datasources:
   - name: Prometheus
@@ -6,6 +6,15 @@ datasources:
     type: prometheus
     url: http://prometheus:9090
     isDefault: true
+    jsonData:
+      alertmanagerUid: alertmanager
+  - name: Alertmanager
+    uid: alertmanager
+    type: alertmanager
+    url: http://alertmanager:9093
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false
   - name: Loki
     uid: loki
     type: loki
