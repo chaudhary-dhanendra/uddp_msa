@@ -4630,6 +4630,8 @@ export interface components {
         };
         /** @description Use a table or a single SELECT of a named connection as the draft's source */
         DatabaseSourceRequest: {
+            /** @description A column that grows on every change (update time or increasing id): each delivery then reads only rows past the last loaded value */
+            changeColumn: string | null;
             connectionName: string | null;
             query: string | null;
             table: string | null;
@@ -7070,6 +7072,8 @@ export interface components {
         };
         /** @description Where the draft's records come from: an uploaded file or a database table */
         Source: {
+            /** @description Database sources: the change column a delivery reads past (delta load); none reads the whole table every time */
+            changeColumn: string | null;
             /** @description Named connection for database sources (credentials stay in the local store) */
             connectionName: string | null;
             fileName: string | null;

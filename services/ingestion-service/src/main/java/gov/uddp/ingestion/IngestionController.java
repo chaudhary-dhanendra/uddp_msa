@@ -43,4 +43,11 @@ public class IngestionController {
         return Map.of("replayRunId", UUID.fromString(request.path("replayRunId").asText()),
                 "recordsPublished", ingestions.replay(request, null));
     }
+
+    /** Forgets a database source's delta position: its next delivery reads the whole table again (a full reload). */
+    @org.springframework.web.bind.annotation.DeleteMapping("/sources/{stateCode}/{sourceSystem}/watermark")
+    public Map<String, Object> resetWatermark(@org.springframework.web.bind.annotation.PathVariable String stateCode,
+                                              @org.springframework.web.bind.annotation.PathVariable String sourceSystem) {
+        return Map.of("reset", ingestions.resetWatermark(stateCode, sourceSystem));
+    }
 }

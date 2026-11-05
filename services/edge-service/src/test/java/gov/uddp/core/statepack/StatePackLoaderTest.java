@@ -52,4 +52,22 @@ class StatePackLoaderTest {
         StatePackLoadException error = assertThrows(StatePackLoadException.class, () -> loader.load(directory));
         assertTrue(error.getMessage().contains("nope@1") && error.getMessage().contains("s.yaml"), error.getMessage());
     }
+
+    @Test void aChangeColumnIsReadForDatabaseSourcesAndRefusedElsewhere() throws Exception {
+        Path directory = Files.createTempDirectory("uddp-delta-pack");
+        Files.createDirectories(directory.resolve("sources"));
+        Files.writeString(directory.resolve("state.yaml"), String.join("\n", "packId: delta", "stateCode: DLT",
+                "version: 1.0.0", "commonModelVersion: 1.0.0", "status: draft", "sources: [sources/s.yaml]"));
+        Files.writeString(directory.resolve("sources/s.yaml"), String.join("\n", "sourceId: cards",
+                "sourceType: database", "hopTemplate: generic-db-ingest.hpl", "connectionRef: department",
+                "table: ration_cards", "recordIdField: card_no", "changeColumn: updated_at"));
+        var source = loader().load(directory).sources().getFirst();
+        assertTrue("updated_at".equals(source.changeColumn()), String.valueOf(source.changeColumn()));
+
+        Files.writeString(directory.resolve("sources/s.yaml"), String.join("\n", "sourceId: cards",
+                "sourceType: file", "hopTemplate: generic-file-ingest.hpl", "recordIdField: card_no",
+                "changeColumn: updated_at"));
+        StatePackLoadException error = assertThrows(StatePackLoadException.class, () -> loader().load(directory));
+        assertTrue(error.getMessage().contains("database sources only"), error.getMessage());
+    }
 }

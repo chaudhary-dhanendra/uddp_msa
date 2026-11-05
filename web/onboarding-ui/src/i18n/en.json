@@ -196,6 +196,8 @@
       "connectionSaved": "Connection {{name}} saved; the password is stored encrypted on this machine.",
       "table": "Table",
       "tableHint": "Table name, optionally schema.table",
+      "changeColumn": "Change column (optional)",
+      "changeColumnHint": "A column that grows on every change, such as updated_at or an increasing id. Each delivery then reads only rows changed since the last one.",
       "query": "Or a SELECT query",
       "useDatabase": "Use as source and profile",
       "currentDatabase": "Current source: {{table}} on connection {{connection}}"

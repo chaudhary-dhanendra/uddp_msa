@@ -110,6 +110,7 @@ public class RemoteHopRunner implements HopRunner {
                 payload.put("connectionRef", source.connectionRef());
                 payload.put("table", source.table());
                 payload.put("query", source.query());
+                payload.put("changeColumn", source.changeColumn());
             } else if (!ingestionUrl.isEmpty()) {
                 // ingestion-service takes the delivery: the source's connector, the file uploaded from here (when
                 // this machine has it), the source's landing folder there, in that order.

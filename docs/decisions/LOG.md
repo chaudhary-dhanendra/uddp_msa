@@ -93,3 +93,4 @@
 - 2026-11-05 MSA: the LGD master is replicated as whole snapshots (chunked events, re-imported with the same LgdImportService) rather than as row changes, so every copy runs the same validation and versioning; the edge, where LGD is uploaded and synced, publishes.
 - 2026-11-05: lb:// resolution waits up to 10s for a service with no registered instance and then fails as ServiceCalls.Unavailable (startup race seen on the local stack).
 - 2026-11-05: ingestion announces a batch in committed chunks of 5,000 rows (keyset over landing order, status PUBLISHING, resumable); outbox relays drop published events after 7 days (inbox dedupe keeps redelivery safe).
+- 2026-11-05: delta loads: a database source may declare changeColumn; ingestion-service keeps a per-source watermark (source_watermark) and reads (last, high-water] per batch; DELETE /api/ingestion/sources/{state}/{source}/watermark forces a full reload. Deletions in the source are not detected by delta loads.

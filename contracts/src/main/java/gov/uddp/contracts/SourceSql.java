@@ -38,12 +38,50 @@ public final class SourceSql {
         return "select * from " + table;
     }
 
+    private static final Pattern COLUMN = Pattern.compile("[A-Za-z_][A-Za-z0-9_]{0,62}");
+
+    /** A source's change column (delta loads): a plain column name. */
+    public static String changeColumn(String column) {
+        if (column == null || !COLUMN.matcher(column).matches()) {
+            throw new IllegalArgumentException("A change column must be a plain column name");
+        }
+        return column;
+    }
+
+    /** {@code select max(column)} of the source as text: the high-water mark a delta load reads up to. */
+    public static String maxChange(String table, String query, String column) {
+        return "select cast(max(" + changeColumn(column) + ") as text) from (" + select(table, query)
+                + ") as change_rows";
+    }
+
+    /**
+     * The source's rows whose change column lies after {@code after} (null: from the start) and up to
+     * {@code upTo}, the high-water mark read before the load, so rows changed during the load wait for the next one.
+     */
+    public static String deltaSelect(String table, String query, String column, String after, String upTo) {
+        String col = changeColumn(column);
+        String filter = (after == null ? "" : col + " > " + literal(after) + " and ") + col + " <= " + literal(upTo);
+        return "select * from (" + select(table, query) + ") as delta_rows where " + filter;
+    }
+
+    private static String literal(String value) {
+        if (value == null || UNSAFE.matcher(value).find()) {
+            throw new IllegalArgumentException("Unusable change value " + value);
+        }
+        return "'" + value.replace("'", "''") + "'";
+    }
+
     /** The SELECT generic-db-ingest.hpl runs (UDDP_SOURCE_SQL). */
     public static String rawLineSelect(String table, String query) {
+        return rawLineSelectOf(select(table, query));
+    }
+
+    /** As {@link #rawLineSelect(String, String)} over an already built SELECT (a delta load). */
+    public static String rawLineSelectOf(String select) {
         return "select (select string_agg(case when v is null then '' when position(',' in v) > 0"
                 + " or position(chr(34) in v) > 0 or position(chr(10) in v) > 0"
                 + " then concat(chr(34), replace(v, chr(34), concat(chr(34), chr(34))), chr(34)) else v end,"
                 + " ',' order by ord) from json_each_text(row_to_json(source_rows)) with ordinality as e(k, v, ord))"
-                + " as raw_source_line from (" + select(table, query) + ") as source_rows";
+                + " as raw_source_line from (" + select + ") as source_rows";
     }
 }

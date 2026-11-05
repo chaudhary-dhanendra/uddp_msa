@@ -153,6 +153,23 @@ public class SourceConnections {
         }
     }
 
+    /** The first column of the first row of a SELECT on the source, as text (null when it has none). */
+    public String scalar(String name, String select) {
+        Connection c = get(name);
+        try (var connection = DriverManager.getConnection(c.jdbcUrl(), c.user, c.password)) {
+            connection.setReadOnly(true);
+            try (var s = connection.createStatement(); var r = s.executeQuery(select)) {
+                return r.next() ? r.getString(1) : null;
+            }
+        } catch (java.sql.SQLException e) {
+            String message = e.getMessage() == null ? "" : e.getMessage();
+            if (c.password != null && !c.password.isEmpty()) {
+                message = message.replace(c.password, "********");
+            }
+            throw new IllegalArgumentException("Cannot read source " + name + ": " + message, e);
+        }
+    }
+
     /** The source's column names in order (the CSV header of its raw lines), read without fetching rows. */
     public String header(String name, String select) {
         Connection c = get(name);

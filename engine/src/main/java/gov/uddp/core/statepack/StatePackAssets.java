@@ -9,14 +9,27 @@ public final class StatePackAssets {
      * {@code recordKeyFields} (optional, M11) are the source fields that identify one source record across
      * re-deliveries; without them the key is {@code recordIdField}. A {@code database} source (Onboarding Studio)
      * reads {@code table} or a read-only {@code query} through the named connection {@code connectionRef}, whose
-     * credentials live only in the encrypted local settings store, never in the pack.
+     * credentials live only in the encrypted local settings store, never in the pack. A database source may name a
+     * {@code changeColumn} (an update timestamp or an ever-increasing id): each delivery then reads only the rows past
+     * the last value loaded (delta load).
      */
     public record SourceDefinition(String sourceId, String sourceType, String hopTemplate, String connectionRef,
                                    String location, String recordIdField, String sourceSchemaVersion,
                                    List<String> recordKeyFields, String table, String query,
                                    String format, Map<String, Object> sheets,
                                    List<Map<String, Object>> layout, List<Map<String, Object>> parse,
-                                   String asOfDate) {
+                                   String asOfDate, String changeColumn) {
+        /** Source-compatible v1.1 constructor: no {@code changeColumn}. */
+        public SourceDefinition(String sourceId, String sourceType, String hopTemplate, String connectionRef,
+                                String location, String recordIdField, String sourceSchemaVersion,
+                                List<String> recordKeyFields, String table, String query,
+                                String format, Map<String, Object> sheets,
+                                List<Map<String, Object>> layout, List<Map<String, Object>> parse,
+                                String asOfDate) {
+            this(sourceId, sourceType, hopTemplate, connectionRef, location, recordIdField, sourceSchemaVersion,
+                    recordKeyFields, table, query, format, sheets, layout, parse, asOfDate, null);
+        }
+
         /** Source-compatible pre-v1.1 constructor: no {@code asOfDate}. */
         public SourceDefinition(String sourceId, String sourceType, String hopTemplate, String connectionRef,
                                 String location, String recordIdField, String sourceSchemaVersion,

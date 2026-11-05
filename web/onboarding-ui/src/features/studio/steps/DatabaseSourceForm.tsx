@@ -31,6 +31,9 @@ export function DatabaseSourceForm({ draft }: { draft: StudioDraft }) {
   const [password, setPassword] = useState("");
   const [table, setTable] = useState(draft.source?.table ?? "");
   const [query, setQuery] = useState(draft.source?.query ?? "");
+  const [changeColumn, setChangeColumn] = useState(
+    draft.source?.changeColumn ?? "",
+  );
 
   const save = useMutation({
     mutationFn: () =>
@@ -64,6 +67,7 @@ export function DatabaseSourceForm({ draft }: { draft: StudioDraft }) {
             connectionName: selected,
             table: table === "" ? null : table,
             query: query === "" ? null : query,
+            changeColumn: changeColumn === "" ? null : changeColumn,
           },
         }),
       ),
@@ -189,6 +193,17 @@ export function DatabaseSourceForm({ draft }: { draft: StudioDraft }) {
             id="src-query"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+          />
+        </Field>
+        <Field
+          id="src-change-column"
+          label={t("studio.upload.changeColumn")}
+          hint={t("studio.upload.changeColumnHint")}
+        >
+          <TextInput
+            id="src-change-column"
+            value={changeColumn}
+            onChange={(e) => setChangeColumn(e.target.value)}
           />
         </Field>
       </div>

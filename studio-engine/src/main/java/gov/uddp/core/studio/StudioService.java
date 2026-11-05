@@ -272,14 +272,22 @@ public class StudioService {
     }
 
     /** Uses a database table or query as the draft's source (credentials stay in the local settings store). */
-    public synchronized Draft useDatabaseSource(String draftId, String connectionName, String table, String query) {
+    public synchronized Draft useDatabaseSource(String draftId, String connectionName, String table, String query,
+                                                String changeColumn) {
         Draft draft = draft(draftId);
         requireNotPending(draft);
-        sourceRows.read(new Source("preview", "database", null, null, null, null, List.of(), connectionName, table,
-                query), 1);
+        var preview = sourceRows.read(new Source("preview", "database", null, null, null, null, List.of(),
+                connectionName, table, query), 1);
+        String change = blankToNull(changeColumn);
+        if (change != null) {
+            gov.uddp.contracts.SourceSql.changeColumn(change);
+            if (!preview.header().contains(change)) {
+                throw new IllegalArgumentException("The change column " + change + " is not a column of the source");
+            }
+        }
         String sourceId = sourceId(table != null && !table.isBlank() ? table.replaceAll(".*\\.", "") : "query");
         Source source = new Source(sourceId, "database", null, null, null, null, List.of(), connectionName,
-                blankToNull(table), blankToNull(query));
+                blankToNull(table), blankToNull(query), null, null, null, change);
         Draft updated = draft.withSource(source, now());
         if (updated.rules() == null) {
             updated = updated.withConfiguration(updated.mappings(), updated.crosswalks(), defaultRules(sourceId), now());

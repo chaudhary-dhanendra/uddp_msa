@@ -118,6 +118,16 @@ public class StatePackLoader {
                 throw new StatePackLoadException("Database source " + source.sourceId()
                         + " needs a connectionRef and a table or query");
             }
+            if (source.changeColumn() != null) {
+                if (!source.database()) {
+                    throw new StatePackLoadException("Source " + source.sourceId()
+                            + ": changeColumn applies to database sources only");
+                }
+                if (!source.changeColumn().matches("[A-Za-z_][A-Za-z0-9_]{0,62}")) {
+                    throw new StatePackLoadException("Source " + source.sourceId()
+                            + ": changeColumn must be a plain column name");
+                }
+            }
             validateShaping(source, packDirectory.resolve(manifest.sources().get(sourceIndex)));
         }
         Set<String> sourceIds = sources.stream()
