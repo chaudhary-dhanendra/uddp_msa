@@ -52,7 +52,7 @@ public class SchedulerService {
     public SchedulerService(PostgresConnectionFactory connections, OnboardingService onboarding, StatePackLoader packs,
                             AuditService audit,
                             @Value("${uddp.scheduler.grace-seconds:120}") long graceSeconds,
-                            @Value("${uddp.scheduler.stage-timeout-minutes:120}") long stageTimeoutMinutes) {
+                            @Value("${uddp.scheduler.stage-timeout-minutes:780}") long stageTimeoutMinutes) {
         this(connections, onboarding, packs, audit, Clock.systemUTC(), Executors.newCachedThreadPool(),
                 Duration.ofSeconds(graceSeconds), Duration.ofMinutes(stageTimeoutMinutes));
     }

@@ -32,7 +32,7 @@ public class RemoteHopRunner implements HopRunner {
     private final Duration timeout;
 
     public RemoteHopRunner(PostgresConnectionFactory connections, HopInvocations local,
-                           @Value("${uddp.ingestion.remote-timeout:PT30M}") Duration timeout) {
+                           @Value("${uddp.ingestion.remote-timeout:PT12H}") Duration timeout) {
         this.connections = connections;
         this.local = local;
         this.timeout = timeout;

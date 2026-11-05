@@ -120,6 +120,20 @@ class OnboardingControllerTest {
     }
 
     @Test
+    void backgroundModeAnswersAtOnceAndTheRunCompletesAfterwards() throws Exception {
+        JsonNode started = body(start(",\"mode\":\"BACKGROUND\"").andExpect(status().isCreated())
+                .andExpect(jsonPath("$.mode").value("BACKGROUND")));
+        String run = started.path("runId").asText();
+        String status = null;
+        for (int i = 0; i < 600 && !"COMPLETED".equals(status); i++) {
+            Thread.sleep(100);
+            status = body(mvc.perform(get("/api/onboarding/runs/{id}", run)).andExpect(status().isOk()))
+                    .path("status").asText();
+        }
+        org.junit.jupiter.api.Assertions.assertEquals("COMPLETED", status, "the run finishes after the answer");
+    }
+
+    @Test
     void runDetailReportsChunkProgressAndTheRejectedRowsDownloadIsACsv() throws Exception {
         String run = body(start(",\"mode\":\"FULL\"").andExpect(status().isCreated())).path("runId").asText();
 

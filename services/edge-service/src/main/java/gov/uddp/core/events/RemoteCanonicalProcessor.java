@@ -27,7 +27,7 @@ public class RemoteCanonicalProcessor implements CanonicalBatchProcessor {
     private final Duration timeout;
 
     public RemoteCanonicalProcessor(PostgresConnectionFactory connections,
-                                    @Value("${uddp.canonical.remote-timeout:PT30M}") Duration timeout) {
+                                    @Value("${uddp.canonical.remote-timeout:PT12H}") Duration timeout) {
         this.connections = connections;
         this.timeout = timeout;
     }

@@ -670,7 +670,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create a run; mode FULL also executes every stage */
+        /** Create a run; mode FULL executes every stage, BACKGROUND does so after answering */
         post: operations["startOnboardingRun"];
         delete?: never;
         options?: never;
@@ -7194,7 +7194,7 @@ export interface components {
         };
         Start: {
             /** @enum {string|null} */
-            mode: "STEP" | "FULL" | null;
+            mode: "STEP" | "FULL" | "BACKGROUND" | null;
             packId: string | null;
             /** @enum {string|null} */
             processingMode: "FULL" | "INCREMENTAL" | null;
@@ -7203,7 +7203,7 @@ export interface components {
         };
         StartRunResponse: {
             /** @enum {string|null} */
-            mode: "STEP" | "FULL" | null;
+            mode: "STEP" | "FULL" | "BACKGROUND" | null;
             processingMode: string | null;
             /** Format: uuid */
             runId: string | null;
@@ -8780,7 +8780,9 @@ export interface operations {
     };
     resumeOnboardingRun: {
         parameters: {
-            query?: never;
+            query?: {
+                background?: boolean;
+            };
             header?: never;
             path: {
                 runId: string;
@@ -9222,7 +9224,9 @@ export interface operations {
     };
     approveRelease: {
         parameters: {
-            query?: never;
+            query?: {
+                background?: boolean;
+            };
             header?: never;
             path: {
                 state: string;

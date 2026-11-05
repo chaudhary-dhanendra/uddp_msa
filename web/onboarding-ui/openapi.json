@@ -9698,7 +9698,7 @@
       "Start" : {
         "properties" : {
           "mode" : {
-            "enum" : [ "STEP", "FULL" ],
+            "enum" : [ "STEP", "FULL", "BACKGROUND" ],
             "nullable" : true,
             "type" : "string"
           },
@@ -9726,7 +9726,7 @@
       "StartRunResponse" : {
         "properties" : {
           "mode" : {
-            "enum" : [ "STEP", "FULL" ],
+            "enum" : [ "STEP", "FULL", "BACKGROUND" ],
             "nullable" : true,
             "type" : "string"
           },
@@ -12447,7 +12447,7 @@
             "description" : "Error"
           }
         },
-        "summary" : "Create a run; mode FULL also executes every stage",
+        "summary" : "Create a run; mode FULL executes every stage, BACKGROUND does so after answering",
         "tags" : [ "Onboarding" ]
       }
     },
@@ -12550,6 +12550,14 @@
           "schema" : {
             "format" : "uuid",
             "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "background",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
           }
         } ],
         "responses" : {
@@ -13211,6 +13219,14 @@
           "schema" : {
             "format" : "uuid",
             "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "background",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
           }
         } ],
         "requestBody" : {
