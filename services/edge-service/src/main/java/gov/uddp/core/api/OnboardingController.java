@@ -70,10 +70,12 @@ public class OnboardingController {
     }
 
     /**
-     * Creates a run; mode FULL also executes every stage, STEP (the default) executes none. processingMode FULL (the
-     * default) or INCREMENTAL selects full or incremental matching and Golden build.
+     * Creates a run; mode FULL also executes every stage before answering, BACKGROUND executes them after answering
+     * (large sources: poll GET /runs/{runId}), STEP (the default) executes none. processingMode FULL (the default) or
+     * INCREMENTAL selects full or incremental matching and Golden build.
      */
-    @Operation(operationId = "startOnboardingRun", summary = "Create a run; mode FULL also executes every stage")
+    @Operation(operationId = "startOnboardingRun",
+            summary = "Create a run; mode FULL executes every stage, BACKGROUND does so after answering")
     @ApiResponse(responseCode = "201", description = "Run created",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = WriteApiSchemas.StartRunResponse.class)))
     @ApiResponse(responseCode = "default", description = "Error",
@@ -93,6 +95,8 @@ public class OnboardingController {
         UUID run = onboarding.start(request.packId(), request.version(), request.sourceSystem(), processing);
         if (mode == Mode.FULL) {
             onboarding.runToCompletion(run);
+        } else if (mode == Mode.BACKGROUND) {
+            runInBackground(run);
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("runId", run);
@@ -171,13 +175,7 @@ public class OnboardingController {
         var pack = packs.find(packId).orElseThrow();
         UUID run = onboarding.start(pack.manifest().packId(), pack.manifest().version(), sourceSystem,
                 OnboardingService.ProcessingMode.FULL);
-        background.execute(() -> {
-            try {
-                onboarding.runToCompletion(run);
-            } catch (RuntimeException failed) {
-                // The failed stage is recorded on the run, which stays resumable.
-            }
-        });
+        runInBackground(run);
         return Map.of("runId", run);
     }
 
@@ -216,9 +214,33 @@ public class OnboardingController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('PERM_ONBOARDING_RUN')")
     @Audited(action = "ONBOARDING_RESUME", resource = "ONBOARDING_RUN", idVariable = "runId")
-    public void resume(@PathVariable UUID runId) {
+    public void resume(@PathVariable UUID runId,
+                       @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") boolean background) {
         runInScope(runId);
+        if (background) {
+            // Large sources: retry the failed stage and continue with the rest after answering.
+            this.background.execute(() -> {
+                try {
+                    onboarding.resume(runId);
+                    onboarding.runToCompletion(runId);
+                } catch (RuntimeException failed) {
+                    // The failed stage is recorded on the run, which stays resumable.
+                }
+            });
+            return;
+        }
         onboarding.resume(runId);
+    }
+
+    /** Executes every remaining stage after the request has been answered; progress is read from the run. */
+    private void runInBackground(UUID run) {
+        background.execute(() -> {
+            try {
+                onboarding.runToCompletion(run);
+            } catch (RuntimeException failed) {
+                // The failed stage is recorded on the run, which stays resumable.
+            }
+        });
     }
 
     /**
@@ -253,7 +275,7 @@ public class OnboardingController {
         return value == null || value.isBlank();
     }
 
-    public enum Mode { STEP, FULL }
+    public enum Mode { STEP, FULL, BACKGROUND }
 
     public record Start(String packId, String version, String sourceSystem, Mode mode,
                         OnboardingService.ProcessingMode processingMode) {

@@ -28,7 +28,7 @@ public class RemoteMatchingRunner implements MatchingRunner {
     private final boolean studioRemote;
 
     public RemoteMatchingRunner(PostgresConnectionFactory connections,
-                                @Value("${uddp.identity.remote-timeout:PT30M}") Duration timeout,
+                                @Value("${uddp.identity.remote-timeout:PT12H}") Duration timeout,
                                 @Value("${uddp.identity.url:}") String identityUrl) {
         this.connections = connections;
         this.timeout = timeout;

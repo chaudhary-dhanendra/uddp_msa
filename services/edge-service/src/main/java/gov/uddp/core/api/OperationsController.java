@@ -157,6 +157,8 @@ public class OperationsController {
     public record GateRequest(List<QualityGateService.Threshold> gates) {
     }
 
+    private static final java.util.concurrent.Executor RELEASED = java.util.concurrent.Executors.newCachedThreadPool();
+
     public record ReleaseRequest(String reason) {
     }
 
@@ -197,9 +199,22 @@ public class OperationsController {
     @PreAuthorize("hasAuthority('PERM_ONBOARDING_APPROVE')")
     @Audited(action = "ONBOARDING_RELEASE_APPROVE", resource = "ONBOARDING_RUN", idVariable = "runId")
     public Map<String, Object> approveRelease(@PathVariable String state, @PathVariable String source,
-                                              @PathVariable UUID runId, @RequestBody(required = false) ReleaseRequest body) {
+                                              @PathVariable UUID runId, @RequestBody(required = false) ReleaseRequest body,
+                                              @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false")
+                                              boolean background) {
         runInScope(state, source, runId);
         releases.approve(runId, body == null ? null : body.reason());
+        if (background) {
+            // Large sources: the remaining stages continue after answering; progress is read from the run.
+            RELEASED.execute(() -> {
+                try {
+                    onboarding.runToCompletion(runId);
+                } catch (RuntimeException failed) {
+                    // The failed stage is recorded on the run, which stays resumable.
+                }
+            });
+            return onboarding.detail(runId);
+        }
         onboarding.runToCompletion(runId);
         return onboarding.detail(runId);
     }

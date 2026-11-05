@@ -32,7 +32,7 @@ public class RemoteGoldenBuilder implements GoldenBuildRunner {
     private gov.uddp.core.golden.StewardshipConstraints stewardship;
 
     public RemoteGoldenBuilder(PostgresConnectionFactory connections,
-                               @Value("${uddp.registry.remote-timeout:PT30M}") Duration timeout) {
+                               @Value("${uddp.registry.remote-timeout:PT12H}") Duration timeout) {
         this.connections = connections;
         this.timeout = timeout;
     }
