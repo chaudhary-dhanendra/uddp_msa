@@ -183,6 +183,29 @@ class IngestionSourcesTest {
         assertThat(rows.path("rows").get(0).path("full_name").asText()).isEqualTo("Asha");
     }
 
+    /** Provider side of the ingestion-service HTTP contract (contracts/http-contracts/ingestion-service.json). */
+    @Test
+    void everyInteractionOfTheHttpContractIsHonoured() throws Exception {
+        try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
+                var s = c.createStatement()) {
+            s.execute("create table if not exists contract_people (person_id text, full_name text)");
+            s.execute("insert into contract_people values ('P1', 'Asha'), ('P2', 'Ravi')");
+        }
+        Map<String, String> state = Map.of("connection", "department", "table", "contract_people");
+        for (var interaction : gov.uddp.contracts.HttpContracts.of("ingestion-service")) {
+            var headers = new org.springframework.http.HttpHeaders();
+            headers.add("Content-Type", interaction.contentType());
+            Object body = interaction.rawBody() != null ? interaction.rawBody().getBytes(StandardCharsets.UTF_8)
+                    : interaction.body(state);
+            var response = http.exchange(interaction.path(state),
+                    org.springframework.http.HttpMethod.valueOf(interaction.method()),
+                    new org.springframework.http.HttpEntity<>(body, headers), String.class);
+            var answer = response.getBody() == null ? null : json.readTree(response.getBody());
+            assertThat(gov.uddp.contracts.HttpContracts.problems(interaction, response.getStatusCode().value(), answer))
+                    .as(interaction.name() + ": " + response.getBody()).isEmpty();
+        }
+    }
+
     private ObjectNode request(UUID batch, String template, String source) {
         ObjectNode r = json.createObjectNode();
         r.put("batchId", batch.toString());

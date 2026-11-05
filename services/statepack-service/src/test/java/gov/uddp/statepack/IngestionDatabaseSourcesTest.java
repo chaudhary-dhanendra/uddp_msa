@@ -17,7 +17,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The Studio hosted here keeps no source credentials: it lists the connections ingestion-service has configured and
- * reads preview rows through it by connection name, and refuses to store a password.
+ * reads preview rows through it by connection name, and refuses to store a password. The stub answers with the
+ * examples of the ingestion-service HTTP contract.
  */
 class IngestionDatabaseSourcesTest {
 
@@ -28,10 +29,10 @@ class IngestionDatabaseSourcesTest {
         ingestion.createContext("/", exchange -> {
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             seen.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " " + body);
-            String answer = exchange.getRequestURI().getPath().endsWith("/connections")
-                    ? "[{\"name\":\"registry-db\",\"host\":\"db\",\"port\":5432,\"database\":\"reg\",\"user\":\"ro\","
-                    + "\"passwordSet\":true}]"
-                    : "{\"header\":[\"id\",\"name\"],\"rows\":[{\"id\":\"1\",\"name\":\"Asha\"}]}";
+            // The answers are the ingestion-service HTTP contract's examples (consumer side of the contract).
+            String answer = gov.uddp.contracts.HttpContracts.find("ingestion-service",
+                    exchange.getRequestURI().getPath().endsWith("/connections") ? "list the database connections"
+                            : "preview a database source").example().toString();
             byte[] bytes = answer.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);
             exchange.getResponseBody().write(bytes);

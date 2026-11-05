@@ -1,0 +1,51 @@
+{
+  "provider": "statepack-service",
+  "description": "The State Pack version API other services call. Paths use {packId}, {version} and {stateCode} from the provider state each test sets up; {digest} in an example is the digest of its files.",
+  "interactions": [
+    {
+      "name": "publish a version",
+      "consumers": ["edge-service: StatePackPublisher.publish"],
+      "request": {"method": "POST", "path": "/api/statepacks", "body": {"maker": "contract-maker", "files": "{files}"}},
+      "response": {"status": 201, "fields": ["packId", "version", "stateCode", "digest", "status"]}
+    },
+    {
+      "name": "read a version with its files",
+      "consumers": ["canonical-service, identity-service, edge-service: StatePackClient.fetch", "edge-service: StatePackPublisher.approveAndActivate"],
+      "request": {"method": "GET", "path": "/api/statepacks/{packId}/{version}"},
+      "response": {
+        "status": 200,
+        "fields": ["packId", "version", "stateCode", "digest", "status", "files"],
+        "example": {"packId": "contract-pack", "version": "1.0.0", "stateCode": "CX", "digest": "{digest}",
+                    "status": "ACTIVE", "files": {"state.yaml": "packId: contract-pack\nstateCode: CX\nversion: 1.0.0\n"}}
+      }
+    },
+    {
+      "name": "approve a version",
+      "consumers": ["edge-service: StatePackPublisher.approveAndActivate"],
+      "request": {"method": "POST", "path": "/api/statepacks/{packId}/{version}/approve", "body": {"checker": "contract-checker"}},
+      "response": {"status": 200, "fields": ["status"]}
+    },
+    {
+      "name": "activate a version",
+      "consumers": ["edge-service: StatePackPublisher.approveAndActivate"],
+      "request": {"method": "POST", "path": "/api/statepacks/{packId}/{version}/activate", "body": {"actor": "contract-checker"}},
+      "response": {"status": 200, "fields": ["status"]}
+    },
+    {
+      "name": "list the active versions",
+      "consumers": ["canonical-service, identity-service: StatePackClient.active"],
+      "request": {"method": "GET", "path": "/api/statepacks?status=ACTIVE"},
+      "response": {
+        "status": 200,
+        "fields": ["[].packId", "[].version", "[].digest"],
+        "example": [{"packId": "contract-pack", "version": "1.0.0", "stateCode": "CX", "digest": "{digest}", "status": "ACTIVE"}]
+      }
+    },
+    {
+      "name": "resolve a state's version",
+      "consumers": ["canonical-service: StatePackClient.resolve"],
+      "request": {"method": "GET", "path": "/api/statepacks/resolve?stateCode={stateCode}&version={version}"},
+      "response": {"status": 200, "fields": ["packId", "version", "digest", "files"]}
+    }
+  ]
+}

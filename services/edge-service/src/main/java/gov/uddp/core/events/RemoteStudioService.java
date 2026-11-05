@@ -53,6 +53,10 @@ import org.springframework.stereotype.Component;
 public class RemoteStudioService {
 
     private static final Set<String> LOCAL = Set.of("status", "goldenDataExists", "setShapePreviews");
+    /** Studio operations that change nothing. */
+    private static final Set<String> READ_ONLY = Set.of("states", "draft", "profile", "suggestions", "shaping",
+            "shapePreview", "preview", "generated", "approvals", "approval", "connections", "portability",
+            "sourceFile");
 
     private final String statepack;
     private final RemoteStatePackMessaging.Installer installer;
@@ -143,7 +147,8 @@ public class RemoteStudioService {
                 .header("Content-Type", "application/json")
                 .header("X-UDDP-Actor", actor == null ? "platform" : actor)
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
-        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        // Studio operations that only read (their names) may be repeated; changes only when they never arrived.
+        HttpResponse<String> response = gov.uddp.contracts.ServiceCalls.send(http, request, READ_ONLY.contains(operation));
         if (response.statusCode() >= 400) {
             String message = response.body();
             try {
