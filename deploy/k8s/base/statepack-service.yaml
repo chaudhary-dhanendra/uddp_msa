@@ -1,0 +1,112 @@
+# statepack-service: Deployment, Service, storage (generated layout; see deploy/k8s/README.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statepack-service
+  labels:
+    app.kubernetes.io/name: statepack-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: statepack-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: statepack-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: statepack-service
+          image: uddp-statepack-service
+          ports:
+            - name: http
+              containerPort: 8105
+          envFrom:
+            - configMapRef:
+                name: uddp-config
+            - secretRef:
+                name: uddp-database
+          env:
+            # Registered in Eureka at the pod's own address, and bound to every interface inside the pod.
+            - name: UDDP_INSTANCE_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: UDDP_STUDIO_WORKSPACE
+              value: "/data/studio/workspace"
+            - name: UDDP_STATEPACK_SETTINGS_DIRECTORY
+              value: "/data/studio/settings"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              memory: 1536Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/uddp
+            - name: tmp
+              mountPath: /tmp
+            - name: studio
+              mountPath: /data/studio
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: studio
+          persistentVolumeClaim:
+            claimName: statepack-service-studio
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: statepack-service
+  labels:
+    app.kubernetes.io/name: statepack-service
+spec:
+  selector:
+    app.kubernetes.io/name: statepack-service
+  ports:
+    - name: http
+      port: 8105
+      targetPort: http
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: statepack-service-studio
+  labels:
+    app.kubernetes.io/name: statepack-service
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi

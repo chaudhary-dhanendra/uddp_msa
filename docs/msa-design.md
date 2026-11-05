@@ -510,6 +510,14 @@ Not done yet, in priority order:
      `DiscoveryAndGatewayTest` (a service registers with the real registry and is called by name; the gateway reaches
      the edge by name and routes nothing else). Tests never register (the build sets `eureka.client.enabled=false`).
 
+   - **Kubernetes (2026-11-05):** kustomize manifests in `deploy/k8s` (base + local overlay; `deploy/k8s/README.md`):
+     one Deployment and ClusterIP Service per service with startup, liveness and readiness probes, resource limits,
+     non-root containers and Eureka registration at the pod IP; the gateway is the only Ingress entry and network
+     policies keep the rest internal; Kafka, PostgreSQL and observability are external dependencies named in a
+     ConfigMap; the database password is a Secret generated per overlay (never committed). Images:
+     `deploy/docker` (a generic JVM image, ingestion with Apache Hop, identity with Python and Splink). Running the
+     whole stack on one machine is described in `docs/run-local.md`.
+
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, but the geography master still has to be loaded or
    replicated from canonical-service (until then, previews here resolve no geography). Studio preview connections

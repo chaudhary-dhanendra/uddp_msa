@@ -1,0 +1,24 @@
+# UDDP on Kubernetes, the base every environment builds on (deploy/k8s/README.md). Kafka, PostgreSQL and the
+# observability stack are external dependencies; their addresses come from the uddp-config ConfigMap and the
+# database password from the uddp-database Secret, which each overlay provides.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: uddp
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: uddp
+    includeSelectors: false
+    includeTemplates: true
+resources:
+  - namespace.yaml
+  - config.yaml
+  - discovery-service.yaml
+  - gateway-service.yaml
+  - edge-service.yaml
+  - ingestion-service.yaml
+  - canonical-service.yaml
+  - identity-service.yaml
+  - registry-service.yaml
+  - statepack-service.yaml
+  - ingress.yaml
+  - network-policy.yaml

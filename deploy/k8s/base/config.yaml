@@ -1,0 +1,25 @@
+# Settings shared by every UDDP service. The addresses of Kafka, PostgreSQL and the trace collector are placeholders
+# each overlay replaces; no credential is kept here (the password is the uddp-database Secret).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uddp-config
+data:
+  # External dependencies.
+  UDDP_POSTGRES_HOST: postgres.uddp-infra.svc.cluster.local
+  UDDP_POSTGRES_PORT: "5432"
+  UDDP_KAFKA_BOOTSTRAP_SERVERS: kafka.uddp-infra.svc.cluster.local:9092
+  UDDP_OTLP_TRACING_URL: http://tempo.monitoring.svc.cluster.local:4318/v1/traces
+  UDDP_TRACING_SAMPLING: "0.1"
+  # Service discovery: the registry inside the namespace; services call each other by lb://<name>.
+  UDDP_EUREKA_URL: http://discovery-service:8761/eureka/
+  # Inside the pod: listen on every interface; the image keeps the repository layout under /app.
+  SERVER_ADDRESS: 0.0.0.0
+  UDDP_REPOSITORY_ROOT: /app
+  UDDP_PLATFORM_DIRECTORY: /app/platform
+  UDDP_SHAPING_APPROVED_PLUGINS: /app/platform/shaping/approved-plugins.yaml
+  UDDP_LOG_DIR: /var/log/uddp
+  # Logs: structured JSON on stdout too, for the cluster's log collector.
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError

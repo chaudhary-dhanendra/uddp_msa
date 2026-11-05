@@ -1,0 +1,71 @@
+# Local cluster (Docker Desktop Kubernetes, kind, minikube): the services run in the cluster; Kafka, PostgreSQL and
+# the observability stack keep running from docker-compose on the host (deploy/k8s/README.md).
+#   kubectl apply -k deploy/k8s/overlays/local
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: uddp
+resources:
+  - ../../base
+images:
+  - name: uddp-discovery-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-gateway-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-edge-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-ingestion-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-canonical-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-identity-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-registry-service
+    newTag: 0.1.0-SNAPSHOT
+  - name: uddp-statepack-service
+    newTag: 0.1.0-SNAPSHOT
+# The database password, from secrets.env beside this file (gitignored; copy secrets.env.example).
+secretGenerator:
+  - name: uddp-database
+    envs:
+      - secrets.env
+generatorOptions:
+  disableNameSuffixHash: false
+patches:
+  # The host's docker-compose services, as the cluster reaches them.
+  - target:
+      kind: ConfigMap
+      name: uddp-config
+    patch: |-
+      - op: replace
+        path: /data/UDDP_POSTGRES_HOST
+        value: host.docker.internal
+      - op: replace
+        path: /data/UDDP_KAFKA_BOOTSTRAP_SERVERS
+        value: host.docker.internal:29094
+      - op: replace
+        path: /data/UDDP_OTLP_TRACING_URL
+        value: http://host.docker.internal:4318/v1/traces
+      - op: replace
+        path: /data/UDDP_TRACING_SAMPLING
+        value: "1.0"
+  # Images built locally (deploy/docker), never pulled.
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  # Small claims for local data.
+  - target:
+      kind: PersistentVolumeClaim
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 1Gi
+  - target:
+      kind: Ingress
+      name: uddp
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: uddp.localhost

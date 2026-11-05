@@ -1,0 +1,103 @@
+# edge-service: Deployment, Service (generated layout; see deploy/k8s/README.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-service
+  labels:
+    app.kubernetes.io/name: edge-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: edge-service
+          image: uddp-edge-service
+          ports:
+            - name: http
+              containerPort: 8106
+          envFrom:
+            - configMapRef:
+                name: uddp-config
+            - secretRef:
+                name: uddp-database
+          env:
+            # Registered in Eureka at the pod's own address, and bound to every interface inside the pod.
+            - name: UDDP_INSTANCE_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: UDDP_POSTGRES_URL
+              value: "jdbc:postgresql://$(UDDP_POSTGRES_HOST):$(UDDP_POSTGRES_PORT)/uddp_platform?currentSchema=edge"
+            - name: UDDP_POSTGRES_DB
+              value: "uddp_platform"
+            - name: UDDP_POSTGRES_USER
+              value: "uddp_edge"
+            - name: UDDP_INGESTION_URL
+              value: "lb://ingestion-service"
+            - name: UDDP_IDENTITY_URL
+              value: "lb://identity-service"
+            - name: UDDP_STATEPACK_URL
+              value: "lb://statepack-service"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              memory: 1536Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/uddp
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-service
+  labels:
+    app.kubernetes.io/name: edge-service
+spec:
+  selector:
+    app.kubernetes.io/name: edge-service
+  ports:
+    - name: http
+      port: 8106
+      targetPort: http
