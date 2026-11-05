@@ -11,9 +11,9 @@ from pathlib import Path
 import psycopg
 import pytest
 
-REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 MIGRATIONS = REPOSITORY_ROOT / "services" / "edge-service" / "src" / "main" / "resources" / "db" / "migration"
-FIXTURES = REPOSITORY_ROOT / "tests" / "fixtures"
+FIXTURES = REPOSITORY_ROOT / "services" / "edge-service" / "src" / "test" / "fixtures"
 CONNECTION_VARIABLES = ("UDDP_POSTGRES_URL", "UDDP_POSTGRES_HOST", "UDDP_POSTGRES_PORT", "UDDP_POSTGRES_DB",
                         "UDDP_POSTGRES_USER", "UDDP_POSTGRES_PASSWORD")
 

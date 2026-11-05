@@ -151,7 +151,7 @@ public class ProcessHopRunner implements HopRunner {
     }
 
     Path pipeline(String template) {
-        return repositoryRoot.resolve("hop").resolve("pipelines").resolve(template).toAbsolutePath().normalize();
+        return repositoryRoot.resolve("services").resolve("ingestion-service").resolve("hop").resolve("pipelines").resolve(template).toAbsolutePath().normalize();
     }
 
     private Path executable() {

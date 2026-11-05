@@ -27,15 +27,19 @@ public class ProcessHopExecutor implements HopExecutor {
 
     private final JdbcConnectionDetails database;
     private final Path repositoryRoot;
+    /** This service's Hop templates (pipelines/) and Hop metadata (metadata/). */
+    private final Path hopDirectory;
     private final String hopHome;
     private final String hopProject;
 
     public ProcessHopExecutor(JdbcConnectionDetails database,
                               @Value("${uddp.ingestion.repository-root:../..}") String repositoryRoot,
                               @Value("${uddp.ingestion.hop-home:}") String hopHome,
-                              @Value("${uddp.ingestion.hop-project:}") String hopProject) {
+                              @Value("${uddp.ingestion.hop-project:}") String hopProject,
+                              @Value("${uddp.ingestion.hop-directory:hop}") String hopDirectory) {
         this.database = database;
         this.repositoryRoot = Path.of(repositoryRoot).toAbsolutePath().normalize();
+        this.hopDirectory = Path.of(hopDirectory).toAbsolutePath().normalize();
         this.hopHome = hopHome;
         this.hopProject = hopProject;
     }
@@ -53,7 +57,7 @@ public class ProcessHopExecutor implements HopExecutor {
         String password = database.getPassword();
         Path argumentFile = null;
         try {
-            Path pipeline = repositoryRoot.resolve("hop").resolve("pipelines").resolve(template).normalize();
+            Path pipeline = hopDirectory.resolve("pipelines").resolve(template).normalize();
             List<String> values = new ArrayList<>();
             parameters.forEach((name, value) -> values.add(name + "=" + (value == null ? "" : value)));
             values.add("RAW_SCHEMA=ingestion");
@@ -69,7 +73,7 @@ public class ProcessHopExecutor implements HopExecutor {
             if (hopProject == null || hopProject.isBlank()) {
                 // No registered Hop project: the connections uddp-postgres and uddp-source come from this
                 // repository's metadata folder, so the service needs no Hop configuration of its own.
-                builder.environment().put("HOP_METADATA_FOLDER", repositoryRoot.resolve("metadata").toString());
+                builder.environment().put("HOP_METADATA_FOLDER", hopDirectory.resolve("metadata").toString());
             }
             Map<String, String> settings = new LinkedHashMap<>(connectionVariables(password));
             settings.putAll(secretSettings);

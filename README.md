@@ -62,7 +62,8 @@ The portability proof will run State 1 PDS and State 2 Pension through the same 
 - `e2e/` — the cross-service test (`mvn test -pl e2e -Dmsa.e2e=true`)
 - `state-packs/`, `m10-state-packs/` — state configuration; `sample-data/` — the sample source files
 - `platform/` — mapping targets, scheme catalogue, reference data; `common-model/` — JSON Schema contracts
-- `hop/`, `metadata/` — the generic Hop pipelines and Hop metadata; `matching/` — the Python Splink adapter
+- the generic Hop pipelines and Hop metadata are ingestion-service's (`services/ingestion-service/hop`), the
+  Python Splink adapter is identity-service's (`services/identity-service/matching`)
 - `web/onboarding-ui/` — the React UI; `scripts/` — database roles and Kafka topics; `docs/` — design and ADRs
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md), [MVP_SCOPE.md](MVP_SCOPE.md), and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) before implementation.

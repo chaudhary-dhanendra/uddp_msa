@@ -43,6 +43,8 @@ public class PythonModules {
             var command = new ArrayList<>(List.of("python", "-m", "matching." + module));
             command.addAll(arguments);
             var builder = new ProcessBuilder(command).directory(repositoryRoot.toFile()).redirectErrorStream(true);
+            builder.environment().put("PYTHONPATH",
+                    repositoryRoot.resolve("services").resolve("identity-service").toString());
             ChildProcessDatabaseSettings.forEnvironment(builder, connections.processVariables());
             var process = builder.start();
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);

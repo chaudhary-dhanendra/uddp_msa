@@ -1,15 +1,15 @@
-# identity-service with Python and the Splink adapter (matching/), which it runs as a child process.
+# identity-service with Python and its Splink adapter (services/identity-service/matching), run as a child process.
 #   docker build -f deploy/docker/Dockerfile.identity -t uddp-identity-service:0.1.0-SNAPSHOT .
 FROM eclipse-temurin:21-jre
 ARG VERSION=0.1.0-SNAPSHOT
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv && rm -rf /var/lib/apt/lists/*
 RUN python3 -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
-COPY matching/requirements.txt /tmp/requirements.txt
+COPY services/identity-service/matching/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 RUN groupadd --system --gid 10001 uddp && useradd --system --uid 10001 --gid uddp --home-dir /app uddp
 WORKDIR /app
-COPY matching/ matching/
+COPY services/identity-service/matching/ services/identity-service/matching/
 COPY platform/ platform/
 COPY services/statepack-service/seed/ services/statepack-service/seed/
 COPY services/identity-service/target/uddp-identity-service-${VERSION}-exec.jar services/identity-service/app.jar

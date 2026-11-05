@@ -29,7 +29,7 @@ class ProcessHopRunnerTest {
     void passesAbsolutePathsAndNeverReturnsTheDatabasePassword() throws Exception {
         Path hopHome = fakeHop(temp.resolve("hop"));
         Path repository = Files.createDirectories(temp.resolve("repository"));
-        Files.createDirectories(repository.resolve("hop/pipelines"));
+        Files.createDirectories(repository.resolve("services/ingestion-service/hop/pipelines"));
         Files.writeString(repository.resolve("data.csv"), "id,name\n1,A\n", StandardCharsets.UTF_8);
         var runner = new ProcessHopRunner(connections(), null, repository, hopHome.toString(), "uddp-mvp");
         var source = new SourceDefinition("src", "file", "generic-file-ingest.hpl", "files", "data.csv", "id", "1.0");
@@ -41,7 +41,7 @@ class ProcessHopRunnerTest {
         assertTrue(result.output().contains("******"), result.output());
         assertTrue(result.output().contains("SOURCE_FILE=" + repository.resolve("data.csv").toAbsolutePath()),
                 result.output());
-        assertTrue(result.output().contains(repository.resolve("hop/pipelines/generic-file-ingest.hpl")
+        assertTrue(result.output().contains(repository.resolve("services/ingestion-service/hop/pipelines/generic-file-ingest.hpl")
                 .toAbsolutePath().toString()), result.output());
         var picked = Pattern.compile("JDK_JAVA_OPTIONS: @(\\S+)").matcher(result.output());
         assertTrue(picked.find(), "JDK_JAVA_OPTIONS names only an argument file: " + result.output());
