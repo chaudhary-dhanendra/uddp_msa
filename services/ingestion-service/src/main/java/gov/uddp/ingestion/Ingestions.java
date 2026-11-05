@@ -19,14 +19,26 @@ import org.springframework.stereotype.Service;
 
 /**
  * Lands a batch with a generic Hop template and announces it (docs/msa-design.md, sections 3.3 and 7): one
- * raw-record-received per landed row and then batch-completed, all written to the outbox in one transaction after Hop
- * finished. Replay re-publishes a batch's immutable rows as raw-record-replayed for a chosen pack version. Event ids
+ * raw-record-received per landed row and then batch-completed. Rows are announced in committed chunks of
+ * {@link #CHUNK_ROWS} that walk the landing order with a keyset, so a batch of millions never sits in one transaction
+ * or in memory; each chunk records the position it reached, and a batch left PUBLISHING by a crash resumes there
+ * ({@link #resumePublishing()}). Replay re-publishes a batch's immutable rows as raw-record-replayed for a chosen pack version. Event ids
  * are name-based, so a rerun or redelivered command publishes nothing twice. No step looks at what a row means.
  */
 @Service
 public class Ingestions {
 
     static final String PRODUCER = "ingestion-service";
+    /** Rows announced per committed chunk. */
+    static final int CHUNK_ROWS = 5_000;
+    private static final int NO_LINE = Integer.MAX_VALUE;
+
+    private int chunkRows = CHUNK_ROWS;
+
+    /** For tests: smaller chunks. */
+    void setChunkRows(int rows) {
+        this.chunkRows = Math.max(1, rows);
+    }
 
     private final HopExecutor hop;
     private final DataSource dataSource;
@@ -123,6 +135,10 @@ public class Ingestions {
         }
         String stateCode = parameters.get("STATE_CODE");
         if (!startBatch(request, batch, stateCode, correlationId)) {
+            // A redelivered command: a batch a crash left half announced continues where it stopped.
+            if ("PUBLISHING".equals(status(batch))) {
+                publish(batch);
+            }
             return status(batch);
         }
         HopExecutor.Result result;
@@ -143,7 +159,34 @@ public class Ingestions {
         UUID batch = UUID.fromString(request.path("batchId").asText());
         UUID replayRun = UUID.fromString(request.path("replayRunId").asText());
         String packVersion = request.path("statePackVersion").asText();
-        return inTransaction(c -> publishRows(c, batch, correlationId, replayRun, packVersion));
+        // Replayed events have name-based ids, so a replay interrupted and run again publishes nothing twice.
+        int count = 0;
+        Position from = Position.START;
+        while (true) {
+            Position start = from;
+            Chunk chunk = inTransaction(c -> publishChunk(c, batch, start, correlationId, replayRun, packVersion));
+            count += chunk.rows();
+            if (chunk.rows() < chunkRows) {
+                return count;
+            }
+            from = chunk.reached();
+        }
+    }
+
+    /** Continues every batch a stopped process left PUBLISHING; returns how many it finished. */
+    public int resumePublishing() {
+        java.util.List<UUID> open = inTransaction(c -> {
+            java.util.List<UUID> ids = new java.util.ArrayList<>();
+            try (var s = c.prepareStatement("select batch_id from ingestion_batch where status = 'PUBLISHING'"
+                    + " order by started_at"); var r = s.executeQuery()) {
+                while (r.next()) {
+                    ids.add(r.getObject(1, UUID.class));
+                }
+            }
+            return ids;
+        });
+        open.forEach(this::publish);
+        return open.size();
     }
 
     /** Creates the batch; false when this batch already exists (a redelivered command), which then changes nothing. */
@@ -166,52 +209,134 @@ public class Ingestions {
     }
 
     private void finish(UUID batch, String stateCode, UUID correlationId, HopExecutor.Result result) {
+        if (!result.succeeded()) {
+            inTransaction(c -> {
+                try (var s = c.prepareStatement("update ingestion_batch set status = 'FAILED', completed_at = now(),"
+                        + " record_count = 0, error_message = ? where batch_id = ?")) {
+                    s.setString(1, result.output());
+                    s.setObject(2, batch);
+                    s.executeUpdate();
+                }
+                completed(c, batch, stateCode, correlationId, 0, "FAILED", "Generic Hop exited " + result.exitCode()
+                        + ": " + result.output());
+                return null;
+            });
+            return;
+        }
         inTransaction(c -> {
-            int count = result.succeeded() ? publishRows(c, batch, correlationId, null, null) : 0;
-            try (var s = c.prepareStatement("update ingestion_batch set status = ?, completed_at = now(),"
-                    + " record_count = ?, error_message = ? where batch_id = ?")) {
-                s.setString(1, result.succeeded() ? "COMPLETED" : "FAILED");
-                s.setInt(2, count);
-                s.setString(3, result.succeeded() ? null : result.output());
-                s.setObject(4, batch);
+            try (var s = c.prepareStatement("update ingestion_batch set status = 'PUBLISHING' where batch_id = ?")) {
+                s.setObject(1, batch);
                 s.executeUpdate();
             }
-            ObjectNode p = Outbox.json().createObjectNode();
-            p.put("batchId", batch.toString());
-            p.put("recordCount", count);
-            p.put("status", result.succeeded() ? "COMPLETED" : "FAILED");
-            p.put("message", result.succeeded() ? null : "Generic Hop exited " + result.exitCode() + ": "
-                    + result.output());
-            // The batch's own fields, so a consumer that sees this report before any record can record it.
-            try (var s = c.prepareStatement("select source_system, source_type, source_schema_version,"
-                    + " state_pack_version, pipeline_template from ingestion_batch where batch_id = ?")) {
-                s.setObject(1, batch);
-                try (var r = s.executeQuery()) {
-                    if (r.next()) {
-                        p.put("sourceSystem", r.getString(1));
-                        p.put("sourceType", r.getString(2));
-                        p.put("sourceSchemaVersion", r.getString(3));
-                        p.put("statePackVersion", r.getString(4));
-                        p.put("pipelineTemplate", r.getString(5));
-                    }
-                }
-            }
-            append(c, Topics.BATCH_COMPLETED, "uddp.ingestion.batch-completed", batch.toString(), batch.toString(),
-                    stateCode, correlationId, p);
-            return count;
+            return null;
         });
+        publish(batch);
     }
 
-    /** One event per row of the batch, in landing order; replayRun non-null publishes raw-record-replayed. */
-    private int publishRows(Connection c, UUID batch, UUID correlationId, UUID replayRun, String replayPackVersion)
-            throws SQLException {
+    /** Announces the rest of a PUBLISHING batch chunk by chunk, then completes it with batch-completed. */
+    private void publish(UUID batch) {
+        while (true) {
+            boolean done = inTransaction(c -> {
+                String stateCode;
+                UUID correlationId;
+                Position from;
+                int published;
+                try (var s = c.prepareStatement("select state_code, correlation_id, published_line,"
+                        + " published_record_id, published_count, status from ingestion_batch where batch_id = ?"
+                        + " for update")) {
+                    s.setObject(1, batch);
+                    try (var r = s.executeQuery()) {
+                        if (!r.next() || !"PUBLISHING".equals(r.getString(6))) {
+                            return true;
+                        }
+                        stateCode = r.getString(1);
+                        correlationId = r.getObject(2, UUID.class);
+                        UUID lastId = r.getObject(4, UUID.class);
+                        from = lastId == null ? Position.START : new Position(r.getInt(3), lastId);
+                        published = r.getInt(5);
+                    }
+                }
+                Chunk chunk = publishChunk(c, batch, from, correlationId, null, null);
+                int total = published + chunk.rows();
+                if (chunk.rows() == chunkRows) {
+                    try (var s = c.prepareStatement("update ingestion_batch set published_line = ?,"
+                            + " published_record_id = ?, published_count = ? where batch_id = ?")) {
+                        s.setInt(1, chunk.reached().line());
+                        s.setObject(2, chunk.reached().recordId());
+                        s.setInt(3, total);
+                        s.setObject(4, batch);
+                        s.executeUpdate();
+                    }
+                    return false;
+                }
+                try (var s = c.prepareStatement("update ingestion_batch set status = 'COMPLETED', completed_at = now(),"
+                        + " record_count = ?, published_count = ?, error_message = null where batch_id = ?")) {
+                    s.setInt(1, total);
+                    s.setInt(2, total);
+                    s.setObject(3, batch);
+                    s.executeUpdate();
+                }
+                completed(c, batch, stateCode, correlationId, total, "COMPLETED", null);
+                return true;
+            });
+            if (done) {
+                return;
+            }
+        }
+    }
+
+    private void completed(Connection c, UUID batch, String stateCode, UUID correlationId, int count, String status,
+                           String message) throws SQLException {
+        ObjectNode p = Outbox.json().createObjectNode();
+        p.put("batchId", batch.toString());
+        p.put("recordCount", count);
+        p.put("status", status);
+        p.put("message", message);
+        // The batch's own fields, so a consumer that sees this report before any record can record it.
+        try (var s = c.prepareStatement("select source_system, source_type, source_schema_version,"
+                + " state_pack_version, pipeline_template from ingestion_batch where batch_id = ?")) {
+            s.setObject(1, batch);
+            try (var r = s.executeQuery()) {
+                if (r.next()) {
+                    p.put("sourceSystem", r.getString(1));
+                    p.put("sourceType", r.getString(2));
+                    p.put("sourceSchemaVersion", r.getString(3));
+                    p.put("statePackVersion", r.getString(4));
+                    p.put("pipelineTemplate", r.getString(5));
+                }
+            }
+        }
+        append(c, Topics.BATCH_COMPLETED, "uddp.ingestion.batch-completed", batch.toString(), batch.toString(),
+                stateCode, correlationId, p);
+    }
+
+    /** A place in the landing order: the last announced row's line (rows without one sort last) and id. */
+    private record Position(int line, UUID recordId) {
+        static final Position START = new Position(Integer.MIN_VALUE, new UUID(Long.MIN_VALUE, Long.MIN_VALUE));
+    }
+
+    private record Chunk(int rows, Position reached) {
+    }
+
+    /**
+     * Up to one chunk of rows after {@code from}, in landing order, as raw-record-received events (replayRun non-null:
+     * raw-record-replayed for that pack version).
+     */
+    private Chunk publishChunk(Connection c, UUID batch, Position from, UUID correlationId, UUID replayRun,
+                               String replayPackVersion) throws SQLException {
         int count = 0;
+        Position reached = from;
+        String order = "coalesce(r.source_line, " + NO_LINE + ")";
         try (var s = c.prepareStatement("select r.raw_record_id, r.state_code, r.source_system, r.source_line,"
                 + " r.pipeline_template, r.raw_payload, r.ingested_at, r.source_record_id, r.source_metadata::text,"
-                + " r.state_pack_version, r.source_schema_version, b.source_type from raw_record r"
+                + " r.state_pack_version, r.source_schema_version, b.source_type, " + order + " from raw_record r"
                 + " join ingestion_batch b on b.batch_id = r.batch_id where r.batch_id = ?"
-                + " order by r.source_line nulls last, r.ingested_at, r.raw_record_id")) {
+                + " and (" + order + ", r.raw_record_id) > (?, ?)"
+                + " order by " + order + ", r.raw_record_id limit ?")) {
             s.setObject(1, batch);
+            s.setInt(2, from.line());
+            s.setObject(3, from.recordId());
+            s.setInt(4, chunkRows);
             try (var r = s.executeQuery()) {
                 while (r.next()) {
                     UUID raw = r.getObject(1, UUID.class);
@@ -237,11 +362,12 @@ public class Ingestions {
                         append(c, Topics.RAW_RECORD_REPLAYED, "uddp.ingestion.raw-record-replayed",
                                 replayRun + "|" + raw, r.getString(3) + ":" + raw, r.getString(2), correlationId, p);
                     }
+                    reached = new Position(r.getInt(13), raw);
                     count++;
                 }
             }
         }
-        return count;
+        return new Chunk(count, reached);
     }
 
     /** The header line of a delivered CSV file, as the generic file template expects it (CSV_HEADER). */

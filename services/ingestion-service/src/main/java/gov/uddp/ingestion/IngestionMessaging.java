@@ -32,7 +32,8 @@ public class IngestionMessaging implements DisposableBean {
     private final KafkaProducer<String, String> producer;
     private final OutboxRelay relay;
     private final KafkaEventLoop commands;
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2, r -> {
+    private final Ingestions ingestions;
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(3, r -> {
         Thread thread = new Thread(r, "ingestion-messaging");
         thread.setDaemon(true);
         return thread;
@@ -42,6 +43,7 @@ public class IngestionMessaging implements DisposableBean {
                               Ingestions ingestions) {
         this.producer = new KafkaProducer<>(Map.of("bootstrap.servers", bootstrapServers, "enable.idempotence", "true",
                 "acks", "all", "client.id", "ingestion-service"), new StringSerializer(), new StringSerializer());
+        this.ingestions = ingestions;
         this.relay = new OutboxRelay(dataSource::getConnection, producer, 500);
         this.commands = new KafkaEventLoop(bootstrapServers, COMMAND_CONSUMER, dataSource::getConnection, Map.of(
                 Topics.CMD_INGEST_REQUESTED, (c, envelope) -> ingestions.ingest(envelope.path("payload"),
@@ -54,6 +56,8 @@ public class IngestionMessaging implements DisposableBean {
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         executor.scheduleWithFixedDelay(relay::drain, 500, 500, TimeUnit.MILLISECONDS);
+        // Batches a stopped process left half announced continue from their last committed chunk.
+        executor.execute(ingestions::resumePublishing);
         executor.execute(commands);
     }
 

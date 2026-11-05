@@ -123,6 +123,28 @@ class OutboxKafkaIntegrationTest {
     }
 
     @Test
+    void publishedEventsPastTheirRetentionAreRemovedAndUnpublishedOnesStay() throws Exception {
+        UUID old = UUID.randomUUID();
+        UUID recent = UUID.randomUUID();
+        UUID waiting = UUID.randomUUID();
+        try (Connection c = connections.open()) {
+            Outbox.append(c, topic, envelope(old, "k1"));
+            Outbox.append(c, topic, envelope(recent, "k2"));
+            Outbox.append(c, topic, envelope(waiting, "k3"));
+            try (var s = c.createStatement()) {
+                s.execute("update outbox_event set published_at = now() - interval '8 days' where event_id = '" + old
+                        + "'");
+                s.execute("update outbox_event set published_at = now() - interval '1 day' where event_id = '" + recent
+                        + "'");
+            }
+        }
+        OutboxRelay relay = new OutboxRelay(connections, producer, 10).retainPublished(java.time.Duration.ofDays(7));
+        assertThat(relay.purgePublished()).isEqualTo(1);
+        assertThat(count("select count(*) from outbox_event where event_id = '" + old + "'")).isZero();
+        assertThat(count("select count(*) from outbox_event")).isEqualTo(2);
+    }
+
+    @Test
     void aRelayThatCrashedBeforeMarkingResendsAndTheInboxAbsorbsIt() throws Exception {
         UUID id = UUID.randomUUID();
         try (Connection c = connections.open()) {

@@ -147,6 +147,54 @@ class IngestionFlowTest {
         assertThatThrownBy(() -> jdbc.update("delete from raw_record")).hasMessageContaining("append-only");
     }
 
+    @Autowired
+    private Ingestions ingestions;
+
+    @Test
+    void aLargeBatchIsAnnouncedInChunksAndAStoppedPublisherResumesWhereItCommitted() throws Exception {
+        StringBuilder rows = new StringBuilder("name,born\n");
+        for (int i = 0; i < 23; i++) {
+            rows.append("Person ").append(i).append(",1990-01-01\n");
+        }
+        Path csv = work.resolve("many.csv");
+        Files.writeString(csv, rows);
+        UUID batch = UUID.randomUUID();
+        UUID correlation = UUID.randomUUID();
+        ingestions.setChunkRows(5);
+        try {
+            assertThat(ingestions.ingest(json.readTree(command(batch, correlation, "many-people", csv))
+                    .path("payload"), correlation)).isEqualTo("COMPLETED");
+            assertThat(events(batch, "raw-record-received")).isEqualTo(23);
+            assertThat(events(batch, "batch-completed")).isEqualTo(1);
+            assertThat(jdbc.queryForObject("select record_count from ingestion_batch where batch_id = ?",
+                    Integer.class, batch)).isEqualTo(23);
+
+            // A crash after two committed chunks: the batch is PUBLISHING at row 10 and the later events are missing.
+            var tenth = jdbc.queryForMap("select source_line, raw_record_id from raw_record where batch_id = ?"
+                    + " order by source_line, raw_record_id offset 9 limit 1", batch);
+            jdbc.update("update ingestion_batch set status = 'PUBLISHING', record_count = 0, published_line = ?,"
+                    + " published_record_id = ?, published_count = 10 where batch_id = ?",
+                    tenth.get("source_line"), tenth.get("raw_record_id"), batch);
+            jdbc.update("delete from outbox_event where payload->'payload'->>'batchId' = ? and (event_type ="
+                    + " 'uddp.ingestion.batch-completed' or (payload->'payload'->>'sourceLine')::int > ?)",
+                    batch.toString(), tenth.get("source_line"));
+            assertThat(events(batch, "raw-record-received")).isEqualTo(10);
+
+            assertThat(ingestions.resumePublishing()).isEqualTo(1);
+            assertThat(events(batch, "raw-record-received")).isEqualTo(23);
+            assertThat(events(batch, "batch-completed")).isEqualTo(1);
+            assertThat(jdbc.queryForMap("select status, record_count from ingestion_batch where batch_id = ?", batch))
+                    .containsEntry("status", "COMPLETED").containsEntry("record_count", 23);
+        } finally {
+            ingestions.setChunkRows(Ingestions.CHUNK_ROWS);
+        }
+    }
+
+    private int events(UUID batch, String type) {
+        return jdbc.queryForObject("select count(*) from outbox_event where event_type = ? and"
+                + " payload->'payload'->>'batchId' = ?", Integer.class, "uddp.ingestion." + type, batch.toString());
+    }
+
     @Test
     void aFailingTemplateReportsAFailedBatch() throws Exception {
         UUID batch = UUID.randomUUID();
