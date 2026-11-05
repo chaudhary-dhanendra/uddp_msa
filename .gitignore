@@ -54,3 +54,6 @@ studio-workspace/
 .project
 .classpath
 test-results/
+
+# Local-only development credentials (never committed).
+/deploy/local/
