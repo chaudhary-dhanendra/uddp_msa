@@ -45,6 +45,8 @@ for t in pack-published pack-approved pack-activated pack-retired; do
 done
 
 create uddp.stewardship.decision-recorded.v1 1 retention.ms=-1
+# LGD snapshots that changed the edge's geography master, in chunks, for the services' copies (kept for replay).
+create uddp.geography.snapshot-published.v1 1 retention.ms=-1 max.message.bytes=8388608
 create uddp.privacy.erasure-requested.v1 1 retention.ms=-1
 
 for t in ingestion.ingest-requested ingestion.replay-requested identity.matching-requested registry.golden-build-requested; do
@@ -72,6 +74,8 @@ dlt registry-service-projections uddp.canonical.family-observed.v1 uddp.identity
 dlt registry-service-commands uddp.cmd.registry.golden-build-requested.v1
 dlt edge-golden-replica uddp.registry.golden-replica.v1
 dlt edge-statepack-installer uddp.statepack.pack-activated.v1
+dlt canonical-service-geography uddp.geography.snapshot-published.v1
+dlt statepack-service-geography uddp.geography.snapshot-published.v1
 dlt edge-canonical-residents uddp.canonical.resident-created.v1
 dlt edge-canonical-observations uddp.canonical.family-observed.v1 uddp.canonical.batch-processed.v1   uddp.canonical.batch-observed.v1
 

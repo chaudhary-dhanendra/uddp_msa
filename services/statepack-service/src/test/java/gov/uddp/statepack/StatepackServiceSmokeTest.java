@@ -32,7 +32,7 @@ class StatepackServiceSmokeTest {
     void migratesOnlyItsOwnSchemas() {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from statepack.flyway_schema_history where success and type = 'SQL'", Integer.class);
-        assertThat(applied).isEqualTo(5);
+        assertThat(applied).isEqualTo(6);
 
         var schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata"

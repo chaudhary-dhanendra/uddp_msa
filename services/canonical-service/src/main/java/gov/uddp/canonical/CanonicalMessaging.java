@@ -33,13 +33,15 @@ public class CanonicalMessaging implements DisposableBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(CanonicalMessaging.class);
     static final String CONSUMER = "canonical-service-raw";
+    static final String GEOGRAPHY_CONSUMER = "canonical-service-geography";
+    private final KafkaEventLoop geography;
 
     private final KafkaProducer<String, String> producer;
     private final OutboxRelay relay;
     private final KafkaEventLoop raw;
     private final CanonicalBatches batches;
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> daemon(r, "canonical-worker"));
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2,
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(3,
             r -> daemon(r, "canonical-messaging"));
 
     public CanonicalMessaging(@Value("${uddp.kafka.bootstrap-servers}") String bootstrapServers,
@@ -58,12 +60,19 @@ public class CanonicalMessaging implements DisposableBean {
                         worker.execute(() -> process(UUID.fromString(batch)));
                     }
                 }), producer);
+        // The LGD geography master follows the edge's snapshots (geography.snapshot-published).
+        var lgd = new gov.uddp.core.geography.LgdImportService(canonicalConnections,
+                new com.fasterxml.jackson.databind.ObjectMapper());
+        this.geography = new KafkaEventLoop(bootstrapServers, GEOGRAPHY_CONSUMER, canonicalConnections::open, Map.of(
+                Topics.GEOGRAPHY_SNAPSHOT_PUBLISHED,
+                (c, envelope) -> gov.uddp.core.geography.GeographyReplication.apply(c, envelope, lgd)), producer);
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         executor.scheduleWithFixedDelay(relay::drain, 500, 500, TimeUnit.MILLISECONDS);
         executor.execute(raw);
+        executor.execute(geography);
         batches.pending().forEach(batch -> worker.execute(() -> process(batch)));
     }
 
@@ -93,6 +102,7 @@ public class CanonicalMessaging implements DisposableBean {
     @Override
     public void destroy() {
         raw.close();
+        geography.close();
         worker.shutdownNow();
         executor.shutdownNow();
         producer.close();

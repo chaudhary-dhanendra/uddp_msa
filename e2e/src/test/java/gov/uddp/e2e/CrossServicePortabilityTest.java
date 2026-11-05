@@ -109,6 +109,29 @@ class CrossServicePortabilityTest {
         assertThat(count(statepack(), "select count(*) from state_pack_version where status = 'ACTIVE'")).isEqualTo(4);
     }
 
+    /** An LGD snapshot the edge published reaches canonical-service's and statepack-service's masters over Kafka. */
+    @Test
+    void geographySnapshotsReachEveryCopyOfTheMaster() throws Exception {
+        var rows = new ArrayList<gov.uddp.core.geography.LgdRow>();
+        rows.add(new gov.uddp.core.geography.LgdRow(1, "STATE", "77", "Replicated State", "ACTIVE", null, null, null));
+        for (int i = 0; i < 2500; i++) {
+            rows.add(new gov.uddp.core.geography.LgdRow(i + 2, "DISTRICT", String.valueOf(770000 + i),
+                    "Replicated District " + i, "ACTIVE", "STATE", "77", null));
+        }
+        var snapshot = new gov.uddp.core.geography.LgdSnapshotData("edge-sync", java.time.LocalDate.of(2025, 2, 1),
+                rows);
+        for (var envelope : gov.uddp.core.geography.GeographyReplication.envelopes(UUID.randomUUID(), snapshot,
+                "edge-service", gov.uddp.core.geography.GeographyReplication.CHUNK_ROWS)) {
+            producer.send(new ProducerRecord<>(Topics.GEOGRAPHY_SNAPSHOT_PUBLISHED, envelope.partitionKey(),
+                    gov.uddp.messaging.Outbox.json().writeValueAsString(envelope))).get();
+        }
+        await("canonical-service imported the snapshot", () -> count(canonical(),
+                "select count(*) from lgd_entity where code like '77%'") == 2501);
+        await("statepack-service imported the snapshot", () -> count(statepack(),
+                "select count(*) from lgd_entity where code like '77%'") == 2501);
+        assertThat(count(canonical(), "select count(*) from lgd_snapshot_chunk")).isZero();
+    }
+
     @Test
     void noServiceContractOrMessagingSourceNamesAState() throws Exception {
         Pattern state = Pattern.compile("(?i)\\bst[1-9]\\b|state[-_ ]?[1-9]\\b|DEPT-[1-9]|\"ST\\d\"");

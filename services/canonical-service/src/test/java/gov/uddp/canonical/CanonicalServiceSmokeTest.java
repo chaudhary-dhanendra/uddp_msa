@@ -32,7 +32,7 @@ class CanonicalServiceSmokeTest {
     void migratesOnlyItsOwnSchemas() {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from canonical.flyway_schema_history where success and type = 'SQL'", Integer.class);
-        assertThat(applied).isEqualTo(4);
+        assertThat(applied).isEqualTo(5);
 
         var schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata"
