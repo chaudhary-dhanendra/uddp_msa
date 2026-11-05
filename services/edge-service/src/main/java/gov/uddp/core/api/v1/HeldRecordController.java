@@ -4,9 +4,9 @@ import gov.uddp.core.held.HeldRecord;
 import gov.uddp.core.held.HeldRecordService;
 import gov.uddp.core.held.HeldRecordService.Detail;
 import gov.uddp.core.held.HeldRecordService.GroupActionResult;
-import gov.uddp.core.held.HeldRecordService.Group;
-import gov.uddp.core.held.HeldRecordService.PageOf;
-import gov.uddp.core.held.HeldRecordService.RectifyResult;
+import gov.uddp.core.held.HeldStore.Group;
+import gov.uddp.core.held.HeldStore.PageOf;
+import gov.uddp.core.held.HeldStore.RectifyResult;
 import gov.uddp.core.privacy.MaskPii;
 import gov.uddp.core.security.AuditContext;
 import gov.uddp.core.security.Audited;
@@ -176,6 +176,43 @@ public class HeldRecordController {
     public GroupActionResult reprocessGroup(@PathVariable UUID batch, @PathVariable String reason, Authentication actor) {
         AuditContext.resource(batch + "/" + reason);
         return held.reprocessGroup(batch, reason, actor.getName());
+    }
+
+    @Operation(operationId = "startHeldRecordGroupReprocess",
+            summary = "Reprocess a large group in the background; poll its job for progress")
+    @ApiResponse(responseCode = "202", description = "Started")
+    @PostMapping("/groups/{batch}/{reason}/reprocess-jobs")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    @PreAuthorize(DECIDE)
+    @Audited(action = "HELD_REPROCESS", resource = "HELD_RECORD_GROUP")
+    public gov.uddp.core.held.HeldStore.ReprocessJob startReprocess(@PathVariable UUID batch,
+                                                                    @PathVariable String reason,
+                                                                    Authentication actor) {
+        AuditContext.resource(batch + "/" + reason);
+        return held.startReprocess(batch, reason, actor.getName());
+    }
+
+    @Operation(operationId = "getHeldReprocessJob", summary = "Progress of a background group reprocess")
+    @GetMapping("/reprocess-jobs/{jobId}")
+    @PreAuthorize(VIEW)
+    public gov.uddp.core.held.HeldStore.ReprocessJob reprocessJob(@PathVariable UUID jobId) {
+        return held.reprocessJob(jobId);
+    }
+
+    @Operation(operationId = "exportHeldRecordGroup",
+            summary = "The group's records as CSV for the source department: record id, line, reasons, source row")
+    @GetMapping(value = "/groups/{batch}/{reason}/export", produces = "text/csv")
+    @PreAuthorize(DECIDE)
+    @Audited(action = "HELD_EXPORT", resource = "HELD_RECORD_GROUP")
+    public void exportGroup(@PathVariable UUID batch, @PathVariable String reason,
+                            @RequestParam(defaultValue = "true") boolean waitingOnly,
+                            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        AuditContext.resource(batch + "/" + reason);
+        response.setContentType("text/csv");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"held-" + batch + "-"
+                + reason.replaceAll("[^A-Za-z0-9_-]", "_") + ".csv\"");
+        held.exportGroup(batch, reason, waitingOnly, response.getWriter());
     }
 
     @Operation(operationId = "listHeldBulkActions",

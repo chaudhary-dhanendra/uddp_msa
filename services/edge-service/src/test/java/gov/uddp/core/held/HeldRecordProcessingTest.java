@@ -418,6 +418,33 @@ class HeldRecordProcessingTest {
     }
 
     @Test
+    void aGroupReprocessesInTheBackgroundWithProgressAndExportsAsCsvForTheSource() throws Exception {
+        UUID batch = land(row("Future One", "12-03-2099", "M", "R1", GOOD_MOBILE),
+                row("Future Two", "12-03-2099", "F", "R2", GOOD_MOBILE),
+                row("Fine Person", "12-03-1980", "M", "R3", GOOD_MOBILE));
+        processing.processBatch(batch);
+
+        var csv = new java.io.StringWriter();
+        held.exportGroup(batch, "RULE_FAILED:dob-not-future", true, csv);
+        var lines = csv.toString().strip().split("\n");
+        assertEquals(3, lines.length, csv.toString());
+        assertTrue(lines[0].startsWith("held_id,source,source_record_id,source_line,status,reason_codes"), lines[0]);
+        assertTrue(csv.toString().contains("RULE_FAILED:dob-not-future"), csv.toString());
+        assertTrue(csv.toString().contains(",\"Future Two,12-03-2099,"), "the source row is one quoted cell: " + csv);
+
+        var job = held.startReprocess(batch, "RULE_FAILED:dob-not-future", "sam.steward");
+        assertEquals(2, job.total());
+        for (int i = 0; i < 300 && "RUNNING".equals(job.status()); i++) {
+            Thread.sleep(50);
+            job = held.reprocessJob(job.jobId());
+        }
+        assertEquals("COMPLETED", job.status(), String.valueOf(job.error()));
+        assertEquals(2, job.processed());
+        assertEquals(2, job.stillHeld(), "the dates are still in the future");
+        assertEquals(0, job.released());
+    }
+
+    @Test
     void metricsCountOpenRectifiedAndRejectedRecords() throws Exception {
         UUID one = holdOne("Future One", "12-03-2099", "R1", GOOD_MOBILE);
         UUID two = holdOne("Future Two", "12-03-2099", "R2", GOOD_MOBILE);

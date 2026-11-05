@@ -189,6 +189,10 @@ class EndpointAuthorizationTest {
                 requiresAll(Permission.STEWARD_HELD_DECIDE, Permission.PLATFORM_SETTINGS));
         RULES.put("POST /api/v1/held-records/groups/{batch}/{reason}/reject", any(Permission.STEWARD_HELD_DECIDE));
         RULES.put("POST /api/v1/held-records/groups/{batch}/{reason}/reprocess", any(Permission.STEWARD_HELD_DECIDE));
+        RULES.put("POST /api/v1/held-records/groups/{batch}/{reason}/reprocess-jobs",
+                any(Permission.STEWARD_HELD_DECIDE));
+        RULES.put("GET /api/v1/held-records/reprocess-jobs/{jobId}", any(Permission.STEWARD_HELD_VIEW));
+        RULES.put("GET /api/v1/held-records/groups/{batch}/{reason}/export", any(Permission.STEWARD_HELD_DECIDE));
         RULES.put("POST /api/v1/held-records/bulk-actions/{actionId}/approve", any(Permission.STEWARD_HELD_DECIDE));
         RULES.put("POST /api/v1/held-records/bulk-actions/{actionId}/decline", any(Permission.STEWARD_HELD_DECIDE));
         // Track A: Rules Studio and Scheme Pack APIs

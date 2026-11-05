@@ -23,6 +23,7 @@ uddp:
     url: ${UDDP_INGESTION_URL:lb://ingestion-service}
   canonical:
     remote: true
+    url: ${UDDP_CANONICAL_URL:lb://canonical-service}
   identity:
     remote: true
     url: ${UDDP_IDENTITY_URL:lb://identity-service}

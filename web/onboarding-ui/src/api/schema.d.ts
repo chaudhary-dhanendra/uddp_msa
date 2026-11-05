@@ -3006,6 +3006,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/held-records/groups/{batch}/{reason}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The group's records as CSV for the source department: record id, line, reasons, source row */
+        get: operations["exportHeldRecordGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/held-records/groups/{batch}/{reason}/reject": {
         parameters: {
             query?: never;
@@ -3034,6 +3051,40 @@ export interface paths {
         put?: never;
         /** Run the waiting records of a batch and reason through mapping and validation again */
         post: operations["reprocessHeldRecordGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/held-records/groups/{batch}/{reason}/reprocess-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reprocess a large group in the background; poll its job for progress */
+        post: operations["startHeldRecordGroupReprocess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/held-records/reprocess-jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress of a background group reprocess */
+        get: operations["getHeldReprocessJob"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6667,6 +6718,28 @@ export interface components {
         };
         ReopenRequest: {
             reason: string | null;
+        };
+        ReprocessJob: {
+            /** Format: uuid */
+            batchId: string | null;
+            error: string | null;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /** Format: uuid */
+            jobId: string | null;
+            /** Format: int32 */
+            processed: number;
+            reasonCode: string | null;
+            /** Format: int32 */
+            released: number;
+            requestedBy: string | null;
+            /** Format: date-time */
+            startedAt: string | null;
+            status: string | null;
+            /** Format: int32 */
+            stillHeld: number;
+            /** Format: int32 */
+            total: number;
         };
         /** @description Confirmation for resetting the demo database */
         ResetRequest: {
@@ -12890,6 +12963,29 @@ export interface operations {
             };
         };
     };
+    exportHeldRecordGroup: {
+        parameters: {
+            query?: {
+                waitingOnly?: boolean;
+            };
+            header?: never;
+            path: {
+                batch: string;
+                reason: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     rejectHeldRecordGroup: {
         parameters: {
             query?: never;
@@ -12936,6 +13032,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GroupActionResult"];
+                };
+            };
+        };
+    };
+    startHeldRecordGroupReprocess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch: string;
+                reason: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReprocessJob"];
+                };
+            };
+        };
+    };
+    getHeldReprocessJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReprocessJob"];
                 };
             };
         };

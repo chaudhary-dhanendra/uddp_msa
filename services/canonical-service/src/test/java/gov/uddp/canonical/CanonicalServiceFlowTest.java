@@ -47,6 +47,7 @@ import org.testcontainers.kafka.KafkaContainer;
  */
 @Testcontainers
 @SpringBootTest
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 class CanonicalServiceFlowTest {
 
     @Container
@@ -168,6 +169,90 @@ class CanonicalServiceFlowTest {
             assertThat(row.get("partition_key")).isEqualTo(envelope.path("payload").path("sourceRecordKey").asText());
             assertThat(envelope.path("producer").asText()).isEqualTo("canonical-service");
         }
+
+        heldRowsWaitForAStewardThroughTheInternalApi(batches);
+    }
+
+    @Autowired
+    private org.springframework.test.web.servlet.MockMvc mvc;
+
+    /** A row a steward can fix (no name) is held here, not rejected, and the edge's API reaches it. */
+    private void heldRowsWaitForAStewardThroughTheInternalApi(int batchesBefore) throws Exception {
+        var pack = new StatePackLoader(packProperties()).loadAll(PACKS).values().stream()
+                .filter(p -> p.manifest().stateCode().equals("ST1")).findFirst().orElseThrow();
+        Path csv = Files.createTempFile("held", ".csv");
+        Files.writeString(csv, "beneficiary_nm,dob,sex_cd,dist_cd,ration_no,mobile,card_type,card_status,"
+                + "card_issued_on,monthly_grain_kg,last_lifted_on,last_lifted_kg\n"
+                + ",12-03-1980,M,101,R9001,9876543210,PHH,A,01-04-2015,25,05-10-2026,25\n");
+        var events = landedEvents(pack, "pds", "file", "1.0", "generic-file-ingest.hpl", csv);
+        String batch = json.readTree(events.getFirst()[2]).path("payload").path("batchId").asText();
+        try (var producer = new KafkaProducer<>(Map.<String, Object>of("bootstrap.servers", KAFKA.getBootstrapServers()),
+                new StringSerializer(), new StringSerializer())) {
+            for (String[] event : events) {
+                producer.send(new ProducerRecord<>(event[0], event[1], event[2])).get();
+            }
+        }
+        long deadline = System.currentTimeMillis() + 60_000;
+        while (count("select count(*) from outbox_event where topic = ?", Topics.BATCH_PROCESSED) <= batchesBefore) {
+            assertThat(System.currentTimeMillis()).isLessThan(deadline);
+            Thread.sleep(300);
+        }
+        // A blank name fails mapping, which rejects; a steward-fixable rule failure is held instead (the same engine
+        // as HeldRecordProcessingTest). Hold this row as such a failure to drive the internal API end to end.
+        jdbc.update("insert into held_record(batch_id, raw_record_id, source_system, state_code, state_pack_version,"
+                + " reason_codes, current_payload) select batch_id, raw_record_id, source_system, state_code,"
+                + " state_pack_version, cast(? as jsonb), cast('{}' as jsonb) from raw_record"
+                + " where batch_id = cast(? as uuid)",
+                "[{\"code\":\"RULE_FAILED:name-required\",\"message\":\"name is required\",\"field\":\"name\","
+                        + "\"severity\":\"ERROR\"}]", batch);
+
+        var groups = json.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .get("/api/canonical/held-records/groups")).andReturn().getResponse().getContentAsString());
+        assertThat(groups).hasSize(1);
+        String reason = groups.get(0).path("reasonCode").asText();
+        String export = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .get("/api/canonical/held-records/groups/" + batch + "/" + reason + "/export"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(export).contains(",12-03-1980,M,101,R9001,");
+        var job = json.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .post("/api/canonical/held-records/groups/" + batch + "/" + reason + "/reprocess")
+                .contentType("application/json").content("{\"actor\":\"sam.steward\"}"))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(job.path("total").asInt()).isEqualTo(1);
+        String status = job.path("status").asText();
+        for (int i = 0; i < 200 && "RUNNING".equals(status); i++) {
+            Thread.sleep(50);
+            status = json.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/api/canonical/held-records/reprocess-jobs/" + job.path("jobId").asText()))
+                    .andReturn().getResponse().getContentAsString()).path("status").asText();
+        }
+        assertThat(status).isEqualTo("COMPLETED");
+        assertThat(count("select count(*) from held_record where batch_id = cast(? as uuid) and status = 'OPEN'",
+                batch)).as("still no name").isEqualTo(1);
+        assertThat(jdbc.queryForObject("select reason_codes->0->>'code' from held_record where batch_id ="
+                + " cast(? as uuid)", String.class, batch)).as("held now for the reason found again")
+                .isEqualTo("MISSING_NAME");
+
+        // Every call the edge makes (http-contracts/canonical-service.json) is answered as the contract says.
+        Map<String, String> state = Map.of("batch", batch, "reason", "MISSING_NAME",
+                "held", jdbc.queryForObject("select held_id::text from held_record where batch_id = cast(? as uuid)",
+                        String.class, batch),
+                "job", job.path("jobId").asText());
+        for (var interaction : gov.uddp.contracts.HttpContracts.of("canonical-service")) {
+            var request = "GET".equals(interaction.method())
+                    ? org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(interaction.path(state))
+                    : org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(interaction.path(state))
+                            .contentType("application/json").content(interaction.body(state));
+            var response = mvc.perform(request).andReturn().getResponse();
+            assertThat(gov.uddp.contracts.HttpContracts.problems(interaction, response.getStatus(),
+                    json.readTree(response.getContentAsString()))).as(interaction.name()).isEmpty();
+        }
+    }
+
+    private static StatePackProperties packProperties() {
+        var properties = new StatePackProperties();
+        properties.setStatePackDirectory(PACKS.toString());
+        return properties;
     }
 
     /** batch-completed first, then one raw-record-received per data line, as generic-file-ingest.hpl lands them. */

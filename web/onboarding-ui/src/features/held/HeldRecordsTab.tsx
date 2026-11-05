@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../../api/client";
@@ -84,10 +84,27 @@ function GroupPanel({ group, onOpen, onDone }: { group: HeldGroup; onOpen: (id: 
   const [note, setNote] = useState("");
   const path = { batch: group.batchId, reason: group.reasonCode };
   const done = () => client.invalidateQueries({ queryKey: heldKey });
+  // A group of any size is reprocessed in the background where the records are kept; its job shows the progress.
   const reprocess = useMutation({
-    mutationFn: () => unwrap(api.POST("/api/v1/held-records/groups/{batch}/{reason}/reprocess", { params: { path } })),
-    onSuccess: done,
+    mutationFn: () =>
+      unwrap(api.POST("/api/v1/held-records/groups/{batch}/{reason}/reprocess-jobs", { params: { path } })),
   });
+  const jobId = reprocess.data?.jobId ?? "";
+  const job = useQuery({
+    queryKey: ["held", "reprocess-job", jobId],
+    enabled: jobId !== "",
+    queryFn: () =>
+      unwrap(api.GET("/api/v1/held-records/reprocess-jobs/{jobId}", { params: { path: { jobId } } })),
+    refetchInterval: (query) => (query.state.data?.status === "COMPLETED" || query.state.data?.status === "FAILED"
+      ? false : 1500),
+  });
+  const progress = job.data ?? reprocess.data;
+  useEffect(() => {
+    if (job.data?.status === "COMPLETED") {
+      void done();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.data?.status]);
   const reject = useMutation({
     mutationFn: () =>
       unwrap(
@@ -99,7 +116,9 @@ function GroupPanel({ group, onOpen, onDone }: { group: HeldGroup; onOpen: (id: 
     onSuccess: done,
   });
   const rejected: GroupActionResult | undefined = reject.data;
-  const reprocessed: GroupActionResult | undefined = reprocess.data;
+  const exportHref = `/api/v1/held-records/groups/${encodeURIComponent(group.batchId)}/${encodeURIComponent(
+    group.reasonCode,
+  )}/export`;
   return (
     <Panel title={`${group.reasonCode} · ${group.count} records`}>
       <ul data-testid="held-samples" aria-label="Sample records">
@@ -116,9 +135,16 @@ function GroupPanel({ group, onOpen, onDone }: { group: HeldGroup; onOpen: (id: 
       </p>
       {canDecide && (
         <div className="row">
-          <Button variant="secondary" onClick={() => reprocess.mutate()} disabled={reprocess.isPending}>
+          <Button
+            variant="secondary"
+            onClick={() => reprocess.mutate()}
+            disabled={reprocess.isPending || progress?.status === "RUNNING"}
+          >
             Reprocess group
           </Button>
+          <a href={exportHref} download data-testid="held-export">
+            Export group (CSV)
+          </a>
           <Field id="bulk-reject-reason" label="Bulk reject reason">
             <Select
               id="bulk-reject-reason"
@@ -139,9 +165,13 @@ function GroupPanel({ group, onOpen, onDone }: { group: HeldGroup; onOpen: (id: 
           </Button>
         </div>
       )}
-      {reprocessed && (
-        <p role="status">
-          Reprocessed: {reprocessed.released ?? 0} released, {reprocessed.stillHeld ?? 0} still held.
+      {progress && (
+        <p role="status" data-testid="held-reprocess-progress">
+          {progress.status === "RUNNING"
+            ? `Reprocessing: ${progress.processed} of ${progress.total} records checked`
+            : progress.status === "FAILED"
+              ? `Reprocessing stopped after ${progress.processed} of ${progress.total} records: ${progress.error ?? ""}`
+              : `Reprocessed: ${progress.released} released, ${progress.stillHeld} still held.`}
         </p>
       )}
       {rejected?.outcome === "PENDING_APPROVAL" && (

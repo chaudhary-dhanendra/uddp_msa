@@ -7891,6 +7891,64 @@
         "required" : [ "reason" ],
         "type" : "object"
       },
+      "ReprocessJob" : {
+        "properties" : {
+          "batchId" : {
+            "format" : "uuid",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "error" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "jobId" : {
+            "format" : "uuid",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "processed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reasonCode" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "released" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "requestedBy" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "status" : {
+            "nullable" : true,
+            "type" : "string"
+          },
+          "stillHeld" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "batchId", "error", "finishedAt", "jobId", "processed", "reasonCode", "released", "requestedBy", "startedAt", "status", "stillHeld", "total" ],
+        "type" : "object"
+      },
       "ResetRequest" : {
         "description" : "Confirmation for resetting the demo database",
         "properties" : {
@@ -18367,6 +18425,42 @@
         "tags" : [ "Held records" ]
       }
     },
+    "/api/v1/held-records/groups/{batch}/{reason}/export" : {
+      "get" : {
+        "operationId" : "exportHeldRecordGroup",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "batch",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "reason",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "waitingOnly",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "The group's records as CSV for the source department: record id, line, reasons, source row",
+        "tags" : [ "Held records" ]
+      }
+    },
     "/api/v1/held-records/groups/{batch}/{reason}/reject" : {
       "post" : {
         "operationId" : "rejectHeldRecordGroup",
@@ -18444,6 +18538,69 @@
           }
         },
         "summary" : "Run the waiting records of a batch and reason through mapping and validation again",
+        "tags" : [ "Held records" ]
+      }
+    },
+    "/api/v1/held-records/groups/{batch}/{reason}/reprocess-jobs" : {
+      "post" : {
+        "operationId" : "startHeldRecordGroupReprocess",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "batch",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "reason",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReprocessJob"
+                }
+              }
+            },
+            "description" : "Started"
+          }
+        },
+        "summary" : "Reprocess a large group in the background; poll its job for progress",
+        "tags" : [ "Held records" ]
+      }
+    },
+    "/api/v1/held-records/reprocess-jobs/{jobId}" : {
+      "get" : {
+        "operationId" : "getHeldReprocessJob",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "jobId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReprocessJob"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Progress of a background group reprocess",
         "tags" : [ "Held records" ]
       }
     },
