@@ -59,6 +59,8 @@ class StudioHostTest {
 
     @Test
     void draftsArePublishedAsVersionsHereWithMakerAndChecker() throws Exception {
+        assertThat(jdbc.queryForObject("select count(*) from statepack.lgd_entity", Integer.class))
+                .as("the geography master is seeded from the platform snapshot").isEqualTo(3);
         String csv = "pid,name,sex\nP1,Asha,F\nP2,Ravi,M\n";
         JsonNode draft = call("create", "eve.engineer", json.createArrayNode().add(json.createObjectNode()
                 .put("packId", "host-pack").put("stateCode", "HX").put("displayName", "Hosted"))).getBody();

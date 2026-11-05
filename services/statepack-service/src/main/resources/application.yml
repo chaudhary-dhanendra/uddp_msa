@@ -32,6 +32,8 @@ uddp:
     workspace-directory: ${UDDP_STUDIO_WORKSPACE:target/studio-workspace}
     settings-directory: ${UDDP_STATEPACK_SETTINGS_DIRECTORY:}
     maker-checker: true
+    # The LGD snapshot that fills an empty geography master (the read model the Studio previews resolve against).
+    lgd-seed: ${UDDP_LGD_SEED:${uddp.studio.repository-root}/platform/reference-data/lgd/lgd-demo-snapshot.csv}
   shaping:
     plugins-dir: ${UDDP_SHAPING_PLUGINS_DIR:plugins}
     approved-plugins-file: ${UDDP_SHAPING_APPROVED_PLUGINS:../../platform/shaping/approved-plugins.yaml}

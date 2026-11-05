@@ -88,6 +88,7 @@ class StudioDatabaseSourceTest {
     void aSourceTableIsIngestedByTheGenericDatabaseTemplate() throws Exception {
         String hopHome = System.getenv("HOP_HOME");
         assumeTrue(hopHome != null && !hopHome.isBlank(), "HOP_HOME is needed for the real Hop template");
+        gov.uddp.core.testsupport.LgdSeed.load(connections);
         String[] server = TestDatabase.serverSettings();
         String sourceDatabase = "source_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String admin = "jdbc:postgresql://" + server[0] + ":" + server[1] + "/postgres";
