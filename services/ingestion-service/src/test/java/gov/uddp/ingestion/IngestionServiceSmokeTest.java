@@ -32,7 +32,7 @@ class IngestionServiceSmokeTest {
     void migratesOnlyItsOwnSchemas() {
         Integer applied = jdbc.queryForObject(
                 "select count(*) from ingestion.flyway_schema_history where success and type = 'SQL'", Integer.class);
-        assertThat(applied).isEqualTo(3);
+        assertThat(applied).isEqualTo(4);
 
         var schemas = jdbc.queryForList(
                 "select schema_name from information_schema.schemata"

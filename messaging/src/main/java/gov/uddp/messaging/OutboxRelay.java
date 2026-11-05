@@ -32,6 +32,9 @@ public final class OutboxRelay {
 
     /** How often the backlog is measured at most (drains run far more often). */
     static final long MEASURE_INTERVAL_MILLIS = 5_000;
+    /** How often published events past their retention are removed, and how many at most per pass. */
+    static final long PURGE_INTERVAL_MILLIS = 60 * 60_000;
+    static final int PURGE_ROWS = 50_000;
 
     private final ConnectionSource connections;
     private final Producer<String, String> producer;
@@ -41,6 +44,8 @@ public final class OutboxRelay {
     private final Counter published;
     private final Counter failures;
     private volatile long lastMeasured;
+    private volatile long lastPurged = System.currentTimeMillis();
+    private volatile java.time.Duration retention = java.time.Duration.ofDays(7);
 
     /** A relay that reports to Micrometer's global registry (Spring Boot adds its own registry to it). */
     public OutboxRelay(ConnectionSource connections, Producer<String, String> producer, int batchSize) {
@@ -117,6 +122,27 @@ public final class OutboxRelay {
         }
     }
 
+    /**
+     * How long published events stay in the outbox (default 7 days). Large batches put millions of events through it;
+     * consumers deduplicate by event id in their inbox, so an event re-appended after removal is still applied once.
+     */
+    public OutboxRelay retainPublished(java.time.Duration keep) {
+        this.retention = keep;
+        return this;
+    }
+
+    /** Removes up to {@link #PURGE_ROWS} published events older than the retention; returns how many. */
+    public int purgePublished() throws Exception {
+        try (var c = connections.open();
+             var s = c.prepareStatement("delete from outbox_event where event_id in (select event_id from outbox_event"
+                     + " where published_at is not null and published_at < now() - make_interval(secs => ?)"
+                     + " limit ?)")) {
+            s.setLong(1, retention.toSeconds());
+            s.setInt(2, PURGE_ROWS);
+            return s.executeUpdate();
+        }
+    }
+
     /** Publishes until the outbox is empty or a batch fails; failures are logged and retried on the next call. */
     public int drain() {
         int total = 0;
@@ -131,6 +157,14 @@ public final class OutboxRelay {
             LOG.warn("Outbox relay failed; unpublished events stay in the outbox and are retried", e);
         }
         long now = System.currentTimeMillis();
+        if (now - lastPurged >= PURGE_INTERVAL_MILLIS) {
+            lastPurged = now;
+            try {
+                purgePublished();
+            } catch (Exception e) {
+                LOG.warn("Removing published outbox events failed; retried on the next pass", e);
+            }
+        }
         if (now - lastMeasured >= MEASURE_INTERVAL_MILLIS) {
             lastMeasured = now;
             measureBacklog();
