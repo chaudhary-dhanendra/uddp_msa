@@ -17,6 +17,9 @@ public final class ServiceUrls {
     private static final String SCHEME = "lb://";
     private static volatile Function<String, List<URI>> registry;
     private static final AtomicInteger NEXT = new AtomicInteger();
+    private static final long POLL_MILLIS = 250;
+    /** How long a call waits for the first instance of a service to appear in the registry. */
+    private static volatile long waitMillis = 10_000;
 
     /** The header that carries the platform's service-to-service token (UDDP_INTERNAL_TOKEN). */
     public static final String TOKEN_HEADER = "X-UDDP-Service-Token";
@@ -46,11 +49,27 @@ public final class ServiceUrls {
                     + "; enable discovery or configure an http:// address");
         }
         List<URI> instances = lookup.apply(name);
+        // Just after startup the local registry copy can still be empty; give discovery a moment before giving up.
+        long deadline = System.currentTimeMillis() + waitMillis;
+        while ((instances == null || instances.isEmpty()) && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(POLL_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            instances = lookup.apply(name);
+        }
         if (instances == null || instances.isEmpty()) {
-            throw new IllegalStateException("No instance of " + name + " is registered");
+            throw new ServiceCalls.Unavailable("No instance of " + name + " is registered", null);
         }
         URI instance = instances.get(Math.floorMod(NEXT.getAndIncrement(), instances.size()));
         return instance.toString().replaceAll("/+$", "") + path;
+    }
+
+    /** How long {@link #resolve} waits for a service that has no registered instance yet (0: fail at once). */
+    public static void waitForInstances(long millis) {
+        waitMillis = Math.max(0, millis);
     }
 
     /** The service-to-service token this process sends (null: none configured). */

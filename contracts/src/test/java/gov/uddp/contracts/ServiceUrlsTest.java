@@ -15,6 +15,7 @@ class ServiceUrlsTest {
     @AfterEach
     void forget() {
         ServiceUrls.useRegistry(null);
+        ServiceUrls.waitForInstances(10_000);
     }
 
     @Test
@@ -31,7 +32,16 @@ class ServiceUrlsTest {
                 .toList(), "both instances are used");
         assertEquals("http://10.0.0.5:8105/api/x", ServiceUrls.resolve("lb://statepack-service/api/x")
                 .replace("10.0.0.6", "10.0.0.5"));
-        var missing = assertThrows(IllegalStateException.class, () -> ServiceUrls.resolve("lb://identity-service"));
+        ServiceUrls.waitForInstances(300);
+        var missing = assertThrows(ServiceCalls.Unavailable.class, () -> ServiceUrls.resolve("lb://identity-service"));
         assertEquals("No instance of identity-service is registered", missing.getMessage());
+    }
+
+    @Test
+    void aServiceThatRegistersShortlyAfterStartupIsWaitedFor() {
+        long registersAt = System.currentTimeMillis() + 600;
+        ServiceUrls.useRegistry(name -> System.currentTimeMillis() < registersAt
+                ? List.of() : List.of(URI.create("http://10.0.0.7:8101")));
+        assertEquals("http://10.0.0.7:8101/api/ingestion", ServiceUrls.resolve("lb://ingestion-service/api/ingestion"));
     }
 }
