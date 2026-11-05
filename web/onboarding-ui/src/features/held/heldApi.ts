@@ -1,14 +1,7 @@
 import { api, unwrap } from "../../api/client";
-import type { components } from "../../api/schema";
+import type { HeldRecord } from "../../api/types";
+export type { HeldRecord, HeldReason, HeldEvent, RectifyResult, GroupActionResult, BulkAction } from "../../api/types";
 import { fixLink, type FixTarget } from "./fixTargets";
-
-type Schemas = components["schemas"];
-export type HeldRecord = Schemas["HeldRecord"];
-export type HeldReason = Schemas["HeldReason"];
-export type HeldEvent = Schemas["HeldEvent"];
-export type RectifyResult = Schemas["RectifyResult"];
-export type GroupActionResult = Schemas["GroupActionResult"];
-export type BulkAction = Schemas["BulkAction"];
 
 /** The generated schema gives another type the name `Group`; the held-record group as the API returns it. */
 export interface HeldGroup {

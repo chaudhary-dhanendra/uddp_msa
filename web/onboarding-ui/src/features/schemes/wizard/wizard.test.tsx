@@ -60,7 +60,7 @@ describe("2 · SourcesStep", () => {
 
 describe("3 · EligibilityStep", () => {
   it("shows the linked rule set and hides Draft from GO when AI is off", async () => {
-    const fetchMock = vi.fn((url: string) => Promise.resolve(url.startsWith("/api/rule-sets") ? json([{ id: "r1", ownerId: "S1", version: 2, status: "APPROVED", type: "ELIGIBILITY", ownerType: "SCHEME", effectiveFrom: "2026-01-01", effectiveTo: null, requiredAttributes: ["age"] }]) : json({ enabled: false })));
+    const fetchMock = vi.fn((url: string) => Promise.resolve(url.startsWith("/api/rule-sets") ? json([{ id: "r1", ownerId: "S1", version: 2, status: "APPROVED", type: "ELIGIBILITY", ownerType: "SCHEME", effectiveFrom: "2026-01-01", effectiveTo: null, requiredAttributes: ["age"] }]) : url.startsWith("/api/scheme-packs") ? json([]) : json({ enabled: false })));
     vi.stubGlobal("fetch", fetchMock);
     wrap(<EligibilityStep version={version} onSaved={vi.fn()} />);
     expect(await screen.findByText("Linked rule set: v2 (APPROVED)")).toBeTruthy();
