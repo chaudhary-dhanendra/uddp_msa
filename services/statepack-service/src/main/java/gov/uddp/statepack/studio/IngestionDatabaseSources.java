@@ -81,7 +81,8 @@ public class IngestionDatabaseSources extends DatabaseSources {
                     .timeout(Duration.ofMinutes(2)).header("Content-Type", "application/json");
             request.method(method, body == null ? HttpRequest.BodyPublishers.noBody()
                     : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)));
-            HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+            // Both calls only read: safe to repeat.
+            HttpResponse<String> response = gov.uddp.contracts.ServiceCalls.send(http, request.build(), true);
             if (response.statusCode() >= 400) {
                 String message = response.body();
                 try {

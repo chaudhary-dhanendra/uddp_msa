@@ -99,8 +99,8 @@ public final class StatePackClient {
 
     private JsonNode get(String path) {
         try {
-            var response = http.send(gov.uddp.contracts.ServiceUrls.request(URI.create(ServiceUrls.resolve(baseUrl) + "/" + path)).timeout(Duration.ofSeconds(30))
-                    .GET().build(), HttpResponse.BodyHandlers.ofString());
+            var response = ServiceCalls.send(http, ServiceUrls.request(URI.create(ServiceUrls.resolve(baseUrl) + "/"
+                    + path)).timeout(Duration.ofSeconds(30)).GET().build(), true);
             if (response.statusCode() != 200) {
                 throw new IllegalStateException("statepack-service answered " + response.statusCode() + " for "
                         + path);

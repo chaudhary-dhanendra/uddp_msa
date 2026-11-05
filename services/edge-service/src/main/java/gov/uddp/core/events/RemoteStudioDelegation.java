@@ -67,7 +67,8 @@ public class RemoteStudioDelegation {
                 .header("X-UDDP-Actor", authentication == null ? "system" : authentication.getName())
                 .method(request.getMethod(), body == null ? HttpRequest.BodyPublishers.noBody()
                         : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)));
-        HttpResponse<String> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        HttpRequest built = builder.build();
+        HttpResponse<String> response = gov.uddp.contracts.ServiceCalls.send(http, built, "GET".equals(built.method()));
         if (response.statusCode() >= 400) {
             String message = response.body();
             try {

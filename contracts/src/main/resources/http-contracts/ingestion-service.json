@@ -1,0 +1,33 @@
+{
+  "provider": "ingestion-service",
+  "description": "The ingestion API the edge and the Studio call. {connection} and {table} come from the provider state each test sets up.",
+  "interactions": [
+    {
+      "name": "upload a delivered file",
+      "consumers": ["edge-service: RemoteHopRunner.upload"],
+      "request": {"method": "POST", "path": "/api/ingestion/files?name=contract.csv", "contentType": "application/octet-stream", "rawBody": "id,name\n1,Asha\n"},
+      "response": {"status": 200, "fields": ["fileRef"]}
+    },
+    {
+      "name": "list the database connections",
+      "consumers": ["statepack-service: IngestionDatabaseSources.list"],
+      "request": {"method": "GET", "path": "/api/ingestion/connections"},
+      "response": {
+        "status": 200,
+        "fields": ["[].name", "[].host", "[].port", "[].database", "[].user", "[].passwordSet"],
+        "forbidden": ["[].password"],
+        "example": [{"name": "registry-db", "host": "db", "port": 5432, "database": "reg", "user": "ro", "passwordSet": true}]
+      }
+    },
+    {
+      "name": "preview a database source",
+      "consumers": ["statepack-service: IngestionDatabaseSources.read"],
+      "request": {"method": "POST", "path": "/api/ingestion/sources/rows", "body": {"connectionRef": "{connection}", "table": "{table}", "limit": 2}},
+      "response": {
+        "status": 200,
+        "fields": ["header", "rows"],
+        "example": {"header": ["id", "name"], "rows": [{"id": "1", "name": "Asha"}]}
+      }
+    }
+  ]
+}

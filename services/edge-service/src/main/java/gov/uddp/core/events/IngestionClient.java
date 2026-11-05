@@ -52,7 +52,9 @@ public class IngestionClient {
 
     private HttpResponse<String> send(HttpRequest.Builder request) {
         try {
-            return http.send(request.timeout(Duration.ofMinutes(2)).build(), HttpResponse.BodyHandlers.ofString());
+            HttpRequest built = request.timeout(Duration.ofMinutes(2)).build();
+            // Reads and connector settings (put, idempotent) may be repeated; other writes only when never sent.
+            return gov.uddp.contracts.ServiceCalls.send(http, built, "GET".equals(built.method()) || "PUT".equals(built.method()));
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Cannot reach ingestion-service", e);
         } catch (InterruptedException e) {

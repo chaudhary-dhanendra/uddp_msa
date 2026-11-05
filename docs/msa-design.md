@@ -518,6 +518,16 @@ Not done yet, in priority order:
      `deploy/docker` (a generic JVM image, ingestion with Apache Hop, identity with Python and Splink). Running the
      whole stack on one machine is described in `docs/run-local.md`.
 
+   - **Resilience and contracts (2026-11-05):** the services' HTTP calls to each other go through
+     `contracts.ServiceCalls`: calls that may be repeated (reads, content-addressed uploads, idempotent publishes) are
+     retried up to 3 times with backoff on connection failures and 502/503/504, other calls only when they never
+     reached the target; a circuit breaker per target opens after 5 failures in a row and fails fast for 30 seconds
+     before one trial call. Kafka keeps its own retries and dead-letter topics. The HTTP contracts between services
+     are files (`contracts/src/main/resources/http-contracts/<provider>.json`): each provider verifies every
+     interaction against its running API (`StatepackHttpContractTest`, `IngestionSourcesTest`), and the consumers'
+     clients are tested against the same files' example answers (`StatePackClientContractTest`,
+     `IngestionDatabaseSourcesTest`); event contracts stay JSON Schemas (`EventSchemasTest`).
+
    Remaining Studio items: statepack-service holds read models of the LGD geography master (V4) and identifier
    types (V5) for previews; identifier types seed themselves, and an empty geography master is
    seeded from `UDDP_LGD_SEED` (default: the platform demo snapshot, `platform/reference-data/lgd`); LGD updates

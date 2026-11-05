@@ -89,8 +89,9 @@ public class StatePackPublisher {
 
     private JsonNode send(HttpRequest.Builder request) {
         try {
-            HttpResponse<String> response = http.send(request.timeout(Duration.ofMinutes(2)).build(),
-                    HttpResponse.BodyHandlers.ofString());
+            HttpRequest built = request.timeout(Duration.ofMinutes(2)).build();
+            HttpResponse<String> response = gov.uddp.contracts.ServiceCalls.send(http, built, "GET".equals(built.method())
+                    || built.uri().getPath().endsWith("/api/statepacks"));
             if (response.statusCode() >= 400) {
                 String message = response.body();
                 try {

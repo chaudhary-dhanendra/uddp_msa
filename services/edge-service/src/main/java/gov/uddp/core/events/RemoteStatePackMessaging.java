@@ -84,7 +84,8 @@ public class RemoteStatePackMessaging implements DisposableBean {
         private static boolean unreachable(Throwable e) {
             for (Throwable t = e; t != null; t = t.getCause()) {
                 String message = String.valueOf(t.getMessage());
-                if (t instanceof java.net.ConnectException || message.startsWith("Cannot reach statepack-service")
+                if (t instanceof java.net.ConnectException || t instanceof gov.uddp.contracts.ServiceCalls.Unavailable
+                        || message.startsWith("Cannot reach statepack-service")
                         || message.startsWith("No instance of") || message.startsWith("No service registry")) {
                     return true;
                 }

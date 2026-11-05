@@ -75,11 +75,11 @@ public class RemoteHopRunner implements HopRunner {
         body.put("table", source.table());
         body.put("query", source.query());
         try {
-            var response = java.net.http.HttpClient.newHttpClient().send(gov.uddp.contracts.ServiceUrls.request(
+            var response = gov.uddp.contracts.ServiceCalls.send(java.net.http.HttpClient.newHttpClient(), gov.uddp.contracts.ServiceUrls.request(
                             java.net.URI.create(gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/sources/test"))
                     .header("Content-Type", "application/json")
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(Outbox.json().writeValueAsString(body)))
-                    .build(), java.net.http.HttpResponse.BodyHandlers.ofString());
+                    .build(), true);
             if (response.statusCode() != 200) {
                 throw new IllegalStateException(Outbox.json().readTree(response.body()).path("error")
                         .asText("The source is not ready in ingestion-service"));
@@ -184,10 +184,10 @@ public class RemoteHopRunner implements HopRunner {
     private String upload(java.nio.file.Path file) throws Exception {
         String url = gov.uddp.contracts.ServiceUrls.resolve(ingestionUrl) + "/api/ingestion/files?name="
                 + java.net.URLEncoder.encode(file.getFileName().toString(), java.nio.charset.StandardCharsets.UTF_8);
-        var response = java.net.http.HttpClient.newHttpClient().send(gov.uddp.contracts.ServiceUrls.request(
+        // The upload is content addressed (the same bytes get the same fileRef), so it is safe to repeat.
+        var response = gov.uddp.contracts.ServiceCalls.send(java.net.http.HttpClient.newHttpClient(), gov.uddp.contracts.ServiceUrls.request(
                         java.net.URI.create(url)).header("Content-Type", "application/octet-stream")
-                        .POST(java.net.http.HttpRequest.BodyPublishers.ofFile(file)).build(),
-                java.net.http.HttpResponse.BodyHandlers.ofString());
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofFile(file)).build(), true);
         if (response.statusCode() != 200) {
             throw new IllegalStateException("ingestion-service refused the file: " + response.statusCode());
         }
