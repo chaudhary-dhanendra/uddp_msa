@@ -60,6 +60,57 @@ public final class RowReplication {
         return out;
     }
 
+    /** A table whose rows reference rows of the same table: its key column and the columns that hold references. */
+    public record SelfReference(String key, List<String> columns) {
+    }
+
+    /**
+     * Like {@link #chunks(JsonNode, List, int, java.util.Set)}, but a table that references itself is split too: its
+     * rows are ordered so a referenced row always comes first (a merged Golden ID after the one it merged into), and
+     * the chunks are applied in order, so every reference points to a row of the same or an earlier chunk. No chunk
+     * exceeds {@code maxRows}, however large the build.
+     */
+    public static List<ObjectNode> chunks(JsonNode rows, List<String> order, int maxRows,
+                                          Map<String, SelfReference> selfReferences) {
+        ObjectNode ordered = rows.deepCopy();
+        selfReferences.forEach((table, reference) -> {
+            if (rows.path(table).isArray()) {
+                ordered.set(table, referencedFirst((ArrayNode) rows.path(table), reference));
+            }
+        });
+        return chunks(ordered, order, maxRows, java.util.Set.of());
+    }
+
+    static ArrayNode referencedFirst(ArrayNode rows, SelfReference reference) {
+        Map<String, JsonNode> byKey = new java.util.LinkedHashMap<>();
+        rows.forEach(row -> byKey.put(row.path(reference.key()).asText(), row));
+        ArrayNode out = Outbox.json().createArrayNode();
+        java.util.Set<String> placed = new java.util.HashSet<>();
+        java.util.Set<String> visiting = new java.util.HashSet<>();
+        for (String key : byKey.keySet()) {
+            place(key, byKey, reference, placed, visiting, out);
+        }
+        return out;
+    }
+
+    private static void place(String key, Map<String, JsonNode> byKey, SelfReference reference,
+                              java.util.Set<String> placed, java.util.Set<String> visiting, ArrayNode out) {
+        if (placed.contains(key) || !visiting.add(key)) {
+            return; // placed already, or a reference cycle: the two-pass apply handles it within one chunk
+        }
+        JsonNode row = byKey.get(key);
+        for (String column : reference.columns()) {
+            String target = row.path(column).asText(null);
+            if (target != null && !target.equals(key) && byKey.containsKey(target)) {
+                place(target, byKey, reference, placed, visiting, out);
+            }
+        }
+        visiting.remove(key);
+        if (placed.add(key)) {
+            out.add(row);
+        }
+    }
+
     /** One table and the condition (with its parameters) selecting the rows to replicate. */
     public record Selection(String table, String where, List<Object> parameters) {
     }
