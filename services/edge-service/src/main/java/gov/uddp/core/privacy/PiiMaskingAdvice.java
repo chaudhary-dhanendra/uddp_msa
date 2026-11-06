@@ -46,9 +46,16 @@ public class PiiMaskingAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return MappingJackson2HttpMessageConverter.class.isAssignableFrom(converterType)
-                && (AnnotatedElementUtils.hasAnnotation(returnType.getMethod(), MaskPii.class)
-                || AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), MaskPii.class));
+        if (!MappingJackson2HttpMessageConverter.class.isAssignableFrom(converterType)) {
+            return false;
+        }
+        MaskPii onMethod = returnType.getMethod() == null ? null
+                : AnnotatedElementUtils.findMergedAnnotation(returnType.getMethod(), MaskPii.class);
+        if (onMethod != null) {
+            return onMethod.value();
+        }
+        MaskPii onClass = AnnotatedElementUtils.findMergedAnnotation(returnType.getContainingClass(), MaskPii.class);
+        return onClass != null && onClass.value();
     }
 
     @Override
