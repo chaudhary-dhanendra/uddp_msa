@@ -119,7 +119,7 @@ class BenefitReadApiTest extends ReadApiFixture {
         var catalogue = read("/api/v1/schemes");
         assertEquals("1.0.0", catalogue.path("catalogueVersion").asText());
         assertEquals(2, catalogue.path("departments").size());
-        assertEquals(List.of("PDS-RATION:2", "OLD-AGE-PENSION:3", "DISABILITY-PENSION:0"), catalogue.path("schemes")
+        assertEquals(List.of("PDS-RATION:2", "OLD-AGE-PENSION:3", "DISABILITY-PENSION:0", "WIDOW-PENSION:0"), catalogue.path("schemes")
                 .findValuesAsText("schemeId").stream().map(id -> id + ":" + count(catalogue, id)).toList());
 
         var report = read("/api/v1/reports/duplicate-benefits");

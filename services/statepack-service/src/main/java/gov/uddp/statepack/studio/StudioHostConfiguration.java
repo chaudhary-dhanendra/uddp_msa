@@ -29,7 +29,10 @@ import org.springframework.context.annotation.Import;
         gov.uddp.shaping.OperationRegistry.class, gov.uddp.core.mapping.ResidentMappingEngine.class,
         gov.uddp.core.mapping.FamilyMappingEngine.class, gov.uddp.core.mapping.BenefitMappingEngine.class,
         gov.uddp.core.validation.ResidentValidator.class, gov.uddp.core.validation.PlatformReferenceData.class,
-        gov.uddp.core.read.Db.class, gov.uddp.core.geography.GeographyService.class})
+        gov.uddp.core.read.Db.class, gov.uddp.core.geography.GeographyService.class,
+        // Live LGD code sets for crosswalk suggestions (village and district names resolve to LGD codes).
+        gov.uddp.core.reference.ReferenceDataService.class, gov.uddp.core.reference.LgdReferenceDataProvider.class,
+        gov.uddp.core.reference.StaticReferenceDataProvider.class})
 public class StudioHostConfiguration {
 
     @Bean

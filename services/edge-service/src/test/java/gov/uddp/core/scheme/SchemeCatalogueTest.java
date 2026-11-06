@@ -27,7 +27,7 @@ class SchemeCatalogueTest {
         var catalogue = new SchemeCatalogue(properties);
 
         assertEquals("1.0.0", catalogue.version());
-        assertEquals(List.of("PDS-RATION", "OLD-AGE-PENSION", "DISABILITY-PENSION"),
+        assertEquals(List.of("PDS-RATION", "OLD-AGE-PENSION", "DISABILITY-PENSION", "WIDOW-PENSION"),
                 catalogue.schemes().stream().map(SchemeCatalogue.Scheme::schemeId).toList());
         var pds = catalogue.scheme("PDS-RATION").orElseThrow();
         assertEquals("FAMILY", pds.beneficiaryLevel());

@@ -115,8 +115,35 @@ public class CanonicalConfiguration {
         return new StatePackClient(url);
     }
 
+    /**
+     * The shaping layer every mapping engine reads rows through: the pack's layout and parse steps (header detection,
+     * totals rows, name and relation split, approved plug-ins) and, for workbooks and layout steps, the whole sheet of
+     * the delivery from this service's Raw projection.
+     */
+    @Bean
+    gov.uddp.shaping.ShapingEngine shapingEngine(PostgresConnectionFactory canonicalConnections,
+                                                 OperationRegistry shapingOperations) {
+        var json = new ObjectMapper().findAndRegisterModules();
+        var engine = new gov.uddp.shaping.ShapingEngine(new RawCsvRecordParser(json), shapingOperations);
+        var raws = new PostgresRawRecordRepository(canonicalConnections, json);
+        engine.setBatchRows(new gov.uddp.shaping.api.BatchRows() {
+            @Override
+            public java.util.List<gov.uddp.core.mapping.RawRecord> records(java.util.UUID batchId) {
+                return raws.findByBatchId(batchId);
+            }
+
+            @Override
+            public java.util.List<gov.uddp.core.mapping.RawRecord> sheet(java.util.UUID batchId, String sourceSystem,
+                                                                         String file, String sheet) {
+                return raws.findSheet(batchId, sourceSystem, file, sheet);
+            }
+        });
+        return engine;
+    }
+
     @Bean
     CanonicalResidentProcessingService canonicalProcessing(PostgresConnectionFactory canonicalConnections,
+                                                           gov.uddp.shaping.ShapingEngine shaping,
                                                            StatePackLoader statePacks,
                                                            StatePackProperties statePackProperties,
                                                            PlatformEvents canonicalEvents,
@@ -129,19 +156,19 @@ public class CanonicalConfiguration {
         var canonicals = new PostgresCanonicalResidentRepository(canonicalConnections);
         canonicals.setEvents(canonicalEvents);
         var service = new CanonicalResidentProcessingService(new PostgresRawRecordRepository(canonicalConnections, json),
-                canonicals, statePacks, new ResidentMappingEngine(new RawCsvRecordParser(json)), new ResidentValidator(),
+                canonicals, statePacks, new ResidentMappingEngine(shaping), new ResidentValidator(),
                 json, new DqRepository(canonicalConnections), new PlatformReferenceData(statePackProperties));
         var families = new CanonicalFamilyProcessor(canonicalConnections,
-                new FamilyMappingEngine(new RawCsvRecordParser(json)), json);
+                new FamilyMappingEngine(shaping), json);
         families.setEvents(canonicalEvents);
         service.setFamilyProcessor(families);
         var catalogue = Path.of(platform, "schemes", "catalogue.yaml");
         service.setBenefitProcessor(new CanonicalBenefitProcessor(canonicalConnections,
-                new BenefitMappingEngine(new RawCsvRecordParser(json), new SchemeCatalogue(catalogue)), json));
+                new BenefitMappingEngine(shaping, new SchemeCatalogue(catalogue)), json));
         service.setAssetProcessor(new CanonicalAssetProcessor(canonicalConnections,
-                new AssetMappingEngine(new RawCsvRecordParser(json)), json));
+                new AssetMappingEngine(shaping), json));
         service.setApplicationProcessor(new CanonicalApplicationProcessor(canonicalConnections,
-                new ApplicationMappingEngine(new RawCsvRecordParser(json), new SchemeCatalogue(catalogue)), json));
+                new ApplicationMappingEngine(shaping, new SchemeCatalogue(catalogue)), json));
         service.setEvents(canonicalEvents);
         // Rows a steward can fix are held here (held_record), not rejected; the edge decides them through this service.
         service.setHeldRecords(new HeldRecordRepository(canonicalConnections, json), holdLowConfidence,
