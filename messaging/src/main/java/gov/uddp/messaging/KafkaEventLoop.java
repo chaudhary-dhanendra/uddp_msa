@@ -35,6 +35,19 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
     private final String consumerName;
     private final Map<String, Inbox.Handler> handlers;
     private final AtomicBoolean running = new AtomicBoolean(true);
+    private final Map<String, Inbox.BatchHandler> batchHandlers = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Handles a high-volume topic a poll at a time: consecutive records of it are applied in one transaction. When that
+     * fails they are handled one by one with the topic's single-event handler (retries, waiting, dead letters).
+     */
+    public KafkaEventLoop batched(String topic, Inbox.BatchHandler handler) {
+        if (!handlers.containsKey(topic)) {
+            throw new IllegalArgumentException("A batched topic needs its single-event handler too: " + topic);
+        }
+        batchHandlers.put(topic, handler);
+        return this;
+    }
 
     public KafkaEventLoop(String bootstrapServers, String consumerName, ConnectionSource connections,
                           Map<String, Inbox.Handler> handlers, Producer<String, String> deadLetters) {
@@ -65,9 +78,19 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
             consumer.subscribe(List.copyOf(handlers.keySet()));
             while (running.get()) {
                 var records = consumer.poll(Duration.ofMillis(500));
+                var group = new java.util.ArrayList<ConsumerRecord<String, String>>();
                 for (ConsumerRecord<String, String> record : records) {
-                    traced(record);
+                    if (!group.isEmpty() && !group.getFirst().topic().equals(record.topic())) {
+                        handleGroup(group);
+                        group.clear();
+                    }
+                    if (batchHandlers.containsKey(record.topic())) {
+                        group.add(record);
+                    } else {
+                        traced(record);
+                    }
                 }
+                handleGroup(group);
                 if (!records.isEmpty()) {
                     consumer.commitSync();
                 }
@@ -78,6 +101,19 @@ public final class KafkaEventLoop implements Runnable, AutoCloseable {
             }
         } finally {
             consumer.close();
+        }
+    }
+
+    private void handleGroup(List<ConsumerRecord<String, String>> group) {
+        if (group.isEmpty()) {
+            return;
+        }
+        try {
+            inbox.handleBatch(group, batchHandlers.get(group.getFirst().topic()));
+        } catch (Exception e) {
+            LOG.info("{}: a batch of {} {} events is handled one by one ({})", consumerName, group.size(),
+                    group.getFirst().topic(), String.valueOf(e.getMessage()));
+            group.forEach(this::traced);
         }
     }
 

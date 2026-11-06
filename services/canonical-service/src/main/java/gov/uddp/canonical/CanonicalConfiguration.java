@@ -49,7 +49,7 @@ public class CanonicalConfiguration {
     @Bean
     PostgresConnectionFactory canonicalConnections(JdbcConnectionDetails database) {
         String url = database.getJdbcUrl();
-        String schema = (url.contains("?") ? "&" : "?") + "currentSchema=canonical";
+        String schema = (url.contains("?") ? "&" : "?") + "currentSchema=canonical&reWriteBatchedInserts=true";
         return PostgresConnectionFactory.forSettings(url + schema, database.getUsername(), database.getPassword());
     }
 

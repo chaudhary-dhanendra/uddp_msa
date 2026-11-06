@@ -24,22 +24,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
 
 /**
  * Load test (opt-in: {@code -Dmsa.load=true}, rows with {@code -Dmsa.load.canonical-rows}, default 20,000): one
  * State 1 batch of distinct people arrives as raw-record-received events over Kafka, as ingestion-service publishes it,
  * and is mapped, validated and announced as resident-created. Prints the rows per second from the first event sent to
- * batch-processed.
+ * batch-processed. With {@code -Dmsa.load.postgres-url} and {@code -Dmsa.load.kafka} it uses those servers instead of
+ * Testcontainers (run the JVM next to them, for example all in one Docker network, to measure without a slow hop).
  */
-@Testcontainers
 @SpringBootTest
 @EnabledIfSystemProperty(named = "msa.load", matches = "true")
 class CanonicalLoadTest {
@@ -47,14 +44,29 @@ class CanonicalLoadTest {
     static final int ROWS = Integer.getInteger("msa.load.canonical-rows", 20_000);
     static final Path PACKS = CanonicalServiceFlowTest.PACKS;
 
-    @Container
-    @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("uddp_platform")
-            .withCommand("postgres", "-c", "shared_buffers=512MB", "-c", "max_wal_size=4GB", "-c", "fsync=off");
+    static final String EXTERNAL_POSTGRES = System.getProperty("msa.load.postgres-url");
+    static final String EXTERNAL_KAFKA = System.getProperty("msa.load.kafka");
 
-    @Container
-    static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.9.1");
+    static final PostgreSQLContainer<?> POSTGRES = EXTERNAL_POSTGRES != null ? null
+            : new PostgreSQLContainer<>("postgres:16-alpine")
+            .withDatabaseName("uddp_platform")
+            .withCommand("postgres", "-c", "shared_buffers=512MB", "-c", "max_wal_size=4GB", "-c", "fsync=off",
+                    "-c", "shared_preload_libraries=pg_stat_statements");
+
+    static final KafkaContainer KAFKA = EXTERNAL_KAFKA != null ? null : new KafkaContainer("apache/kafka:3.9.1");
+
+    static {
+        if (POSTGRES != null) {
+            POSTGRES.start();
+        }
+        if (KAFKA != null) {
+            KAFKA.start();
+        }
+    }
+
+    static String kafka() {
+        return EXTERNAL_KAFKA != null ? EXTERNAL_KAFKA : KAFKA.getBootstrapServers();
+    }
 
     static HttpServer statepack;
 
@@ -88,10 +100,15 @@ class CanonicalLoadTest {
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        registry.add("uddp.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        registry.add("uddp.kafka.bootstrap-servers", CanonicalLoadTest::kafka);
+        registry.add("spring.datasource.url", () -> EXTERNAL_POSTGRES != null ? EXTERNAL_POSTGRES : POSTGRES.getJdbcUrl());
+        registry.add("spring.datasource.username", () -> POSTGRES != null ? POSTGRES.getUsername() : "postgres");
+        registry.add("spring.datasource.password", () -> POSTGRES != null ? POSTGRES.getPassword()
+                : System.getProperty("msa.load.postgres-password", "load"));
         registry.add("uddp.canonical.statepack-url", () -> "http://127.0.0.1:" + statepack.getAddress().getPort());
         String cache = Path.of("target/pack-cache-" + UUID.randomUUID()).toAbsolutePath().toString();
         registry.add("uddp.canonical.pack-cache", () -> cache);
+        registry.add("uddp.processing.chunk-size", () -> Integer.getInteger("msa.load.chunk-size", 1000));
     }
 
     @Autowired
@@ -107,7 +124,7 @@ class CanonicalLoadTest {
         String version = Files.readString(PACKS.resolve("state-1/state.yaml")).replaceAll("(?s).*version: *([^\\s]+).*",
                 "$1");
         long started = System.nanoTime();
-        try (var producer = new KafkaProducer<>(Map.<String, Object>of("bootstrap.servers", KAFKA.getBootstrapServers(),
+        try (var producer = new KafkaProducer<>(Map.<String, Object>of("bootstrap.servers", kafka(),
                 "linger.ms", "20", "batch.size", "262144"), new StringSerializer(), new StringSerializer())) {
             ObjectNode done = json.createObjectNode();
             done.put("batchId", batch);
@@ -152,6 +169,14 @@ class CanonicalLoadTest {
         long created = count("select count(*) from canonical_resident");
         System.out.printf("LOAD canonical %,d rows: sent in %.1f s, mapped and announced in %.1f s (%,.0f rows/s);"
                 + " %,d residents%n", ROWS, sent, seconds, ROWS / seconds, created);
+        // Where the time went: the statements run most often, per row.
+        jdbc.execute("create extension if not exists pg_stat_statements");
+        for (var row : jdbc.queryForList("select calls, round(total_exec_time) as ms, left(regexp_replace(query,"
+                + " '\s+', ' ', 'g'), 110) as q from pg_stat_statements where calls >= ? order by calls desc limit 30",
+                ROWS / 2)) {
+            System.out.printf("STMT %8d calls %7d ms  %s%n", ((Number) row.get("calls")).longValue(),
+                    ((Number) row.get("ms")).longValue(), row.get("q"));
+        }
         assertThat(created).as(() -> "errors " + jdbc.queryForList("select reason_code, count(*) from"
                 + " canonical_processing_error group by reason_code")).isEqualTo(ROWS);
     }

@@ -85,7 +85,7 @@ public class PostgresConnectionFactory implements gov.uddp.core.database.Connect
     private static final Map<String, com.zaxxer.hikari.HikariDataSource> POOLS =
             new java.util.concurrent.ConcurrentHashMap<>();
     /** Connections per pool; small, as several services may share one database server. */
-    static final int POOL_SIZE = Integer.getInteger("uddp.database.pool-size", 8);
+    static final int POOL_SIZE = Integer.getInteger("uddp.database.pool-size", 12);
 
     private Connection pooled() throws SQLException {
         String url = url();

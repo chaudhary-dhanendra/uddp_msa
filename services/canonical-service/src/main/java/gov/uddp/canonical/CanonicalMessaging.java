@@ -59,7 +59,9 @@ public class CanonicalMessaging implements DisposableBean {
                         // After this transaction commits the worker sees the report; it then waits for the records.
                         worker.execute(() -> process(UUID.fromString(batch)));
                     }
-                }), producer);
+                }), producer)
+                // A large batch arrives a poll at a time, each poll in one transaction.
+                .batched(Topics.RAW_RECORD_RECEIVED, RemoteRawProjection::rawRecordsReceived);
         // The LGD geography master follows the edge's snapshots (geography.snapshot-published).
         var lgd = new gov.uddp.core.geography.LgdImportService(canonicalConnections,
                 new com.fasterxml.jackson.databind.ObjectMapper());

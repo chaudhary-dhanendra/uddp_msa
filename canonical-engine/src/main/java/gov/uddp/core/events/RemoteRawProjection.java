@@ -54,6 +54,54 @@ public final class RemoteRawProjection {
         }
     }
 
+    /** Many raw-record-received events in one go (a poll of a large batch): one batched statement per table. */
+    public static void rawRecordsReceived(Connection c, java.util.List<JsonNode> envelopes) throws SQLException {
+        try (var s = c.prepareStatement("insert into ingestion_batch (batch_id, state_code, source_system, source_type,"
+                + " source_schema_version, state_pack_version, pipeline_template, status)"
+                + " values (?, ?, ?, ?, ?, ?, ?, 'STARTED') on conflict do nothing")) {
+            var batches = new java.util.HashSet<UUID>();
+            for (JsonNode envelope : envelopes) {
+                JsonNode p = envelope.path("payload");
+                UUID batch = UUID.fromString(p.path("batchId").asText());
+                if (!batches.add(batch)) {
+                    continue;
+                }
+                s.setObject(1, batch);
+                s.setString(2, envelope.path("stateCode").asText());
+                s.setString(3, p.path("sourceSystem").asText());
+                s.setString(4, p.path("sourceType").asText("FILE"));
+                s.setString(5, text(p.path("sourceSchemaVersion")));
+                s.setString(6, p.path("statePackVersion").asText());
+                s.setString(7, p.path("pipelineTemplate").asText());
+                s.addBatch();
+            }
+            s.executeBatch();
+        }
+        try (var s = c.prepareStatement("insert into raw_record (raw_record_id, batch_id, state_code, source_system,"
+                + " source_record_id, ingested_at, raw_payload, source_metadata, state_pack_version,"
+                + " source_schema_version, pipeline_template, source_line)"
+                + " values (?, ?, ?, ?, ?, ?, ?, cast(? as jsonb), ?, ?, ?, ?) on conflict do nothing")) {
+            for (JsonNode envelope : envelopes) {
+                JsonNode p = envelope.path("payload");
+                s.setObject(1, UUID.fromString(p.path("rawRecordId").asText()));
+                s.setObject(2, UUID.fromString(p.path("batchId").asText()));
+                s.setString(3, envelope.path("stateCode").asText());
+                s.setString(4, p.path("sourceSystem").asText());
+                s.setString(5, text(p.path("sourceRecordId")));
+                s.setTimestamp(6, Timestamp.from(Instant.parse(p.path("landedAt").asText())));
+                s.setString(7, p.path("rawPayload").asText());
+                s.setString(8, p.path("sourceMetadata").isObject() ? p.path("sourceMetadata").toString() : "{}");
+                s.setString(9, p.path("statePackVersion").asText());
+                s.setString(10, text(p.path("sourceSchemaVersion")));
+                s.setString(11, p.path("pipelineTemplate").asText());
+                s.setObject(12, p.path("sourceLine").isInt() ? p.path("sourceLine").asInt() : null,
+                        java.sql.Types.INTEGER);
+                s.addBatch();
+            }
+            s.executeBatch();
+        }
+    }
+
     public static void batchCompleted(Connection c, JsonNode envelope) throws SQLException {
         JsonNode p = envelope.path("payload");
         if ("LANDED".equals(p.path("status").asText())) {

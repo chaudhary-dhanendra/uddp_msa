@@ -162,6 +162,32 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
         this.chunkSize = chunkSize;
     }
 
+    private int parallelChunks = 4;
+
+    /** Work a chunk leaves for after its transaction has committed (see {@link #afterCommit}). */
+    private static final ThreadLocal<List<Runnable>> AFTER_COMMIT = ThreadLocal.withInitial(ArrayList::new);
+
+    private static void afterCommit(Runnable work) {
+        AFTER_COMMIT.get().add(work);
+    }
+
+    private static void runAfterCommit() {
+        var work = List.copyOf(AFTER_COMMIT.get());
+        AFTER_COMMIT.get().clear();
+        work.forEach(Runnable::run);
+    }
+
+    /**
+     * Chunks processed at the same time, each in its own transaction ({@code uddp.processing.parallel-chunks}, default
+     * 4; needs chunk transactions). Rows of one batch are independent (a source record claimed twice is rejected up
+     * front), so chunks may commit in any order; resume skips the committed ones. Mostly hides database latency.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setParallelChunks(
+            @org.springframework.beans.factory.annotation.Value("${uddp.processing.parallel-chunks:4}") int parallel) {
+        this.parallelChunks = Math.max(1, parallel);
+    }
+
     /** Enables a transaction per chunk and resume after a failure; without it chunks run without a transaction. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setProgress(ProcessingProgress progress) {
@@ -188,6 +214,17 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
         final var referenceValues = referenceValues(true);
         var duplicateKeys = duplicateKeys(batchId);
         int committed = progress == null ? 0 : progress.begin(batchId, chunkSize);
+        java.util.Set<Integer> done = committed > 0 ? progress.committedChunks(batchId) : java.util.Set.of();
+        int parallel = progress == null ? 1 : parallelChunks;
+        var pool = parallel == 1 ? null : java.util.concurrent.Executors.newFixedThreadPool(parallel, r -> {
+            Thread thread = new Thread(r, "canonical-chunk");
+            thread.setDaemon(true);
+            return thread;
+        });
+        // At most two chunks per worker are read ahead, so memory stays bounded however large the batch is.
+        var slots = new java.util.concurrent.Semaphore(parallel * 2);
+        var running = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+        var failure = new java.util.concurrent.atomic.AtomicReference<RuntimeException>();
         // A chunked batch has one DQ evaluation; a resumed one carries on with the evaluation its first chunks made.
         var evaluation = new java.util.concurrent.atomic.AtomicReference<UUID>(
                 committed > 0 && dq != null ? dq.latestEvaluation(batchId).orElse(null) : null);
@@ -200,17 +237,41 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
                 return;
             }
             int current = ++number[0];
-            if (current > committed) {
-                var started = OffsetDateTime.now();
+            if (!done.contains(current) && failure.get() == null) {
                 var rows = List.copyOf(chunk);
-                var counts = progress == null ? processChunk(rows, duplicateKeys, referenceValues, evaluation)
-                        : progress.inTransaction(() -> {
-                            var done = processChunk(rows, duplicateKeys, referenceValues, evaluation);
-                            progress.commit(batchId, current, done, started);
-                            return done;
-                        });
-                totals[0] = totals[0].plus(counts);
-                afterChunk.accept(current);
+                Runnable work = () -> {
+                    var started = OffsetDateTime.now();
+                    AFTER_COMMIT.get().clear();
+                    var counts = progress == null ? processChunk(rows, duplicateKeys, referenceValues, evaluation)
+                            : progress.inTransaction(() -> {
+                                var result = processChunk(rows, duplicateKeys, referenceValues, evaluation);
+                                progress.commit(batchId, current, result, started);
+                                return result;
+                            });
+                    runAfterCommit();
+                    synchronized (totals) {
+                        totals[0] = totals[0].plus(counts);
+                    }
+                    afterChunk.accept(current);
+                };
+                // The first chunk runs alone: it creates the batch's DQ evaluation the others add to.
+                if (pool == null || (dq != null && evaluation.get() == null)) {
+                    work.run();
+                } else {
+                    slots.acquireUninterruptibly();
+                    running.add(pool.submit(() -> {
+                        try {
+                            if (failure.get() != null) {
+                                return; // another chunk failed: leave this one for the resume
+                            }
+                            work.run();
+                        } catch (RuntimeException e) {
+                            failure.compareAndSet(null, e);
+                        } finally {
+                            slots.release();
+                        }
+                    }));
+                }
             }
             chunk.clear();
         };
@@ -221,6 +282,23 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
             }
         });
         flush.run();
+        if (pool != null) {
+            for (var future : running) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while processing batch " + batchId, e);
+                } catch (java.util.concurrent.ExecutionException e) {
+                    failure.compareAndSet(null, new IllegalStateException(e.getCause()));
+                }
+            }
+            pool.shutdown();
+            if (failure.get() != null) {
+                // The committed chunks stay; the batch resumes with the others.
+                throw failure.get();
+            }
+        }
         if (progress != null) {
             progress.complete(batchId);
         }
@@ -339,7 +417,15 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
                 known = dq.start(prepared.getFirst().raw(), prepared.size(), ruleEvaluations, errors, warnings, affected);
                 evaluationRef.set(known);
             } else {
-                dq.add(known, prepared.size(), ruleEvaluations, errors, warnings, affected);
+                // Added once the chunk has committed: an update of the batch's one evaluation row inside every chunk
+                // transaction would make parallel chunks wait for each other.
+                final UUID running = known;
+                final int rows = prepared.size();
+                final int evaluations = ruleEvaluations;
+                final int errorCount = errors;
+                final int warningCount = warnings;
+                final int affectedRows = affected;
+                afterCommit(() -> dq.add(running, rows, evaluations, errorCount, warningCount, affectedRows));
             }
         }
         final UUID evaluation = known;
