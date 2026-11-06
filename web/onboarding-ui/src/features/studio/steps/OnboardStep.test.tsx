@@ -21,19 +21,20 @@ function stub(status: string): string[] {
     vi.fn(async (input: RequestInfo | URL) => {
       const path = input instanceof Request ? input.url : String(input);
       paths.push(path);
-      const body = path.includes("/onboarding-runs/") ? { run: { status }, timeline: [] } : {};
+      const body = path.includes("/onboarding-runs/") ? { run: { status }, timeline: [] }
+        : path.endsWith("/landing") ? { waiting: [] } : {};
       return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
     }),
   );
   return paths;
 }
 
-function renderStep() {
+function renderStep(source: StudioDraft = draft) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <I18nProvider>
         <MemoryRouter>
-          <OnboardStep draft={draft} onBack={vi.fn()} onDone={vi.fn()} />
+          <OnboardStep draft={source} onBack={vi.fn()} onDone={vi.fn()} />
         </MemoryRouter>
       </I18nProvider>
     </QueryClientProvider>,
@@ -48,6 +49,20 @@ describe("OnboardStep", () => {
     renderStep();
     expect((await screen.findByTestId("onboarding-paused")).textContent).toContain("needs a person to release it");
     expect(screen.getByRole("link", { name: "Open the run" }).getAttribute("href")).toBe("/onboarding-runs/run-1");
+    expect((screen.getByTestId("start-onboarding") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("offers the next delivery of a database source once a run is completed", async () => {
+    stub("COMPLETED");
+    renderStep({ ...draft, source: { sourceId: "cards", sourceType: "database" } } as unknown as StudioDraft);
+    await screen.findByTestId("onboarding-completed");
+    expect((screen.getByTestId("start-onboarding") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps a completed file source closed until a new delivery is uploaded", async () => {
+    stub("COMPLETED");
+    renderStep();
+    await screen.findByTestId("onboarding-completed");
     expect((screen.getByTestId("start-onboarding") as HTMLButtonElement).disabled).toBe(true);
   });
 

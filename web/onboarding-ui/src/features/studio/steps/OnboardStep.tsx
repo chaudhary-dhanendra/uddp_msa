@@ -63,6 +63,8 @@ export function OnboardStep({
   });
   const runStatus = run.data?.run?.status;
   const finished = runStatus === "COMPLETED";
+  // A database source has no delivery to upload: every start reads the rows changed since the last load.
+  const readsTable = draft.source?.sourceType === "database";
   if (finished) {
     void queryClient.invalidateQueries({ queryKey: studioKeys.draft(draftId) });
   }
@@ -81,7 +83,7 @@ export function OnboardStep({
               start.isPending ||
               runStatus === "RUNNING" ||
               runStatus === "PAUSED" ||
-              finished ||
+              (finished && !readsTable) ||
               draft.published == null
             }
             data-testid="start-onboarding"
