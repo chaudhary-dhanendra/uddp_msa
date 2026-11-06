@@ -120,7 +120,9 @@ public class GeographyService {
     /**
      * The current entity for a type and code. Lookups are cached for {@link #FIND_TTL_MILLIS}: mapping resolves the
      * geography of every row (and its ancestors), so a large delivery or dry run would otherwise query the master
-     * several times per row. The master changes rarely; a load is visible to mapping within the TTL.
+     * several times per row. The master changes rarely; a change is visible to mapping within the TTL. Only codes
+     * that were found are cached: a code missing now (the master not projected here yet, or loaded since) is looked
+     * up again next time.
      */
     public Optional<GeoEntity> find(String entityType, String code) {
         if (entityType == null || code == null) {
@@ -137,7 +139,9 @@ public class GeographyService {
         if (findCache.size() > FIND_CACHE_MAX) {
             findCache.clear();
         }
-        findCache.put(key, new CachedFind(entity, now + FIND_TTL_MILLIS));
+        if (entity.isPresent()) {
+            findCache.put(key, new CachedFind(entity, now + FIND_TTL_MILLIS));
+        }
         return entity;
     }
 
