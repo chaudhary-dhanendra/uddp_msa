@@ -54,6 +54,17 @@ class GeographyServiceTest {
     }
 
     @Test
+    void aCodeLookedUpBeforeTheMasterArrivesIsFoundOnceItIsLoaded() {
+        assertTrue(geography.find("VILLAGE", "500001").isEmpty(), "no master yet");
+        assertFalse(geography.loaded());
+
+        imports.importSnapshot(FileLgdSourceClient.read(LgdMasterImportTest.FIXTURE), "tester");
+
+        assertTrue(geography.loaded());
+        assertTrue(geography.find("VILLAGE", "500001").isPresent(), "a miss is never cached");
+    }
+
+    @Test
     void activeInactiveUnknownAndAsOf() {
         imports.importSnapshot(FileLgdSourceClient.read(LgdMasterImportTest.FIXTURE), "tester");
         imports.importSnapshot(new LgdSnapshotData("delta", LocalDate.parse("2024-06-01"), List.of(
