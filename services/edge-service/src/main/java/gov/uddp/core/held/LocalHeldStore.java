@@ -23,7 +23,13 @@ public class LocalHeldStore {
     public void resumeReprocessJobs(org.springframework.boot.context.event.ApplicationReadyEvent ready) {
         ready.getApplicationContext().getBeanProvider(HeldStore.class).ifAvailable(store -> {
             if (store instanceof HeldRecordOperations operations) {
-                operations.resumeReprocessJobs();
+                try {
+                    operations.resumeReprocessJobs();
+                } catch (RuntimeException e) {
+                    // Setup mode (no database yet) or a schema not migrated: nothing can be left running.
+                    org.slf4j.LoggerFactory.getLogger(LocalHeldStore.class)
+                            .info("No held reprocess jobs resumed: {}", e.getMessage());
+                }
             }
         });
     }

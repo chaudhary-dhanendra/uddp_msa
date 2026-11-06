@@ -75,6 +75,54 @@ public final class Outbox {
         }
     }
 
+    /**
+     * Appends many events of one type, built by the same code, to one topic in a single batched statement (large
+     * batches: one round trip per chunk instead of per event). The first event is validated against its schemas (the
+     * others share its shape; validating each one costs more than writing it). Events whose id is already in the
+     * outbox are skipped. Returns how many were added.
+     */
+    public static int appendAll(Connection c, String topic, java.util.List<EventEnvelope> envelopes) throws SQLException {
+        if (envelopes.isEmpty()) {
+            return 0;
+        }
+        String trace = TraceContext.current();
+        try (var s = c.prepareStatement("insert into outbox_event (event_id, topic, partition_key, event_type, payload)"
+                + " values (?, ?, ?, ?, cast(? as jsonb)) on conflict (event_id) do nothing")) {
+            boolean first = true;
+            for (EventEnvelope envelope : envelopes) {
+                JsonNode document = JSON.valueToTree(envelope);
+                if (!first && !envelope.eventType().equals(envelopes.getFirst().eventType())) {
+                    throw new IllegalArgumentException("appendAll takes events of one type");
+                }
+                var problems = first ? EventSchemas.validate(EventSchemas.ENVELOPE, document) : java.util.List.<String>of();
+                String payloadSchema = envelope.eventType().replaceFirst("^uddp\\.", "") + ".v"
+                        + envelope.schemaVersion();
+                if (first && problems.isEmpty() && EventSchemas.exists(payloadSchema)) {
+                    problems = EventSchemas.validate(payloadSchema, envelope.payload());
+                }
+                if (!problems.isEmpty()) {
+                    throw new IllegalArgumentException("Invalid " + envelope.eventType() + " event: " + problems);
+                }
+                first = false;
+                if (trace != null && document instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+                    object.put(TraceContext.FIELD, trace);
+                }
+                s.setObject(1, envelope.eventId());
+                s.setString(2, topic);
+                s.setString(3, envelope.partitionKey());
+                s.setString(4, envelope.eventType());
+                s.setString(5, document.toString());
+                s.addBatch();
+            }
+            int added = 0;
+            for (int count : s.executeBatch()) {
+                // SUCCESS_NO_INFO (-2) when the driver rewrote the batch into multi-row inserts.
+                added += count != 0 ? 1 : 0;
+            }
+            return added;
+        }
+    }
+
     /** A name-based id for an event derived from an immutable row, so a rerun produces the same id. */
     public static UUID deterministicId(String eventType, String sourceId) {
         return UUID.nameUUIDFromBytes((eventType + "|" + sourceId).getBytes(StandardCharsets.UTF_8));

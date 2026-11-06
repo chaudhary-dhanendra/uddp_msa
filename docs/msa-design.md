@@ -581,3 +581,18 @@ guard asserts the service source trees are byte-identical to the tagged baseline
   replaying `sample-data` through the pipeline. The `uddp` DB is never touched.
 - **D5. Placement choices in section 2.4** (shaping, held, vault, LGD in canonical; benefits and eligibility in
   registry; onboarding saga and auth in edge-service).
+
+## Large sources (load test, 2026-11-06)
+
+Opt-in load tests (`-Dmsa.load=true`) on a Windows laptop with Docker Desktop:
+
+- ingestion-service lands and announces **1,000,000 rows in 107 s** (about 9,300 rows/s, peak heap 325 MB,
+  outbox 1.2 GB before the 7-day cleanup): `LargeBatchLoadTest`.
+- canonical-service maps **5,000 rows in about 100 s** (about 50 rows/s end to end; receipt about 140 events/s,
+  mapping about 75 rows/s): `CanonicalLoadTest`. Each row still makes 15 to 25 single-row SQL round trips (resident
+  version, family, benefit, asset and application observations, outbox events), and every received event is its own
+  transaction; both scale with the database round-trip time, which Docker Desktop on Windows inflates.
+
+Next steps for millions of rows in canonical: apply a poll of raw events in one transaction (inbox batch), batch the
+per-row inserts of a chunk (resident versions, observations, outbox), and run several canonical workers on distinct
+batches or partitions. Measure on a Linux host next to the database first.
