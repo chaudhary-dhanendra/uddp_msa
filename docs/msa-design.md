@@ -588,6 +588,9 @@ Opt-in load tests (`-Dmsa.load=true`) on a Windows laptop with Docker Desktop:
 
 - ingestion-service lands and announces **1,000,000 rows in 107 s** (about 9,300 rows/s, peak heap 325 MB,
   outbox 1.2 GB before the 7-day cleanup): `LargeBatchLoadTest`.
+- After caching the event-schema lookup (a classpath file check per outbox event) with 6 parallel chunks and large
+  receipt polls: **20,000 rows in 38 s, about 530 rows/s** end to end (receipt about 12 s, mapping about 25 s), so a
+  million rows in about 30 minutes.
 - Later the same day (parallel chunks, batched receipt): canonical-service maps **10,000 rows in 56 s, about
   180 rows/s**, also with the JVM, Postgres and Kafka on one Docker network. Before:
 - canonical-service maps **5,000 rows in about 100 s** (about 50 rows/s end to end; receipt about 140 events/s,
