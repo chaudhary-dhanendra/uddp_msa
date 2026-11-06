@@ -67,7 +67,9 @@ public final class GoldenReplica {
 
     /** The build's rows in ordered chunks; the last one marks the build as replicated. */
     public static List<com.fasterxml.jackson.databind.node.ObjectNode> chunks(ObjectNode rows) {
-        return RowReplication.chunks(rows, ORDER, CHUNK_ROWS, SELF_REFERENCES.keySet());
+        // golden_resident references itself (merged into, split from): ordered referenced-first, then split.
+        return RowReplication.chunks(rows, ORDER, CHUNK_ROWS, Map.of("golden_resident",
+                new RowReplication.SelfReference("golden_resident_id", SELF_REFERENCES.get("golden_resident"))));
     }
 
     /** Applies one golden-replica chunk; the last chunk records that the whole build is here. */

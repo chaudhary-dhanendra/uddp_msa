@@ -107,3 +107,4 @@
 - 2026-11-06: GeographyService.find caches lookups for 60 s, so mapping and dry runs do not query the LGD master several times per row.
 - 2026-11-06: Studio publish is blocked only when rows with blocking errors exceed uddp.processing.max-held-percent (5%) of the publish check; fewer bad rows are data problems held or rejected at load. GeographyService.loaded() keeps a true answer.
 - 2026-11-06: The State Pack cache keeps one version per pack (StatePackClient.materialize removes the pack's other versions), so a second pack version no longer breaks canonical processing with Duplicate packId.
+- 2026-11-06: A self-referencing replicated table (golden_resident) is ordered referenced-first and split into normal chunks, so a large Golden build never exceeds Kafka's message limit.
