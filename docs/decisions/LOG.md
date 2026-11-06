@@ -104,3 +104,4 @@
 - 2026-11-06 (demo rehearsal): canonical-service maps through the real ShapingEngine (registry + BatchRows over its Raw projection; before, every xlsx source failed and no layout/parse step ran); statepack-service's Studio gets the live LGD reference sets (village/district names resolve); the gateway routes /health; WIDOW-PENSION joins the platform scheme catalogue.
 - 2026-11-06: Incremental matching runs count only their new records in match_rate; monitoring claims a run before checking it (no duplicate alerts); @MaskPii(false) lets unmasked handlers (matching profiles) opt out of a masked controller.
 - 2026-11-06: The release gate reads a delivery's held share through HeldStore (canonical-service in the MSA, GET /api/canonical/held-records/batches/{batch}/share); delivery change counts shape xlsx rows before keying them.
+- 2026-11-06: GeographyService.find caches lookups for 60 s, so mapping and dry runs do not query the LGD master several times per row.
