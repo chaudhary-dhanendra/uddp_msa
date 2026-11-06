@@ -26,7 +26,7 @@ public class RawCsvRecordParser {
             String line = requiredText(payload, "rawLine");
             List<String> fields = singleRecord(header, CSVFormat.RFC4180);
             List<String> values = singleRecord(line, CSVFormat.RFC4180);
-            if (fields.size() != values.size()) throw new IllegalArgumentException("CSV header/value column count differs");
+            if (fields.size() != values.size()) throw unreadable("The row has " + values.size() + " columns, the source " + fields.size(), null);
             Map<String, Object> result = new LinkedHashMap<>();
             for (int index = 0; index < fields.size(); index++) {
                 if (fields.get(index).isBlank()) throw new IllegalArgumentException("CSV header contains a blank field name");
@@ -34,8 +34,14 @@ public class RawCsvRecordParser {
             }
             return result;
         } catch (IOException e) {
-            throw new IllegalArgumentException("Raw payload is not valid CSV-in-JSON", e);
+            throw unreadable("The row is not valid CSV: " + e.getMessage(), e);
         }
+    }
+
+    /** A row that cannot be read as a record: rejected with UNREADABLE_ROW, fixed at the source or its layout. */
+    private static gov.uddp.core.validation.ReasonCodes.ReasonedException unreadable(String message, Throwable cause) {
+        return new gov.uddp.core.validation.ReasonCodes.ReasonedException(
+                gov.uddp.core.validation.ReasonCodes.UNREADABLE_ROW, message, cause);
     }
 
     private static String requiredText(JsonNode payload, String name) {
@@ -46,7 +52,7 @@ public class RawCsvRecordParser {
     private static List<String> singleRecord(String text, CSVFormat format) throws IOException {
         try (CSVParser parser = new CSVParser(new StringReader(text), format)) {
             List<CSVRecord> records = parser.getRecords();
-            if (records.size() != 1) throw new IllegalArgumentException("Expected one CSV record, found " + records.size());
+            if (records.size() != 1) throw unreadable("Expected one CSV record, found " + records.size(), null);
             return records.getFirst().stream().toList();
         }
     }
