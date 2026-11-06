@@ -106,3 +106,4 @@
 - 2026-11-06: The release gate reads a delivery's held share through HeldStore (canonical-service in the MSA, GET /api/canonical/held-records/batches/{batch}/share); delivery change counts shape xlsx rows before keying them.
 - 2026-11-06: GeographyService.find caches lookups for 60 s, so mapping and dry runs do not query the LGD master several times per row.
 - 2026-11-06: Studio publish is blocked only when rows with blocking errors exceed uddp.processing.max-held-percent (5%) of the publish check; fewer bad rows are data problems held or rejected at load. GeographyService.loaded() keeps a true answer.
+- 2026-11-06: The State Pack cache keeps one version per pack (StatePackClient.materialize removes the pack's other versions), so a second pack version no longer breaks canonical processing with Duplicate packId.

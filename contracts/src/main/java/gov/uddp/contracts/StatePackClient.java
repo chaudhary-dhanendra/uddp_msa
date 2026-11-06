@@ -64,6 +64,7 @@ public final class StatePackClient {
         String suffix = pack.ref().digest().substring("sha256:".length(), "sha256:".length() + 12);
         Path dir = cache.resolve(pack.ref().packId() + "-" + pack.ref().version() + "-" + suffix);
         if (Files.isRegularFile(dir.resolve("state.yaml"))) {
+            removeOtherVersions(cache, pack.ref().packId(), dir);
             return dir;
         }
         Path staging = Files.createDirectories(cache).resolve(dir.getFileName() + ".tmp-" + System.nanoTime());
@@ -82,7 +83,32 @@ public final class StatePackClient {
                 throw raced;
             }
         }
+        removeOtherVersions(cache, pack.ref().packId(), dir);
         return dir;
+    }
+
+    /**
+     * The cache holds one version per pack: callers load the whole cache, which rejects two folders with the same
+     * packId, so the version just materialized replaces the pack's earlier versions (and earlier digests).
+     */
+    static void removeOtherVersions(Path cache, String packId, Path keep) throws IOException {
+        var version = java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(packId)
+                + "-\\d+\\.\\d+\\.\\d+[^/\\\\]*-[0-9a-f]{12}");
+        try (var entries = Files.list(cache)) {
+            for (Path other : entries.filter(Files::isDirectory).toList()) {
+                if (!other.equals(keep) && version.matcher(other.getFileName().toString()).matches()) {
+                    deleteTree(other);
+                }
+            }
+        }
+    }
+
+    private static void deleteTree(Path root) throws IOException {
+        try (var walk = Files.walk(root)) {
+            for (Path path : walk.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        }
     }
 
     private Pack read(JsonNode body) {
