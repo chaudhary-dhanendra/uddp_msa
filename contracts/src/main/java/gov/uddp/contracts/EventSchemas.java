@@ -30,9 +30,12 @@ public final class EventSchemas {
         return CACHE.computeIfAbsent(name, EventSchemas::load).validate(document);
     }
 
-    /** Whether {@code events/<name>.schema.json} exists. */
+    private static final ConcurrentHashMap<String, Boolean> EXISTS = new ConcurrentHashMap<>();
+
+    /** Whether {@code events/<name>.schema.json} exists (looked up once per name: it was a file-system check per event). */
     public static boolean exists(String name) {
-        return EventSchemas.class.getResource("/events/" + name + ".schema.json") != null;
+        return EXISTS.computeIfAbsent(name,
+                n -> EventSchemas.class.getResource("/events/" + n + ".schema.json") != null);
     }
 
     private static JsonSchema load(String name) {

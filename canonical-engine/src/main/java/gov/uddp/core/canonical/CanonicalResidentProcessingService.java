@@ -162,7 +162,7 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
         this.chunkSize = chunkSize;
     }
 
-    private int parallelChunks = 4;
+    private int parallelChunks = 6;
 
     /** Work a chunk leaves for after its transaction has committed (see {@link #afterCommit}). */
     private static final ThreadLocal<List<Runnable>> AFTER_COMMIT = ThreadLocal.withInitial(ArrayList::new);
@@ -179,12 +179,12 @@ public class CanonicalResidentProcessingService implements gov.uddp.core.onboard
 
     /**
      * Chunks processed at the same time, each in its own transaction ({@code uddp.processing.parallel-chunks}, default
-     * 4; needs chunk transactions). Rows of one batch are independent (a source record claimed twice is rejected up
+     * 6; needs chunk transactions). Rows of one batch are independent (a source record claimed twice is rejected up
      * front), so chunks may commit in any order; resume skips the committed ones. Mostly hides database latency.
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setParallelChunks(
-            @org.springframework.beans.factory.annotation.Value("${uddp.processing.parallel-chunks:4}") int parallel) {
+            @org.springframework.beans.factory.annotation.Value("${uddp.processing.parallel-chunks:6}") int parallel) {
         this.parallelChunks = Math.max(1, parallel);
     }
 
