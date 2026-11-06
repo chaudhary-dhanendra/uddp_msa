@@ -208,6 +208,12 @@ public class RemoteHeldStore implements HeldStore {
         return get("/metrics", json.constructType(Metrics.class));
     }
 
+    @Override
+    public gov.uddp.core.held.HeldRecordRepository.BatchShare share(UUID batch) {
+        return get("/batches/" + batch + "/share",
+                json.constructType(gov.uddp.core.held.HeldRecordRepository.BatchShare.class));
+    }
+
     // ---- HTTP --------------------------------------------------------------------------------------------------------
 
     private String base() {

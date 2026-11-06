@@ -74,4 +74,7 @@ public interface HeldStore {
     void exportCsv(UUID batch, String reason, boolean waitingOnly, Writer out);
 
     Metrics metrics();
+
+    /** Held and processing-rejected rows of a delivery against its rows (the release gate's held share). */
+    HeldRecordRepository.BatchShare share(UUID batch);
 }

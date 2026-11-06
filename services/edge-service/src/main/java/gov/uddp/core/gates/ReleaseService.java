@@ -76,7 +76,7 @@ public class ReleaseService implements ReleaseCheckpoint {
         return true;
     }
 
-    private gov.uddp.core.held.HeldRecordRepository heldRecords;
+    private gov.uddp.core.held.HeldStore heldRecords;
     private double maxHeldPercent = 5;
 
     /**
@@ -84,7 +84,7 @@ public class ReleaseService implements ReleaseCheckpoint {
      * approval before activation, whatever gates the source configures.
      */
     @Autowired(required = false)
-    public void setHeldGate(gov.uddp.core.held.HeldRecordRepository heldRecords,
+    public void setHeldGate(gov.uddp.core.held.HeldStore heldRecords,
                             @Value("${uddp.processing.max-held-percent:5}") double maxHeldPercent) {
         this.heldRecords = heldRecords;
         this.maxHeldPercent = maxHeldPercent;

@@ -44,7 +44,8 @@ public class DeliveryChangeService {
     private final StatePackLoader packs;
     private final ObjectMapper json;
     private final RawCsvRecordParser parser;
-    private final SourceRecordKey keys;
+    private SourceRecordKey keys;
+    private gov.uddp.shaping.api.RecordShaper shaping;
 
     public DeliveryChangeService(PostgresConnectionFactory connections, RawRecordRepository raws,
                                  StatePackLoader packs, ObjectMapper json) {
@@ -54,6 +55,35 @@ public class DeliveryChangeService {
         this.json = json.copy().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
         this.parser = new RawCsvRecordParser(json);
         this.keys = new SourceRecordKey(parser);
+    }
+
+    /**
+     * Workbook ({@code xlsx}) rows are compared as the mapping stage reads them: shaped into tidy records named by
+     * their header, so the record key and content are those of the record, not of the raw cells.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setShaping(gov.uddp.shaping.OperationRegistry operations) {
+        var engine = new gov.uddp.shaping.ShapingEngine(parser, operations);
+        engine.setBatchRows(new gov.uddp.shaping.api.BatchRows() {
+            @Override
+            public java.util.List<gov.uddp.core.mapping.RawRecord> records(UUID batchId) {
+                return raws.findByBatchId(batchId);
+            }
+
+            @Override
+            public java.util.List<gov.uddp.core.mapping.RawRecord> sheet(UUID batchId, String sourceSystem, String file,
+                                                                         String sheet) {
+                return raws.findSheet(batchId, sourceSystem, file, sheet);
+            }
+        });
+        this.shaping = engine;
+        this.keys = new SourceRecordKey(parser, engine);
+    }
+
+    private Map<String, Object> content(gov.uddp.core.mapping.RawRecord raw, gov.uddp.core.statepack.LoadedStatePack pack) {
+        boolean workbook = shaping != null && pack.sources().stream()
+                .anyMatch(source -> source.sourceId().equals(raw.sourceSystem()) && "xlsx".equals(source.formatOrDefault()));
+        return workbook ? shaping.shape(raw, pack, raw.sourceSystem()).fields() : parser.parse(raw.rawPayload());
     }
 
     public RemovalHandling removalHandling(String stateCode, String sourceSystem) {
@@ -118,7 +148,7 @@ public class DeliveryChangeService {
                 String hash;
                 try {
                     key = keys.of(raw, pack);
-                    hash = hash(parser.parse(raw.rawPayload()));
+                    hash = hash(content(raw, pack));
                 } catch (Exception unreadable) {
                     continue; // The mapping stage reports rows without a usable key.
                 }

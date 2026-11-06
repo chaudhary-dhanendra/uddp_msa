@@ -69,6 +69,16 @@
         "fields": ["countsByStatus", "oldestWaitingSeconds", "meanSecondsToDecide"],
         "example": {"countsByStatus": {"OPEN": 1}, "oldestWaitingSeconds": 60.0, "meanSecondsToDecide": 0.0}
       }
+    },
+    {
+      "name": "held share of a delivery",
+      "consumers": ["edge-service: RemoteHeldStore.share (ReleaseService held-share gate)"],
+      "request": {"method": "GET", "path": "/api/canonical/held-records/batches/{batch}/share"},
+      "response": {
+        "status": 200,
+        "fields": ["held", "rejected", "rows"],
+        "example": {"held": 1, "rejected": 0, "rows": 3}
+      }
     }
   ]
 }

@@ -108,6 +108,11 @@ public class HeldRecordOperations implements HeldStore {
                 repository.meanSecondsToDecide());
     }
 
+    @Override
+    public HeldRecordRepository.BatchShare share(UUID batch) {
+        return repository.share(batch);
+    }
+
     // ---- single-record decisions -----------------------------------------------------------------------------------
 
     /**
