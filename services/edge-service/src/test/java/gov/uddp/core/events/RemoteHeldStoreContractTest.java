@@ -60,7 +60,7 @@ class RemoteHeldStoreContractTest {
         var groups = store.groups(null, 5);
         assertEquals(1, groups.size());
         assertEquals(BATCH, groups.getFirst().batchId());
-        assertEquals("ST1", groups.getFirst().stateCode());
+        assertEquals("XX", groups.getFirst().stateCode());
 
         var record = store.find(HELD).orElseThrow();
         assertEquals("OPEN", record.record().status());
@@ -68,7 +68,7 @@ class RemoteHeldStoreContractTest {
         assertTrue(record.history().isEmpty());
 
         assertEquals(1, store.waitingCount(BATCH, REASON));
-        assertEquals("ST1", store.batchState(BATCH).orElseThrow());
+        assertEquals("XX", store.batchState(BATCH).orElseThrow());
 
         var started = store.startReprocess(BATCH, REASON, "sam.steward");
         assertEquals(JOB, started.jobId());

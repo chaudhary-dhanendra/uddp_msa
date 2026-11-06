@@ -96,6 +96,8 @@ class M10PortabilityGuardTest {
             // Shaping: xlsx rows keep their sheet in the source record key; generic Excel ingest and row reader.
             "common-core/src/main/java/gov/uddp/core/canonical/SourceRecordKey.java",
             "common-core/src/main/java/gov/uddp/core/mapping/RawRowReader.java",
+            // Unreadable rows carry their own reason code (UNREADABLE_ROW), 2026-11-06.
+            "common-core/src/main/java/gov/uddp/core/mapping/RawCsvRecordParser.java",
             "services/ingestion-service/hop/pipelines/generic-excel-ingest.hpl",
             // WP7d: every landed row keeps its physical line in the delivered file (raw_record.source_line, V111).
             "services/ingestion-service/hop/pipelines/generic-file-ingest.hpl",

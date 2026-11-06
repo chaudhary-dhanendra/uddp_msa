@@ -149,6 +149,12 @@ public class CanonicalConfiguration {
         return service;
     }
 
+    /** One transaction per chunk of a batch and resume from the last committed chunk after a crash. */
+    @Bean
+    gov.uddp.core.canonical.ProcessingProgress processingProgress(PostgresConnectionFactory canonicalConnections) {
+        return new gov.uddp.core.canonical.ProcessingProgress(canonicalConnections);
+    }
+
     @Bean
     HeldRecordOperations heldRecords(PostgresConnectionFactory canonicalConnections,
                                      CanonicalResidentProcessingService canonicalProcessing,

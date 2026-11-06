@@ -384,6 +384,7 @@ public class Ingestions {
                                String replayPackVersion) throws SQLException {
         int count = 0;
         Position reached = from;
+        java.util.List<EventEnvelope> events = new java.util.ArrayList<>();
         String order = "coalesce(r.source_line, " + NO_LINE + ")";
         try (var s = c.prepareStatement("select r.raw_record_id, r.state_code, r.source_system, r.source_line,"
                 + " r.pipeline_template, r.raw_payload, r.ingested_at, r.source_record_id, r.source_metadata::text,"
@@ -413,18 +414,18 @@ public class Ingestions {
                     p.put("sourceSchemaVersion", r.getString(11));
                     p.put("pipelineTemplate", r.getString(5));
                     p.put("sourceType", r.getString(12));
-                    if (replayRun == null) {
-                        append(c, Topics.RAW_RECORD_RECEIVED, "uddp.ingestion.raw-record-received", raw.toString(),
-                                r.getString(3) + ":" + raw, r.getString(2), correlationId, p);
-                    } else {
-                        append(c, Topics.RAW_RECORD_REPLAYED, "uddp.ingestion.raw-record-replayed",
-                                replayRun + "|" + raw, r.getString(3) + ":" + raw, r.getString(2), correlationId, p);
-                    }
+                    events.add(replayRun == null
+                            ? envelope("uddp.ingestion.raw-record-received", raw.toString(), r.getString(3) + ":" + raw,
+                                    r.getString(2), correlationId, p)
+                            : envelope("uddp.ingestion.raw-record-replayed", replayRun + "|" + raw,
+                                    r.getString(3) + ":" + raw, r.getString(2), correlationId, p));
                     reached = new Position(r.getInt(13), raw);
                     count++;
                 }
             }
         }
+        // One batched insert per chunk.
+        Outbox.appendAll(c, replayRun == null ? Topics.RAW_RECORD_RECEIVED : Topics.RAW_RECORD_REPLAYED, events);
         return new Chunk(count, reached);
     }
 
@@ -456,8 +457,13 @@ public class Ingestions {
 
     private static void append(Connection c, String topic, String eventType, String idSource, String key,
                                String stateCode, UUID correlationId, ObjectNode payload) throws SQLException {
-        Outbox.append(c, topic, new EventEnvelope(Outbox.deterministicId(eventType, idSource), eventType, 1,
-                Instant.now(), PRODUCER, key, correlationId, null, stateCode, null, payload));
+        Outbox.append(c, topic, envelope(eventType, idSource, key, stateCode, correlationId, payload));
+    }
+
+    private static EventEnvelope envelope(String eventType, String idSource, String key, String stateCode,
+                                          UUID correlationId, ObjectNode payload) {
+        return new EventEnvelope(Outbox.deterministicId(eventType, idSource), eventType, 1, Instant.now(), PRODUCER,
+                key, correlationId, null, stateCode, null, payload);
     }
 
     private static JsonNode readTree(String text) {

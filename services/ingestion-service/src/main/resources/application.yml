@@ -12,6 +12,9 @@ spring:
     hikari:
       # Unqualified SQL (and Hop, through RAW_SCHEMA) resolves to the service's own schema.
       schema: ingestion
+      data-source-properties:
+        # A chunk of raw-record-received events goes to the outbox as multi-row inserts (large batches).
+        reWriteBatchedInserts: true
   flyway:
     # Own location: in one JVM (the e2e test) every service's migrations are on the classpath.
     locations: classpath:db/ingestion

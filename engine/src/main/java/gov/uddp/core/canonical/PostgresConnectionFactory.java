@@ -1,7 +1,6 @@
 package gov.uddp.core.canonical;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,7 +11,8 @@ import javax.sql.DataSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
- * Opens short-lived PostgreSQL connections configured by UDDP_POSTGRES_* settings.
+ * Opens PostgreSQL connections configured by UDDP_POSTGRES_* settings, from a small pool per set of settings
+ * (opening a physical connection per call cost tens of milliseconds, which dominated per-event work at volume).
  * UDDP_POSTGRES_URL is used when set; otherwise the URL is built from HOST, PORT and DB.
  * There are no defaults: a missing setting fails with an error naming it.
  * The application's instance ({@code setup.SetupConfiguration}) looks the settings up on every call, so settings
@@ -78,7 +78,32 @@ public class PostgresConnectionFactory implements gov.uddp.core.database.Connect
                         }
                     });
         }
-        return DriverManager.getConnection(url(), required(USER), required(PASSWORD));
+        return pooled();
+    }
+
+    /** Pools shared by every factory with the same settings; new settings (Setup screen) get a new pool. */
+    private static final Map<String, com.zaxxer.hikari.HikariDataSource> POOLS =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    /** Connections per pool; small, as several services may share one database server. */
+    static final int POOL_SIZE = Integer.getInteger("uddp.database.pool-size", 8);
+
+    private Connection pooled() throws SQLException {
+        String url = url();
+        String user = required(USER);
+        String password = required(PASSWORD);
+        String key = url + "|" + user + "|" + Integer.toHexString(password.hashCode());
+        var pool = POOLS.computeIfAbsent(key, k -> {
+            var config = new com.zaxxer.hikari.HikariConfig();
+            config.setJdbcUrl(url);
+            config.setUsername(user);
+            config.setPassword(password);
+            config.setMaximumPoolSize(POOL_SIZE);
+            config.setMinimumIdle(0);
+            config.setIdleTimeout(60_000);
+            config.setPoolName("uddp-" + Integer.toHexString(k.hashCode()));
+            return new com.zaxxer.hikari.HikariDataSource(config);
+        });
+        return pool.getConnection();
     }
 
     /**
@@ -89,7 +114,7 @@ public class PostgresConnectionFactory implements gov.uddp.core.database.Connect
         if (BOUND.get() != null) {
             return work.get();
         }
-        try (Connection connection = DriverManager.getConnection(url(), required(USER), required(PASSWORD))) {
+        try (Connection connection = pooled()) {
             connection.setAutoCommit(false);
             BOUND.set(connection);
             try {
