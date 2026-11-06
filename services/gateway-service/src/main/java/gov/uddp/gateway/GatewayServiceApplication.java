@@ -22,7 +22,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 public class GatewayServiceApplication {
 
     /** The edge's public paths: the API, sign-in and sign-out, and the API documentation. */
-    static final String[] EDGE_PATHS = {"/api/**", "/oauth2/**", "/login/**", "/logout/**", "/v3/api-docs/**",
+    static final String[] EDGE_PATHS = {"/api/**", "/health", "/oauth2/**", "/login/**", "/logout/**", "/v3/api-docs/**",
         "/swagger-ui/**", "/swagger-ui.html"};
 
     public static void main(String[] args) {

@@ -60,10 +60,15 @@ class GatewayRoutingTest {
                 .build(), HttpResponse.BodyHandlers.ofString());
         assertThat(login.statusCode()).isEqualTo(200);
 
+        // The UI's health check (the header's backend status) goes to the edge too.
+        var health = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/health")).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(health.statusCode()).isEqualTo(200);
+
         var internal = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port
                 + "/eureka/apps")).build(), HttpResponse.BodyHandlers.ofString());
         assertThat(internal.statusCode()).isEqualTo(404);
-        assertThat(SEEN).hasSize(2);
+        assertThat(SEEN).hasSize(3);
     }
 
     private static HttpServer edge() {

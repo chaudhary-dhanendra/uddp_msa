@@ -42,7 +42,7 @@ class SchemePackDetailsTest {
                 "Scheme E", "DEPT-1", "INDIVIDUAL", "ENTITLEMENT", "CASH", "2026-01-01", null, null, List.of("DEPT-1"),
                 List.of(), List.of(), "{}", new Details("LOCAL", null, null, null, null, null, null, null, null)), "maker"));
 
-        assertEquals(3, service.importCatalogue(new SchemeCatalogue(SampleData.SCHEME_CATALOGUE)));
+        assertEquals(4, service.importCatalogue(new SchemeCatalogue(SampleData.SCHEME_CATALOGUE)));
         int added = service.importCodeCrosswalks(SampleData.loader(SampleData.STATE_PACKS).all());
         assertTrue(added >= 5, "PHH, AAY, VRIDHA, OAP and DIVYANG");
         assertEquals(0, service.importCodeCrosswalks(SampleData.loader(SampleData.STATE_PACKS).all()), "imported once");

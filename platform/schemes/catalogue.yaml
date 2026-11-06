@@ -33,3 +33,12 @@ schemes:
     unit: INR
     frequency: MONTHLY
     exclusivityGroup: SOCIAL-PENSION
+  - schemeId: WIDOW-PENSION
+    name: Widow pension
+    department: SOCIAL_WELFARE
+    benefitType: ENTITLEMENT
+    benefitForm: CASH
+    beneficiaryLevel: RESIDENT
+    unit: INR
+    frequency: MONTHLY
+    exclusivityGroup: SOCIAL-PENSION
