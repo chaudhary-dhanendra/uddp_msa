@@ -63,10 +63,17 @@ public class GeographyService {
                 r -> new EntityType(r.getString(1), r.getInt(2), r.getString(3)));
     }
 
-    /** True once any snapshot has been activated. */
+    /** True once any snapshot has been activated. A loaded master stays loaded, so a true answer is kept. */
     public boolean loaded() {
-        return db.count("select count(*) from lgd_master_state") > 0;
+        if (loadedSeen) {
+            return true;
+        }
+        boolean loaded = db.count("select count(*) from lgd_master_state") > 0;
+        loadedSeen = loaded;
+        return loaded;
     }
+
+    private volatile boolean loadedSeen;
 
     /**
      * Searches current entities. {@code text} matches a code exactly or a name by case-insensitive substring;
