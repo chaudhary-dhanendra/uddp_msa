@@ -110,13 +110,42 @@ public class GeographyService {
         return Page.of(items, query, total);
     }
 
+    /**
+     * The current entity for a type and code. Lookups are cached for {@link #FIND_TTL_MILLIS}: mapping resolves the
+     * geography of every row (and its ancestors), so a large delivery or dry run would otherwise query the master
+     * several times per row. The master changes rarely; a load is visible to mapping within the TTL.
+     */
     public Optional<GeoEntity> find(String entityType, String code) {
         if (entityType == null || code == null) {
             return Optional.empty();
         }
-        return db.one(CURRENT + " and v.entity_type=? and v.code=?", GeographyService::entity, upper(entityType),
-                code.strip());
+        String key = upper(entityType) + "|" + code.strip();
+        long now = System.currentTimeMillis();
+        CachedFind cached = findCache.get(key);
+        if (cached != null && cached.expiresAt() > now) {
+            return cached.entity();
+        }
+        Optional<GeoEntity> entity = db.one(CURRENT + " and v.entity_type=? and v.code=?", GeographyService::entity,
+                upper(entityType), code.strip());
+        if (findCache.size() > FIND_CACHE_MAX) {
+            findCache.clear();
+        }
+        findCache.put(key, new CachedFind(entity, now + FIND_TTL_MILLIS));
+        return entity;
     }
+
+    /** Forgets cached lookups (after the master is loaded or changed in this process). */
+    public void clearCache() {
+        findCache.clear();
+    }
+
+    static final long FIND_TTL_MILLIS = 60_000;
+    private static final int FIND_CACHE_MAX = 200_000;
+
+    private record CachedFind(Optional<GeoEntity> entity, long expiresAt) {
+    }
+
+    private final java.util.Map<String, CachedFind> findCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** The entity's ancestors, top-down (the state first, the immediate parent last). */
     public List<GeoEntity> ancestors(String entityType, String code) {
