@@ -11,6 +11,8 @@ public final class ReasonCodes {
     public static final String UNMAPPED_CODE = "UNMAPPED_CODE";
     public static final String DUPLICATE_SOURCE_KEY = "DUPLICATE_SOURCE_KEY";
     public static final String LOW_CONFIDENCE = "LOW_CONFIDENCE";
+    /** The delivered row cannot be read as a record of its source (wrong number of columns, broken quoting). */
+    public static final String UNREADABLE_ROW = "UNREADABLE_ROW";
     public static final String OTHER = "OTHER";
     public static final String RULE_FAILED_PREFIX = "RULE_FAILED:";
 

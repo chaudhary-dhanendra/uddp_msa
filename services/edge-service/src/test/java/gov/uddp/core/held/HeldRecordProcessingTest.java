@@ -106,7 +106,7 @@ class HeldRecordProcessingTest {
         assertEquals(6, summary.recordsFailed());
         assertEquals(0, summary.recordsHeld());
         assertEquals(Map.of("UNREADABLE_DATE", 1L, "UNMAPPED_CODE", 1L, "MISSING_NAME", 1L,
-                "DUPLICATE_SOURCE_KEY", 2L, "OTHER", 1L), reasonCounts(batch));
+                "DUPLICATE_SOURCE_KEY", 2L, "UNREADABLE_ROW", 1L), reasonCounts(batch));
     }
 
     @Test

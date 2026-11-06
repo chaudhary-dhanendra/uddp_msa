@@ -60,11 +60,11 @@ public class RawRowReader {
         try (CSVParser parser = new CSVParser(new StringReader(payload.get("rawLine").asText()), CSVFormat.RFC4180)) {
             List<CSVRecord> records = parser.getRecords();
             if (records.size() != 1) {
-                throw new IllegalArgumentException("Expected one CSV record, found " + records.size());
+                throw new gov.uddp.core.validation.ReasonCodes.ReasonedException(gov.uddp.core.validation.ReasonCodes.UNREADABLE_ROW, "Expected one CSV record, found " + records.size());
             }
             return new RawRow(null, null, 0, records.getFirst().stream().toList(), Map.of());
         } catch (IOException e) {
-            throw new IllegalArgumentException("Raw payload is not valid CSV-in-JSON", e);
+            throw new gov.uddp.core.validation.ReasonCodes.ReasonedException(gov.uddp.core.validation.ReasonCodes.UNREADABLE_ROW, "The row is not valid CSV: " + e.getMessage(), e);
         }
     }
 }
