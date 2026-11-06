@@ -501,6 +501,13 @@ public class StudioService {
         requireNotPending(draft);
         Source source = requireSource(draft);
         if (!"file".equals(source.sourceType())) {
+            // A database source has nothing to clean up: saving no steps (the Shape step's Save and continue) is fine.
+            boolean empty = (config.layout() == null || config.layout().isEmpty())
+                    && (config.parse() == null || config.parse().isEmpty())
+                    && (config.sheets() == null || config.sheets().isEmpty());
+            if (empty) {
+                return draft;
+            }
             throw new StudioConflictException("Shaping applies to uploaded file sources");
         }
         shapePreviews.validate(config);
