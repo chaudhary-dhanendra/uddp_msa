@@ -119,6 +119,9 @@ class StudioDatabaseSourceTest {
                 Map.of("packId", "db-pack", "stateCode", "DB9", "displayName", "Database source"))).path("draftId").asText();
         send("POST", "/api/studio/drafts/" + id + "/database-source",
                 Map.of("connectionName", "registry-db", "table", "citizen_register", "changeColumn", "born_on"));
+        // The Shape step's Save and continue saves no clean-up steps for a database source; that is accepted.
+        send("PUT", "/api/studio/drafts/" + id + "/shaping",
+                Map.of("layout", java.util.List.of(), "parse", java.util.List.of()));
         JsonNode suggestions = json.readTree(send("GET", "/api/studio/drafts/" + id + "/suggestions", null));
         JsonNode draft = json.readTree(send("GET", "/api/studio/drafts/" + id, null));
 
