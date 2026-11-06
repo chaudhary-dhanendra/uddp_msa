@@ -44,6 +44,31 @@ class MatchingMonitoringServiceTest {
     }
 
     @Test
+    void screensLoadingTogetherRaiseEachAlertOnce() throws Exception {
+        run("2026-10-01T00:00:00Z", 0.30, 0.05, 30, 5);
+        run("2026-10-02T00:00:00Z", 0.62, 0.25, 70, 25);
+
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        var results = new java.util.ArrayList<java.util.concurrent.Future<Integer>>();
+        for (int i = 0; i < 4; i++) {
+            results.add(pool.submit(() -> {
+                start.await();
+                return monitoring.evaluate();
+            }));
+        }
+        start.countDown();
+        int raised = 0;
+        for (var result : results) {
+            raised += result.get();
+        }
+        pool.shutdown();
+
+        assertEquals(5, raised);
+        assertEquals(5, monitoring.alerts(true).size());
+    }
+
+    @Test
     void boundsAreConfigurable() throws SQLException {
         monitoring.updateBound("match_rate", null, 0.95, 5.0, "admin");
         monitoring.updateBound("review_rate", null, 0.9, 5.0, "admin");

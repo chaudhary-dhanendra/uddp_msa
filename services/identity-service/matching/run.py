@@ -340,7 +340,7 @@ def run(incremental=False):
                         (datetime.now(timezone.utc), run_id))
         decisions = [p[5] for p in pairs]
         counts = {kind: decisions.count(kind) for kind in (AUTO_MATCH, POSSIBLE_MATCH, NO_MATCH)}
-        store_run_metrics(conn, run_id, considered, counts, [p[3] for p in pairs], clusters)
+        store_run_metrics(conn, run_id, considered, counts, [p[3] for p in pairs], clusters, new_ids)
         print("Complete.")
         return {
             "run_id": str(run_id),

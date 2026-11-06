@@ -24,12 +24,15 @@ def acceptance_by_band(conn):
     return out
 
 
-def store_run_metrics(conn, run_id, considered, decisions, probabilities, clusters):
-    """``decisions`` counts per decision, ``clusters`` the (run, cluster, record) rows of the run."""
+def store_run_metrics(conn, run_id, considered, decisions, probabilities, clusters, new_ids=None):
+    """``decisions`` counts per decision, ``clusters`` the (run, cluster, record) rows of the run. An incremental run
+    (``new_ids``) counts only its new records as matched, so the match rate stays a share of the records considered."""
     members = {}
     for _, cluster, record in clusters:
         members.setdefault(cluster, set()).add(record)
-    matched = sum(len(m) for m in members.values() if len(m) > 1)
+    counted = None if new_ids is None else {str(i) for i in new_ids}
+    matched = sum(len(m) if counted is None else len({str(r) for r in m} & counted)
+                  for m in members.values() if len(m) > 1)
     denominator = max(considered, 1)
     conn.execute(
         "insert into matching_run_metrics(run_id, records_considered, auto_pairs, possible_pairs, no_match_pairs,"

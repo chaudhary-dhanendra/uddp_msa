@@ -133,14 +133,18 @@ public class MatchingMonitoringService {
             }
             for (Object[] row : pending) {
                 UUID run = (UUID) row[0];
+                // Claim the run first: concurrent reads (the metrics and alerts screens load together) check it once.
+                try (var claim = c.prepareStatement("update matching_run_metrics set evaluated_at = now()"
+                        + " where run_id = ? and evaluated_at is null")) {
+                    claim.setObject(1, run);
+                    if (claim.executeUpdate() == 0) {
+                        continue;
+                    }
+                }
                 Map<String, Double> now = values(row);
                 Map<String, Double> before = row[5] == null ? Map.of() : values(valuesOf(c, (UUID) row[5]));
                 for (String metric : METRICS) {
                     raised += check(c, run, metric, now.get(metric), before.get(metric), bounds.get(metric));
-                }
-                try (var done = c.prepareStatement("update matching_run_metrics set evaluated_at = now() where run_id = ?")) {
-                    done.setObject(1, run);
-                    done.executeUpdate();
                 }
             }
         } catch (SQLException e) {

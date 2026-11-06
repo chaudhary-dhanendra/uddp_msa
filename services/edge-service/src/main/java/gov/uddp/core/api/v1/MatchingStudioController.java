@@ -72,12 +72,14 @@ public class MatchingStudioController {
 
     @GetMapping("/profiles")
     @PreAuthorize("hasAuthority('PERM_MATCHING_VIEW')")
+    @MaskPii(false)
     public List<MatchingProfile> list() {
         return profiles.list();
     }
 
     @GetMapping("/profiles/{id}")
     @PreAuthorize("hasAuthority('PERM_MATCHING_VIEW')")
+    @MaskPii(false)
     public MatchingProfile get(@PathVariable UUID id) {
         return profiles.get(id);
     }
@@ -85,6 +87,7 @@ public class MatchingStudioController {
     /** The model matching runs use now: the approved profile, or the built-in default with no profile. */
     @GetMapping("/active-model")
     @PreAuthorize("hasAuthority('PERM_MATCHING_VIEW')")
+    @MaskPii(false)
     public MatchingActiveModel activeModel() {
         return new MatchingActiveModel(profiles.effectiveModelVersion(), profiles.approved().orElse(null));
     }
@@ -92,6 +95,7 @@ public class MatchingStudioController {
     @PostMapping("/profiles")
     @PreAuthorize("hasAuthority('PERM_MATCHING_MANAGE')")
     @Audited(action = "MATCHING_PROFILE_CREATE", resource = "MATCHING_PROFILE")
+    @MaskPii(false)
     public MatchingProfile create(@RequestBody MatchingProfileRequest request, Authentication actor) {
         return profiles.create(request.name(), request.config(), actor.getName());
     }
@@ -99,6 +103,7 @@ public class MatchingStudioController {
     @PutMapping("/profiles/{id}")
     @PreAuthorize("hasAuthority('PERM_MATCHING_MANAGE')")
     @Audited(action = "MATCHING_PROFILE_UPDATE", resource = "MATCHING_PROFILE", idVariable = "id")
+    @MaskPii(false)
     public MatchingProfile update(@PathVariable UUID id, @RequestBody MatchingProfileRequest request) {
         return profiles.update(id, request.config());
     }
@@ -127,6 +132,7 @@ public class MatchingStudioController {
     @PostMapping("/profiles/{id}/submit")
     @PreAuthorize("hasAuthority('PERM_MATCHING_MANAGE')")
     @Audited(action = "MATCHING_PROFILE_SUBMIT", resource = "MATCHING_PROFILE", idVariable = "id")
+    @MaskPii(false)
     public MatchingProfile submit(@PathVariable UUID id, Authentication actor) {
         return profiles.submit(id, actor.getName());
     }
@@ -134,6 +140,7 @@ public class MatchingStudioController {
     @PostMapping("/profiles/{id}/approve")
     @PreAuthorize("hasAuthority('PERM_MATCHING_APPROVE')")
     @Audited(action = "MATCHING_PROFILE_APPROVE", resource = "MATCHING_PROFILE", idVariable = "id")
+    @MaskPii(false)
     public MatchingProfile approve(@PathVariable UUID id, Authentication actor) {
         return profiles.approve(id, actor.getName());
     }
@@ -141,6 +148,7 @@ public class MatchingStudioController {
     @PostMapping("/profiles/{id}/reject")
     @PreAuthorize("hasAuthority('PERM_MATCHING_APPROVE')")
     @Audited(action = "MATCHING_PROFILE_REJECT", resource = "MATCHING_PROFILE", idVariable = "id")
+    @MaskPii(false)
     public MatchingProfile reject(@PathVariable UUID id) {
         return profiles.reject(id);
     }
