@@ -33,7 +33,7 @@ public class RemoteCanonicalMessaging implements DisposableBean {
                 new StringSerializer(), new StringSerializer());
         this.loops = java.util.List.of(
                 new KafkaEventLoop(bootstrapServers, RESIDENTS, connections::open, Map.of(
-                        Topics.RESIDENT_CREATED, RemoteCanonicalProjection::residentCreated), deadLetters),
+                        Topics.RESIDENT_CREATED, RemoteCanonicalProjection::residentCreatedAfterRaw), deadLetters),
                 new KafkaEventLoop(bootstrapServers, OBSERVATIONS, connections::open, Map.of(
                         Topics.FAMILY_OBSERVED, RemoteCanonicalProjection::familyObserved,
                         Topics.BATCH_OBSERVED, CanonicalBatchRows::apply,
