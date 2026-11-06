@@ -141,6 +141,11 @@ public class HeldRecordsController {
         return held.metrics();
     }
 
+    @GetMapping("/batches/{batch}/share")
+    public gov.uddp.core.held.HeldRecordRepository.BatchShare share(@PathVariable UUID batch) {
+        return held.share(batch);
+    }
+
     @ExceptionHandler(ReadNotFoundException.class)
     ResponseEntity<Map<String, String>> notFound(ReadNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", String.valueOf(e.getMessage())));

@@ -44,7 +44,11 @@ class HeldShareGateTest {
                 new PostgresRawRecordRepository(harness.connections, json), harness.packs, json));
         var gates = new QualityGateService(harness.connections, List.of());
         var release = new ReleaseService(harness.connections, gates, new AuditService(harness.connections, json));
-        var held = new HeldRecordRepository(harness.connections, json);
+        // The gate reads the held share through the held store (canonical-service in the microservice deployment).
+        var repository = new HeldRecordRepository(harness.connections, json);
+        var held = org.mockito.Mockito.mock(gov.uddp.core.held.HeldStore.class);
+        org.mockito.Mockito.when(held.share(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(call -> repository.share(call.getArgument(0)));
         release.setHeldGate(held, 5);
         harness.onboarding.setReleaseCheckpoint(release);
 
