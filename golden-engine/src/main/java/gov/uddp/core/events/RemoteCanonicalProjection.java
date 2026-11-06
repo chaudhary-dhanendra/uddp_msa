@@ -17,6 +17,23 @@ public final class RemoteCanonicalProjection {
     private RemoteCanonicalProjection() {
     }
 
+    /**
+     * Where the canonical Resident references a projected raw record (the edge), resident-created waits until that
+     * raw record is projected: it arrives on ingestion's topic and lags behind in a large delivery.
+     */
+    public static void residentCreatedAfterRaw(Connection c, JsonNode envelope) throws SQLException {
+        String raw = envelope.path("payload").path("rawRecordId").asText();
+        try (var s = c.prepareStatement("select 1 from raw_record where raw_record_id = ?")) {
+            s.setObject(1, UUID.fromString(raw));
+            try (var r = s.executeQuery()) {
+                if (!r.next()) {
+                    throw new gov.uddp.messaging.Inbox.NotYetApplicable("raw record " + raw + " not projected yet");
+                }
+            }
+        }
+        residentCreated(c, envelope);
+    }
+
     public static void residentCreated(Connection c, JsonNode envelope) throws SQLException {
         JsonNode p = envelope.path("payload");
         UUID canonical = UUID.fromString(p.path("canonicalResidentId").asText());
