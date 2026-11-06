@@ -434,6 +434,19 @@ public class StudioService {
 
     private ShapePreviewService shapePreviews;
 
+    private double maxHeldPercent = 5;
+
+    /** Rows with errors above this share of the publish check block publishing (the release gate's held limit). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMaxHeldPercent(@org.springframework.beans.factory.annotation.Value(
+            "${uddp.processing.max-held-percent:5}") double maxHeldPercent) {
+        this.maxHeldPercent = maxHeldPercent;
+    }
+
+    private static String formatPercent(double value) {
+        return (value == Math.rint(value) ? String.valueOf((long) value) : String.valueOf(value)) + "%";
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     public void setShapePreviews(ShapePreviewService shapePreviews) {
         this.shapePreviews = shapePreviews;
@@ -681,9 +694,17 @@ public class StudioService {
         if (check.packError() != null) {
             throw new StudioConflictException("The draft is not a valid State Pack: " + check.packError());
         }
-        if (check.blockingErrors() > 0) {
+        long rowsWithErrors = check.rows().stream()
+                .filter(row -> row.issues().stream().anyMatch(issue -> "error".equals(issue.severity())))
+                .count();
+        double share = check.rowsPreviewed() == 0 ? 0 : 100.0 * rowsWithErrors / check.rowsPreviewed();
+        // A few bad rows in a large source are data problems, held or rejected at load like any delivery; more than
+        // the release gate's held limit means the pack itself is wrong (ADR log 2026-11-06).
+        if (check.blockingErrors() > 0 && share > maxHeldPercent) {
             throw new StudioConflictException("Publishing is blocked by " + check.blockingErrors()
-                    + " blocking error(s) in the preview; fix the mapping, crosswalks or rules first");
+                    + " blocking error(s) in the preview (" + rowsWithErrors + " of " + check.rowsPreviewed()
+                    + " rows, over the " + formatPercent(maxHeldPercent)
+                    + " limit); fix the mapping, crosswalks or rules first");
         }
         requireAgreeingThresholds(draft);
         String version = nextVersion(draft);

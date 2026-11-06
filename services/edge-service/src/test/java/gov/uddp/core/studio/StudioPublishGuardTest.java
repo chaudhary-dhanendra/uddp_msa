@@ -99,6 +99,41 @@ class StudioPublishGuardTest {
     }
 
     @Test
+    void aFewBadRowsInALargeSourceDoNotBlockPublication() throws Exception {
+        String draft = mvc.perform(post("/api/studio/drafts").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"packId\":\"few-bad\",\"stateCode\":\"GY\",\"displayName\":\"Few bad rows\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = json.readTree(draft).path("draftId").asText();
+        StringBuilder csv = new StringBuilder("pid,name,sex\n");
+        for (int i = 1; i <= 100; i++) {
+            csv.append('P').append(i).append(",Person ").append(i).append(',').append(i == 50 ? "X" : "F").append('\n');
+        }
+        mvc.perform(multipart("/api/studio/drafts/" + id + "/upload").file(new MockMultipartFile("file", "few.csv",
+                        "text/csv", csv.toString().getBytes())))
+                .andExpect(status().isOk());
+        JsonNode current = json.readTree(mvc.perform(get("/api/studio/drafts/" + id))
+                .andReturn().getResponse().getContentAsString());
+        ObjectNode configuration = json.createObjectNode();
+        configuration.putArray("mappings")
+                .add(json.createObjectNode().put("sourceField", "name").put("entity", "Resident").put("target", "name"))
+                .add(json.createObjectNode().put("sourceField", "sex").put("entity", "Resident").put("target", "gender")
+                        .put("crosswalk", "gender"));
+        configuration.putArray("crosswalks").add(json.readTree(
+                "{\"id\":\"gender\",\"codeSet\":\"gender\",\"entries\":[{\"sourceValue\":\"F\",\"targetValue\":\"FEMALE\"},"
+                        + "{\"sourceValue\":\"X\",\"targetValue\":null}]}"));
+        configuration.set("rules", current.path("rules"));
+        configuration.put("recordIdField", "pid");
+        mvc.perform(put("/api/studio/drafts/" + id + "/configuration").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(configuration)))
+                .andExpect(status().isOk());
+
+        // 1 bad row of 100 (1%) is within the 5% held limit: it is rejected at load, the pack still publishes.
+        mvc.perform(post("/api/studio/drafts/" + id + "/publish"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void aDryRunChecksALargeSampleInTheBackgroundAndGroupsTheIssuesByReason() throws Exception {
         String draft = mvc.perform(post("/api/studio/drafts").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"packId\":\"dry-pack\",\"stateCode\":\"DX\",\"displayName\":\"Dry run\"}"))
