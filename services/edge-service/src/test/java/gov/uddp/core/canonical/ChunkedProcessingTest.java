@@ -40,6 +40,7 @@ class ChunkedProcessingTest {
         var service = SampleData.processing(connections, packs);
         service.setChunkSize(chunkSize);
         service.setProgress(progress);
+        service.setParallelChunks(1); // these tests stop after an exact chunk; parallel chunks are covered by the load test
         return service;
     }
 
@@ -91,6 +92,34 @@ class ChunkedProcessingTest {
         assertEquals(4, sql.count("select count(*) from canonical_processing_chunk where batch_id='" + batch + "'"));
         assertEquals(1, sql.count("select count(*) from canonical_processing_progress where batch_id='" + batch
                 + "' and status='COMPLETED' and last_committed_chunk=4"));
+    }
+
+    @Test
+    void parallelChunksThatStopPartWayResumeWithEveryRowOnce() throws Exception {
+        UUID batch = land(ROWS, false);
+        var interrupted = service(2_000);
+        interrupted.setParallelChunks(4);
+        interrupted.setAfterChunk(number -> {
+            if (number == 3) {
+                throw new IllegalStateException("simulated crash after chunk 3");
+            }
+        });
+
+        assertThrows(IllegalStateException.class, () -> interrupted.processBatch(batch));
+        long committed = sql.count("select count(*) from canonical_processing_chunk where batch_id='" + batch + "'");
+        assertTrue(committed >= 3, "chunks commit in any order; those already running finish: " + committed);
+
+        var resumed = service(2_000);
+        resumed.setParallelChunks(4);
+        var summary = resumed.processBatch(batch);
+
+        assertEquals(ROWS, summary.recordsRead());
+        assertEquals(ROWS, sql.count("select count(*) from canonical_resident where batch_id='" + batch + "'"));
+        assertEquals(ROWS, sql.count("select count(distinct raw_record_id) from canonical_resident where batch_id='"
+                + batch + "'"));
+        assertEquals(10, sql.count("select count(*) from canonical_processing_chunk where batch_id='" + batch + "'"));
+        assertEquals(1, sql.count("select count(*) from canonical_processing_progress where batch_id='" + batch
+                + "' and status='COMPLETED'"));
     }
 
     @Test

@@ -27,6 +27,15 @@ public final class Inbox {
         void apply(Connection c, JsonNode envelope) throws Exception;
     }
 
+    /**
+     * The effect of many events of one topic, applied on one transaction (high-volume topics). It receives only the
+     * events this consumer has not processed yet.
+     */
+    @FunctionalInterface
+    public interface BatchHandler {
+        void apply(Connection c, java.util.List<JsonNode> envelopes) throws Exception;
+    }
+
     private final ConnectionSource connections;
     private final String consumer;
 
@@ -49,6 +58,52 @@ public final class Inbox {
                 handler.apply(c, envelope);
                 c.commit();
                 return true;
+            } catch (Exception e) {
+                c.rollback();
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Applies the records' effects in one transaction, each event once; returns how many were new. If anything fails
+     * nothing is recorded, and the caller handles the records one by one instead.
+     */
+    public int handleBatch(java.util.List<ConsumerRecord<String, String>> records, BatchHandler handler)
+            throws Exception {
+        var envelopes = new java.util.ArrayList<JsonNode>();
+        var ids = new java.util.ArrayList<UUID>();
+        for (var record : records) {
+            JsonNode envelope = Outbox.json().readTree(record.value());
+            envelopes.add(envelope);
+            ids.add(UUID.fromString(envelope.path("eventId").asText()));
+        }
+        try (var c = connections.open()) {
+            c.setAutoCommit(false);
+            try {
+                var fresh = new java.util.HashSet<UUID>();
+                try (var s = c.prepareStatement("insert into processed_event (consumer, event_id)"
+                        + " select ?, id from unnest(?) as ids(id) on conflict do nothing returning event_id")) {
+                    s.setString(1, consumer);
+                    s.setArray(2, c.createArrayOf("uuid", ids.toArray()));
+                    try (var r = s.executeQuery()) {
+                        while (r.next()) {
+                            fresh.add(r.getObject(1, UUID.class));
+                        }
+                    }
+                }
+                var apply = new java.util.ArrayList<JsonNode>();
+                var seen = new java.util.HashSet<UUID>();
+                for (int i = 0; i < envelopes.size(); i++) {
+                    if (fresh.contains(ids.get(i)) && seen.add(ids.get(i))) {
+                        apply.add(envelopes.get(i));
+                    }
+                }
+                if (!apply.isEmpty()) {
+                    handler.apply(c, apply);
+                }
+                c.commit();
+                return apply.size();
             } catch (Exception e) {
                 c.rollback();
                 throw e;

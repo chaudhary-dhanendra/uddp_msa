@@ -69,6 +69,7 @@ class HeldRecordProcessingTest {
         var service = SampleData.processing(connections, loader);
         service.setHeldRecords(repository, false, false);
         service.setProgress(progress);
+        service.setParallelChunks(1); // the resume test stops after an exact chunk
         return service;
     }
 

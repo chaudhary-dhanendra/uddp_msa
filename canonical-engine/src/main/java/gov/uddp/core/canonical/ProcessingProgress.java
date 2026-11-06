@@ -101,8 +101,9 @@ public class ProcessingProgress {
                 s.setObject(8, startedAt);
                 s.executeUpdate();
             }
-            try (var s = c.prepareStatement("update canonical_processing_progress set last_committed_chunk=?,"
-                    + "updated_at=now() where batch_id=?")) {
+            // Chunks may commit out of order (parallel chunks); resume uses the set of committed chunks.
+            try (var s = c.prepareStatement("update canonical_processing_progress set last_committed_chunk="
+                    + "greatest(last_committed_chunk,?),updated_at=now() where batch_id=?")) {
                 s.setInt(1, number);
                 s.setObject(2, batch);
                 s.executeUpdate();
@@ -110,6 +111,15 @@ public class ProcessingProgress {
         } catch (Exception e) {
             throw new IllegalStateException("Cannot record committed chunk", e);
         }
+    }
+
+    /** The numbers of the batch's committed chunks (they may have gaps when chunks ran in parallel). */
+    public java.util.Set<Integer> committedChunks(UUID batch) {
+        var numbers = new java.util.HashSet<Integer>();
+        for (Chunk chunk : chunks(batch)) {
+            numbers.add(chunk.number());
+        }
+        return numbers;
     }
 
     public void complete(UUID batch) {
