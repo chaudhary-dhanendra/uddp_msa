@@ -49,7 +49,66 @@ export function ruleFor(
     crosswalk: target.crosswalkId ?? null,
     required:
       target.entity === "Resident" && target.target === "name" ? true : null,
+    stateField: null,
   };
+}
+
+export type StateFieldType = "text" | "number" | "integer" | "boolean" | "date";
+export const STATE_FIELD_TYPES: StateFieldType[] = [
+  "text",
+  "number",
+  "integer",
+  "boolean",
+  "date",
+];
+const EXTENSIONS = "extensions.";
+
+/** A state field key from a column name: "disability_pct" -> "disabilityPct" (a letter first, at most 63 chars). */
+export function stateFieldKey(column: string): string {
+  const words = column
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const camel = words
+    .map((w, i) =>
+      i === 0
+        ? w.charAt(0).toLowerCase() + w.slice(1)
+        : w.charAt(0).toUpperCase() + w.slice(1),
+    )
+    .join("");
+  const key = /^[a-z]/.test(camel) ? camel : `f${camel}`;
+  return (key.startsWith("uddp") ? `f${key}` : key).slice(0, 63);
+}
+
+/** Keeps a column as a typed state field of the pack (a Resident extensions.<key> rule), carried to Golden. */
+export function stateFieldRule(
+  column: ColumnProfile | undefined,
+): StudioMappingRule {
+  const name = column?.name ?? "";
+  const numeric = (column?.topValues ?? []).length > 0 &&
+    (column?.topValues ?? []).every((v) => /^-?\d+(\.\d+)?$/.test((v.value ?? "").trim()));
+  return {
+    sourceField: name,
+    entity: "Resident",
+    target: `${EXTENSIONS}${stateFieldKey(name)}`,
+    conversion: null,
+    crosswalk: null,
+    required: null,
+    stateField: { label: name, type: numeric ? "number" : "text", golden: true },
+  };
+}
+
+/** The key of a state field rule (its target without "extensions."). */
+export function keyOf(rule: StudioMappingRule): string {
+  return (rule.target ?? "").startsWith(EXTENSIONS)
+    ? (rule.target ?? "").slice(EXTENSIONS.length)
+    : "";
+}
+
+export function withKey(rule: StudioMappingRule, key: string): StudioMappingRule {
+  return { ...rule, target: `${EXTENSIONS}${key}` };
 }
 
 /**
@@ -74,6 +133,7 @@ export function initialConfiguration(
           target.entity === "Resident" && target.target === "name"
             ? true
             : null,
+        stateField: null,
       });
     }
   }

@@ -169,7 +169,23 @@ public final class StudioModels {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String target,
             @Schema(nullable = true, description = "For example date:DD-MM-YYYY") String conversion,
             @Schema(nullable = true) String crosswalk,
-            @Schema(nullable = true) Boolean required) {
+            @Schema(nullable = true) Boolean required,
+            @Schema(nullable = true, description = "Set on a Resident extensions.<key> rule that the pack declares as"
+                    + " a state field (typed, checked, optionally carried to the Golden Resident)")
+            StateFieldSpec stateField) {
+        public MappingRule(String sourceField, String entity, String target, String conversion, String crosswalk,
+                           Boolean required) {
+            this(sourceField, entity, target, conversion, crosswalk, required, null);
+        }
+    }
+
+    @Schema(description = "A state field: a source value with no Common Model field, declared by this pack")
+    public record StateFieldSpec(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Display name, e.g. Disability percentage")
+            String label,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"text", "number", "integer", "boolean", "date"})
+            String type,
+            @Schema(nullable = true, description = "Carry the value to the Golden Resident") Boolean golden) {
     }
 
     @Schema(description = "A crosswalk from local values to platform codes")

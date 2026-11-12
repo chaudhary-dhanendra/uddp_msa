@@ -211,6 +211,21 @@
       "add": "Add target",
       "remove": "Remove",
       "keep": "(kept as extension)",
+      "stateField": {
+        "make": "Make it a state field",
+        "title": "State field",
+        "label": "Name",
+        "key": "Key",
+        "type": "Type",
+        "golden": "Use on Golden record",
+        "types": {
+          "text": "Text",
+          "number": "Number",
+          "integer": "Whole number",
+          "boolean": "Yes / No",
+          "date": "Date (YYYY-MM-DD)"
+        }
+      },
       "recordId": "Record ID column",
       "recordKey": "Record key columns",
       "recordKeyHint": "Needed when the record ID is shared by several rows (e.g. a household number)",

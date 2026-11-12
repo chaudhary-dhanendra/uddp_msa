@@ -9,9 +9,11 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
- * State-neutral core-field survivorship; extensions remain on canonical members.
+ * State-neutral core-field survivorship. Extensions remain on canonical members, except declared Golden state fields:
+ * {@code stateFields.<stateCode>.<key>} is survived from the members of that state code by the same rules.
  * Blank values are ignored; agreement wins; otherwise the source the policy ranks highest for that field wins.
  * Unranked sources, or top-ranked sources that disagree, fall back to stable canonical-ID order.
  */
@@ -26,6 +28,8 @@ public class SurvivorshipEngine {
     static final double MIN_CONFIDENCE = 0.8;
     private static final String PROVENANCE = "uddp.fieldProvenance";
     private static final int UNRANKED = Integer.MAX_VALUE;
+    /** Golden path prefix of a declared state field: {@code stateFields.<stateCode>.<key>}. */
+    public static final String STATE_FIELDS = "stateFields";
 
     public Map<String, GoldenField> survive(List<CanonicalObservation> input, SurvivorshipPolicy policy) {
         return survive(input, policy, null);
@@ -34,15 +38,28 @@ public class SurvivorshipEngine {
     /** Applies an effective DMN decision only when it selects one of the existing contributors. */
     public Map<String, GoldenField> survive(List<CanonicalObservation> input, SurvivorshipPolicy policy,
                                              DmnSurvivorshipRules dmnRules) {
+        return survive(input, policy, dmnRules, Map.of());
+    }
+
+    /**
+     * Also survives the declared Golden state fields: {@code goldenStateFields} maps a state code to the keys its
+     * packs carry to Golden; only members of that state code contribute.
+     */
+    public Map<String, GoldenField> survive(List<CanonicalObservation> input, SurvivorshipPolicy policy,
+                                             DmnSurvivorshipRules dmnRules, Map<String, List<String>> goldenStateFields) {
         if (input.isEmpty()) {
             throw new IllegalArgumentException("A golden Resident requires a member");
         }
         var members = input.stream().sorted(Comparator.comparing(CanonicalObservation::id)).toList();
+        List<String> paths = new ArrayList<>(PATHS);
+        new TreeMap<>(goldenStateFields).forEach((stateCode, keys) -> keys.stream().sorted().distinct()
+                .forEach(key -> paths.add(STATE_FIELDS + "." + stateCode + "." + key)));
         Map<String, GoldenField> result = new LinkedHashMap<>();
-        for (String path : PATHS) {
+        for (String path : paths) {
+            boolean stateField = path.startsWith(STATE_FIELDS + ".");
             var values = new ArrayList<CanonicalObservation>();
             for (var member : members) {
-                JsonNode value = value(member.payload(), path);
+                JsonNode value = observed(member, path);
                 if (value != null && !value.isNull() && !value.asText().trim().isEmpty()) {
                     values.add(member);
                 }
@@ -80,7 +97,7 @@ public class SurvivorshipEngine {
                     rule = STRUCTURED_OVER_PARSED;
                 }
             }
-            if (dmnRules != null) {
+            if (dmnRules != null && !stateField) {
                 var dmn = dmnRules.choose(path, values);
                 if (dmn.isPresent()) {
                     winner = dmn.get().candidate();
@@ -88,7 +105,7 @@ public class SurvivorshipEngine {
                 }
             }
             var contributors = values.stream().map(CanonicalObservation::id).toList();
-            result.put(path, new GoldenField(value(winner.payload(), path), winner.id(), rule, contributors));
+            result.put(path, new GoldenField(observed(winner, path), winner.id(), rule, contributors));
         }
         return result;
     }
@@ -128,7 +145,8 @@ public class SurvivorshipEngine {
 
     /** The parse confidence recorded for a field of a member, or null for a structured (unparsed) value. */
     private static Double parsedConfidence(CanonicalObservation observation, String path) {
-        JsonNode confidence = observation.payload().path("extensions").path(PROVENANCE).path(path).path("confidence");
+        String recorded = path.startsWith(STATE_FIELDS + ".") ? "extensions." + stateFieldKey(path) : path;
+        JsonNode confidence = observation.payload().path("extensions").path(PROVENANCE).path(recorded).path("confidence");
         return confidence.isNumber() ? confidence.asDouble() : null;
     }
 
@@ -139,7 +157,24 @@ public class SurvivorshipEngine {
     }
 
     private static String normalised(CanonicalObservation observation, String path) {
-        return value(observation.payload(), path).asText().trim().toLowerCase();
+        return observed(observation, path).asText().trim().toLowerCase();
+    }
+
+    /** A member's value for a path; a state field is read from the extensions of members of its state code only. */
+    private static JsonNode observed(CanonicalObservation observation, String path) {
+        if (!path.startsWith(STATE_FIELDS + ".")) {
+            return value(observation.payload(), path);
+        }
+        String[] parts = path.split("\\.", 3);
+        if (!parts[1].equals(observation.stateCode())) {
+            return null;
+        }
+        JsonNode value = observation.payload().path("extensions").get(parts[2]);
+        return value == null || value.isMissingNode() ? null : value;
+    }
+
+    private static String stateFieldKey(String path) {
+        return path.split("\\.", 3)[2];
     }
 
     private static JsonNode value(JsonNode node, String path) {
@@ -154,11 +189,10 @@ public class SurvivorshipEngine {
 
     private static void set(ObjectNode node, String path, JsonNode value) {
         String[] parts = path.split("\\.");
-        if (parts.length == 1) {
-            node.set(parts[0], value);
-        } else {
-            ObjectNode child = node.withObject(parts[0]);
-            child.set(parts[1], value);
+        ObjectNode parent = node;
+        for (int i = 0; i < parts.length - 1; i++) {
+            parent = parent.withObject(parts[i]);
         }
+        parent.set(parts[parts.length - 1], value);
     }
 }

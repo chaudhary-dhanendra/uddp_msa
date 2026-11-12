@@ -356,6 +356,25 @@ public class StudioService {
         }
     }
 
+    /** A state field is a Resident {@code extensions.<key>} rule with a valid key, a type and a label. */
+    static void requireStateField(MappingRule rule) {
+        String prefix = "extensions.";
+        if (!"Resident".equals(rule.entity()) || rule.target() == null || !rule.target().startsWith(prefix)) {
+            throw new IllegalArgumentException("A state field must be a Resident extensions.<key> target: "
+                    + rule.target());
+        }
+        var field = new gov.uddp.core.statepack.StatePackAssets.StateField(rule.target().substring(prefix.length()),
+                rule.stateField().label(), rule.stateField().type(), rule.stateField().golden());
+        try {
+            gov.uddp.core.statepack.StatePackLoader.validateStateFields(List.of(field), java.nio.file.Path.of("draft"));
+        } catch (gov.uddp.core.statepack.StatePackLoadException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+        if (rule.stateField().label() == null || rule.stateField().label().isBlank()) {
+            throw new IllegalArgumentException("State field " + field.key() + " needs a name");
+        }
+    }
+
     public synchronized Draft saveConfiguration(String draftId, DraftConfiguration configuration) {
         Draft draft = draft(draftId);
         requireNotPending(draft);
@@ -369,6 +388,9 @@ public class StudioService {
                     && rule.target().length() > "extensions.".length();
             if (!extension && metadata.target(rule.entity(), rule.target()).isEmpty()) {
                 throw new IllegalArgumentException("Unsupported " + rule.entity() + " target: " + rule.target());
+            }
+            if (rule.stateField() != null) {
+                requireStateField(rule);
             }
         }
         String recordId = configuration.recordIdField() == null ? source.recordIdField() : configuration.recordIdField();

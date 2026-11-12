@@ -32,7 +32,7 @@ public final class PiiMasker {
     private PiiMasker() {
     }
 
-    enum Kind { NAME, BIRTH, MOBILE, ADDRESS, RECORD_KEY, NONE }
+    enum Kind { NAME, BIRTH, MOBILE, ADDRESS, RECORD_KEY, STATE_FIELD, NONE }
 
     /** Masks the tree in place and returns it. */
     public static JsonNode mask(JsonNode node) {
@@ -120,11 +120,17 @@ public final class PiiMasker {
         if (RECORD_KEY_KEYS.contains(k)) {
             return Kind.RECORD_KEY;
         }
+        if (k.equals("statefields")) {
+            return Kind.STATE_FIELD;
+        }
         return Kind.NONE;
     }
 
     static Kind kindOfPath(String path) {
         String last = path.replace("[]", "");
+        if (last.startsWith("stateFields.")) {
+            return Kind.STATE_FIELD;
+        }
         if (last.toLowerCase(Locale.ROOT).startsWith("address")) {
             String rest = last.contains(".") ? last.substring(last.lastIndexOf('.') + 1) : "";
             return rest.isEmpty() ? Kind.ADDRESS : DISTRICT_KEYS.contains(rest.toLowerCase(Locale.ROOT)) ? Kind.NONE
@@ -140,6 +146,24 @@ public final class PiiMasker {
     private static JsonNode maskValue(JsonNode value, Kind kind) {
         if (value == null || value.isNull() || value.isMissingNode()) {
             return value;
+        }
+        // A Golden state field's meaning is the pack's, so its values are hidden until revealed.
+        if (kind == Kind.STATE_FIELD) {
+            if (value.isContainerNode()) {
+                JsonNode copy = value.deepCopy();
+                if (copy instanceof ObjectNode object) {
+                    List<String> names = new ArrayList<>();
+                    object.fieldNames().forEachRemaining(names::add);
+                    names.forEach(name -> object.set(name, maskValue(object.get(name), kind)));
+                } else {
+                    ArrayNode array = (ArrayNode) copy;
+                    for (int i = 0; i < array.size(); i++) {
+                        array.set(i, maskValue(array.get(i), kind));
+                    }
+                }
+                return copy;
+            }
+            return TextNode.valueOf(HIDDEN);
         }
         // A fraction under a resident key (the share of records with a name) is a statistic, not personal data; a
         // whole number can still be a phone number and stays masked.

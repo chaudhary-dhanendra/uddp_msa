@@ -28,10 +28,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class RuleSetController {
     private final RuleSetService service;
     private final StudioMetadata metadata;
+    private gov.uddp.core.statepack.StatePackLoader packs;
 
     public RuleSetController(RuleSetService service, StudioMetadata metadata) {
         this.service = service;
         this.metadata = metadata;
+    }
+
+    /** Optional: the packs whose declared Golden state fields a rule can also test. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPacks(gov.uddp.core.statepack.StatePackLoader packs) {
+        this.packs = packs;
     }
 
     /** Code sets longer than this are not listed with a field; the Studio then takes the code as typed text. */
@@ -54,7 +61,30 @@ public class RuleSetController {
                 .filter(t -> !"Benefit".equals(t.entity()))
                 .filter(t -> !t.target().contains("[]") && !t.target().startsWith("extensions."))
                 .forEach(t -> byName.putIfAbsent(t.target(), field(t)));
+        if (packs != null) {
+            for (var pack : packs.all()) {
+                for (var stateField : pack.stateFields()) {
+                    if (stateField.toGolden()) {
+                        RuleField field = stateField(pack.manifest().stateCode(), stateField);
+                        byName.putIfAbsent(field.name(), field);
+                    }
+                }
+            }
+        }
         return List.copyOf(byName.values());
+    }
+
+    /** A declared Golden state field, read by a rule at {@code stateFields.<stateCode>.<key>}. */
+    public static RuleField stateField(String stateCode, gov.uddp.core.statepack.StatePackAssets.StateField field) {
+        RuleConditions.DataType type = switch (field.typeOrDefault()) {
+            case "number", "integer" -> RuleConditions.DataType.NUMBER;
+            case "date" -> RuleConditions.DataType.DATE;
+            case "boolean" -> RuleConditions.DataType.BOOLEAN;
+            default -> RuleConditions.DataType.TEXT;
+        };
+        return new RuleField("stateFields." + stateCode + "." + field.key(),
+                "State field · " + stateCode + " · " + field.labelOrKey(), field.typeOrDefault(), null, null, type,
+                RuleConditions.operators(type), null);
     }
 
     private RuleField field(StudioMetadata.Target t) {

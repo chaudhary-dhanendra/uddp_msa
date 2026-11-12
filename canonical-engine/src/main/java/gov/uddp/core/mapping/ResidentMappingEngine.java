@@ -52,6 +52,8 @@ public class ResidentMappingEngine {
     public static final String ALIAS_EXTENSION = "uddp.identifierAliases";
     /** Per-target confidence of parsed values, read by survivorship: {@code {target: {confidence, origin}}}. */
     public static final String PROVENANCE_EXTENSION = "uddp.fieldProvenance";
+    /** A mapping target that keeps a value on the Resident's extensions; a declared state field is typed first. */
+    public static final String EXTENSION_PREFIX = "extensions.";
     /** A relation rule's {@code conversion} of {@code relation:<TYPE>} fixes the relation type of its group. */
     public static final String RELATION_CONVERSION = "relation:";
     private static final String RELATION_PREFIX = "relations[].";
@@ -182,6 +184,12 @@ public class ResidentMappingEngine {
             }
             boolean relation = rule.target().startsWith(RELATION_PREFIX);
             Object transformed = relation && rule.crosswalk() == null ? sourceValue.toString().trim() : transform(sourceValue.toString(), rule, pack);
+            if (rule.target().startsWith(EXTENSION_PREFIX)) {
+                var declared = pack.stateField(rule.target().substring(EXTENSION_PREFIX.length()));
+                if (declared.isPresent()) {
+                    transformed = gov.uddp.core.statepack.StateFieldValues.convert(declared.get(), transformed);
+                }
+            }
             Provenance provenance = tidy.provenance() == null ? null : tidy.provenance().get(rule.sourceField());
             Double confidence = provenance == null ? null : provenance.confidence();
             if (!relation) {

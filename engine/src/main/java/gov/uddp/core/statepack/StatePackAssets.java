@@ -114,4 +114,33 @@ public final class StatePackAssets {
     public record MatchingDefinition(String entity, List<String> fields, Thresholds thresholds) { }
     public record Thresholds(Double autoMatch, Double possibleMatch) { }
     public record SurvivorshipDefinition(String entity, Map<String, List<String>> fieldPriority) { }
+
+    /**
+     * A pack's state fields file ({@code extensions/resident.yaml}, listed under the manifest's {@code extensions}):
+     * source values with no Common Model field that this pack still wants typed, checked and, when {@code golden},
+     * carried to the Golden Resident under {@code stateFields.<stateCode>.<key>}.
+     */
+    public record StateFieldsDefinition(String entity, List<StateField> fields) { }
+
+    /**
+     * One declared state field. A mapping rule stores it with {@code target: extensions.<key>}; {@code type} is
+     * {@code text}, {@code number}, {@code integer}, {@code boolean} or {@code date} (ISO); {@code golden} carries
+     * the value to the Golden Resident.
+     */
+    public record StateField(String key, String label, String type, Boolean golden) {
+        public static final java.util.Set<String> TYPES = java.util.Set.of("text", "number", "integer", "boolean", "date");
+        public static final String KEY_PATTERN = "[a-z][A-Za-z0-9_]{0,62}";
+
+        public String typeOrDefault() {
+            return type == null || type.isBlank() ? "text" : type;
+        }
+
+        public boolean toGolden() {
+            return Boolean.TRUE.equals(golden);
+        }
+
+        public String labelOrKey() {
+            return label == null || label.isBlank() ? key : label;
+        }
+    }
 }

@@ -70,8 +70,9 @@ public class SchemeImpactService {
                     if (mapping.entities() == null) {
                         continue;
                     }
-                    boolean supplies = mapping.entities().getOrDefault(entity, List.of()).stream()
-                            .anyMatch(rule -> attribute.equals(rule.target()));
+                    String target = suppliedTarget(attribute, pack);
+                    boolean supplies = target != null && mapping.entities().getOrDefault(entity, List.of()).stream()
+                            .anyMatch(rule -> target.equals(rule.target()));
                     String source = pack.manifest().packId() + "/" + (mapping.sourceId() == null ? "" : mapping.sourceId());
                     if (supplies && !sources.contains(source)) {
                         sources.add(source);
@@ -297,6 +298,18 @@ public class SchemeImpactService {
         } catch (Exception e) {
             throw new IllegalStateException("Cannot list Golden population", e);
         }
+    }
+
+    /**
+     * The mapping target that supplies an attribute in a pack: a Golden state field
+     * ({@code stateFields.<stateCode>.<key>}) is supplied only by its own state code's {@code extensions.<key>} rule.
+     */
+    public static String suppliedTarget(String attribute, gov.uddp.core.statepack.LoadedStatePack pack) {
+        if (!attribute.startsWith("stateFields.")) {
+            return attribute;
+        }
+        String[] parts = attribute.split("\\.", 3);
+        return parts.length == 3 && parts[1].equals(pack.manifest().stateCode()) ? "extensions." + parts[2] : null;
     }
 
     private int withValue(boolean household, String attribute) {

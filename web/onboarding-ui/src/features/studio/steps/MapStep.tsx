@@ -13,14 +13,19 @@ import {
   Panel,
   QueryState,
   Select,
+  TextInput,
 } from "../../../shared/components";
 import {
   crosswalksFor,
   currentRecordKey,
   findTarget,
   initialConfiguration,
+  keyOf,
   ruleFor,
+  STATE_FIELD_TYPES,
+  stateFieldRule,
   targetKey,
+  withKey,
 } from "../configuration";
 import {
   useMappingTargets,
@@ -139,6 +144,14 @@ function MapEditor({
       setRules((current) => [...current, ruleFor(column, target)]);
     }
   };
+  const makeStateField = (columnName: string) => {
+    const column = profile.columns.find((c) => c.name === columnName);
+    setRules((current) => [...current, stateFieldRule(column)]);
+  };
+  const updateRule = (index: number, rule: StudioMappingRule) =>
+    setRules((current) => current.map((r, i) => (i === index ? rule : r)));
+  const removeRule = (index: number) =>
+    setRules((current) => current.filter((_, i) => i !== index));
   const suggestionFor = (rule: StudioMappingRule) =>
     suggestions.columns
       .find((c) => c.column === rule.sourceField)
@@ -234,6 +247,77 @@ function MapEditor({
                         if (rule.sourceField !== name) {
                           return null;
                         }
+                        if (rule.stateField) {
+                          const spec = rule.stateField;
+                          return (
+                            <div
+                              key={index}
+                              className={styles.targetRow}
+                              data-testid={`state-field-${name}`}
+                            >
+                              <span className={styles.basis}>
+                                {t("studio.map.stateField.title")}
+                              </span>
+                              <TextInput
+                                aria-label={`${t("studio.map.stateField.label")} ${name}`}
+                                value={spec.label ?? ""}
+                                onChange={(e) =>
+                                  updateRule(index, {
+                                    ...rule,
+                                    stateField: { ...spec, label: e.target.value },
+                                  })
+                                }
+                                data-testid={`state-field-label-${name}`}
+                              />
+                              <TextInput
+                                aria-label={`${t("studio.map.stateField.key")} ${name}`}
+                                value={keyOf(rule)}
+                                onChange={(e) =>
+                                  updateRule(index, withKey(rule, e.target.value))
+                                }
+                                data-testid={`state-field-key-${name}`}
+                              />
+                              <Select
+                                aria-label={`${t("studio.map.stateField.type")} ${name}`}
+                                value={spec.type ?? "text"}
+                                onChange={(e) =>
+                                  updateRule(index, {
+                                    ...rule,
+                                    stateField: {
+                                      ...spec,
+                                      type: e.target.value as (typeof STATE_FIELD_TYPES)[number],
+                                    },
+                                  })
+                                }
+                                options={STATE_FIELD_TYPES.map((type) => ({
+                                  value: type,
+                                  label: t(`studio.map.stateField.types.${type}`),
+                                }))}
+                                data-testid={`state-field-type-${name}`}
+                              />
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={spec.golden === true}
+                                  onChange={(e) =>
+                                    updateRule(index, {
+                                      ...rule,
+                                      stateField: { ...spec, golden: e.target.checked },
+                                    })
+                                  }
+                                  data-testid={`state-field-golden-${name}`}
+                                />{" "}
+                                {t("studio.map.stateField.golden")}
+                              </label>
+                              <Button
+                                variant="secondary"
+                                onClick={() => removeRule(index)}
+                              >
+                                {t("studio.map.remove")}
+                              </Button>
+                            </div>
+                          );
+                        }
                         const suggestion = suggestionFor(rule);
                         return (
                           <div key={index} className={styles.targetRow}>
@@ -299,6 +383,18 @@ function MapEditor({
                             </Button>
                           </div>
                         ))}
+                      {!rules.some((r) => r.sourceField === name) && (
+                        <div className={styles.targetRow}>
+                          <span className={styles.basis}>{t("studio.map.keep")}</span>
+                          <Button
+                            variant="secondary"
+                            onClick={() => makeStateField(name)}
+                            data-testid={`make-state-field-${name}`}
+                          >
+                            {t("studio.map.stateField.make")}
+                          </Button>
+                        </div>
+                      )}
                       <Select
                         aria-label={`${t("studio.map.add")} ${name}`}
                         value=""

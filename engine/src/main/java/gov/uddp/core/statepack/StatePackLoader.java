@@ -165,11 +165,39 @@ public class StatePackLoader {
         }
         List<SurvivorshipDefinition> survivorship =
                 readAll(packDirectory, manifest.survivorship(), SurvivorshipDefinition.class);
-        for (String extension : safeList(manifest.extensions())) {
-            requireFile(packDirectory, extension);
+        List<StateField> stateFields = new ArrayList<>();
+        for (StateFieldsDefinition definition
+                : readAll(packDirectory, manifest.extensions(), StateFieldsDefinition.class)) {
+            if (definition.entity() != null && !"Resident".equals(definition.entity())) {
+                throw new StatePackLoadException("State fields are supported for Resident only, not "
+                        + definition.entity() + " in " + packDirectory);
+            }
+            stateFields.addAll(safeList(definition.fields()));
         }
+        validateStateFields(stateFields, packDirectory);
         return new LoadedStatePack(manifest, List.copyOf(sources), List.copyOf(mappings), Map.copyOf(crosswalks),
-                List.copyOf(validations), List.copyOf(matching), List.copyOf(survivorship));
+                List.copyOf(validations), List.copyOf(matching), List.copyOf(survivorship), stateFields);
+    }
+
+    /** Keys are plain names (no dots: Golden stores them as {@code stateFields.<stateCode>.<key>}), unique, typed. */
+    public static void validateStateFields(List<StateField> fields, Path pack) {
+        Set<String> keys = new HashSet<>();
+        for (StateField field : fields) {
+            if (field == null || field.key() == null || !field.key().matches(StateField.KEY_PATTERN)) {
+                throw new StatePackLoadException("State field key must start with a lower-case letter and use only"
+                        + " letters, digits and _ in " + pack + ": " + (field == null ? null : field.key()));
+            }
+            if (field.key().startsWith("uddp")) {
+                throw new StatePackLoadException("State field key " + field.key() + " is reserved in " + pack);
+            }
+            if (!StateField.TYPES.contains(field.typeOrDefault())) {
+                throw new StatePackLoadException("State field " + field.key() + " has unsupported type "
+                        + field.type() + " in " + pack + " (text, number, integer, boolean or date)");
+            }
+            if (!keys.add(field.key())) {
+                throw new StatePackLoadException("Duplicate state field " + field.key() + " in " + pack);
+            }
+        }
     }
 
     private void validateShaping(SourceDefinition source, Path file) {

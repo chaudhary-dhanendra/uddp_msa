@@ -4801,12 +4801,18 @@
             "nullable" : true,
             "type" : "string"
           },
+          "stateField" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/StateFieldSpec"
+            } ],
+            "nullable" : true
+          },
           "target" : {
             "nullable" : true,
             "type" : "string"
           }
         },
-        "required" : [ "conversion", "crosswalk", "entity", "required", "sourceField", "target" ],
+        "required" : [ "conversion", "crosswalk", "entity", "required", "sourceField", "stateField", "target" ],
         "type" : "object"
       },
       "MappingRuleView" : {
@@ -9998,6 +10004,29 @@
           }
         },
         "required" : [ "displayName", "generatedFiles", "hopTemplates", "packId", "platformCodeChanges", "platformCommitAtPublish", "stateCode" ],
+        "type" : "object"
+      },
+      "StateFieldSpec" : {
+        "description" : "A state field: a source value with no Common Model field, declared by this pack",
+        "nullable" : true,
+        "properties" : {
+          "golden" : {
+            "description" : "Carry the value to the Golden Resident",
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "label" : {
+            "description" : "Display name, e.g. Disability percentage",
+            "nullable" : true,
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "text", "number", "integer", "boolean", "date" ],
+            "nullable" : true,
+            "type" : "string"
+          }
+        },
+        "required" : [ "golden", "label", "type" ],
         "type" : "object"
       },
       "StatePackDetails" : {

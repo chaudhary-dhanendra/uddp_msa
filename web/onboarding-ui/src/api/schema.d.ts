@@ -5666,6 +5666,7 @@ export interface components {
             entity: "Resident" | "Family" | "Benefit" | null;
             required: boolean | null;
             sourceField: string | null;
+            stateField: components["schemas"]["StateFieldSpec"] | null;
             target: string | null;
         };
         MappingRuleView: {
@@ -7367,6 +7368,15 @@ export interface components {
             platformCommitAtPublish: string | null;
             stateCode: string | null;
         };
+        /** @description A state field: a source value with no Common Model field, declared by this pack */
+        StateFieldSpec: {
+            /** @description Carry the value to the Golden Resident */
+            golden: boolean | null;
+            /** @description Display name, e.g. Disability percentage */
+            label: string | null;
+            /** @enum {string|null} */
+            type: "text" | "number" | "integer" | "boolean" | "date" | null;
+        } | null;
         StatePackDetails: {
             commonModelVersion: string | null;
             /** Format: int32 */

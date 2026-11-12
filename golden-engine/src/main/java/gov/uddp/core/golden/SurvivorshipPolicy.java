@@ -29,7 +29,7 @@ public record SurvivorshipPolicy(String version, Map<String, Map<String, Integer
                     continue;
                 }
                 for (var entry : definition.fieldPriority().entrySet()) {
-                    if (!SurvivorshipEngine.PATHS.contains(entry.getKey())) {
+                    if (!supported(entry.getKey())) {
                         throw new IllegalArgumentException("State Pack " + pack.manifest().packId()
                                 + " sets survivorship priority for unsupported field " + entry.getKey());
                     }
@@ -45,6 +45,29 @@ public record SurvivorshipPolicy(String version, Map<String, Map<String, Integer
         return new SurvivorshipPolicy(RESIDENT_V2, ranks);
     }
 
+    /** A core survived field, or a declared state field ({@code stateFields.<stateCode>.<key>}). */
+    static boolean supported(String path) {
+        return SurvivorshipEngine.PATHS.contains(path)
+                || path.matches(SurvivorshipEngine.STATE_FIELDS + "\\.[^.]+\\.[^.]+");
+    }
+
+    /** State code to the keys of the state fields its packs carry to the Golden Resident. */
+    public static Map<String, List<String>> goldenStateFields(Collection<LoadedStatePack> packs) {
+        Map<String, List<String>> out = new java.util.TreeMap<>();
+        for (LoadedStatePack pack : packs) {
+            for (var field : pack.stateFields()) {
+                if (field.toGolden()) {
+                    var keys = out.computeIfAbsent(pack.manifest().stateCode(), code -> new java.util.ArrayList<>());
+                    if (!keys.contains(field.key())) {
+                        keys.add(field.key());
+                    }
+                }
+            }
+        }
+        out.replaceAll((code, keys) -> List.copyOf(keys));
+        return out;
+    }
+
     public static String sourceKey(String stateCode, String sourceId) {
         return stateCode + ":" + sourceId;
     }
@@ -52,7 +75,7 @@ public record SurvivorshipPolicy(String version, Map<String, Map<String, Integer
     public static SurvivorshipPolicy fromPlatform(PlatformSurvivorshipPolicy platform) {
         Map<String, Map<String, Integer>> ranks = new LinkedHashMap<>();
         for (var entry : platform.fields().entrySet()) {
-            if (!SurvivorshipEngine.PATHS.contains(entry.getKey())) throw new IllegalArgumentException("Unsupported platform field " + entry.getKey());
+            if (!supported(entry.getKey())) throw new IllegalArgumentException("Unsupported platform field " + entry.getKey());
             var field = entry.getValue();
             if (!"SOURCE_TRUST".equals(field.strategy()) && !"DETERMINISTIC_FALLBACK".equals(field.strategy()))
                 throw new IllegalArgumentException("Unsupported platform strategy " + field.strategy());

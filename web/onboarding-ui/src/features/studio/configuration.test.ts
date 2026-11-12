@@ -9,8 +9,12 @@ import {
   crosswalksFor,
   currentRecordKey,
   initialConfiguration,
+  keyOf,
   missingValues,
   ruleFor,
+  stateFieldKey,
+  stateFieldRule,
+  withKey,
 } from "./configuration";
 
 const gender: MappingTarget = {
@@ -131,10 +135,31 @@ describe("Studio configuration", () => {
         conversion: null,
         crosswalk: "gender",
         required: null,
+        stateField: null,
       },
     ]);
     expect(configuration.crosswalks).toBe(suggestions.crosswalks);
     expect(missingValues(configuration.crosswalks)).toBe(1);
+  });
+
+  it("keeps a column as a typed state field carried to Golden", () => {
+    expect(stateFieldKey("disability_pct")).toBe("disabilityPct");
+    expect(stateFieldKey("2nd Phone")).toBe("f2ndPhone");
+    expect(stateFieldKey("uddp_flag")).toBe("fuddpFlag");
+    const rule = stateFieldRule({
+      name: "disability_pct",
+      topValues: [{ value: "55" }, { value: "70.5" }],
+    } as unknown as Parameters<typeof stateFieldRule>[0]);
+    expect(rule).toEqual({
+      sourceField: "disability_pct",
+      entity: "Resident",
+      target: "extensions.disabilityPct",
+      conversion: null,
+      crosswalk: null,
+      required: null,
+      stateField: { label: "disability_pct", type: "number", golden: true },
+    });
+    expect(keyOf(withKey(rule, "pct"))).toBe("pct");
   });
 
   it("derives a date conversion and a crosswalk from the chosen target", () => {

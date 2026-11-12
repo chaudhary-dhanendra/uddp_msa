@@ -379,7 +379,8 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
     /** Survives the group and works out why (if at all) it needs a new version. */
     private Plan plan(UUID id, CurrentIdentity current, UUID splitFrom, List<Participant> members, SurvivorshipPolicy policy) {
         var observations = members.stream().map(Participant::observation).toList();
-        var fields = engine.survive(observations, policy, dmnSurvivorshipRules);
+        var fields = engine.survive(observations, policy, dmnSurvivorshipRules,
+                SurvivorshipPolicy.goldenStateFields(packs.all()));
         JsonNode payload = engine.payload(fields, observations, json);
         if (current == null) {
             return new Plan(id, null, splitFrom, members, fields, payload, 1, new ArrayList<>(List.of("CREATED")));
@@ -446,7 +447,10 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
                         .member(entry.getValue().canonicalId(), entry.getKey()));
             }
         }
-        for (String path : SurvivorshipEngine.PATHS) {
+        Set<String> paths = new java.util.LinkedHashSet<>(SurvivorshipEngine.PATHS);
+        paths.addAll(plan.fields().keySet());
+        paths.addAll(current.provenance().keySet());
+        for (String path : paths) {
             JsonNode before = at(current.payload(), path);
             JsonNode after = at(plan.payload(), path);
             if (!Objects.equals(before, after)) {

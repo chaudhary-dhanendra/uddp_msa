@@ -106,7 +106,12 @@ class M10PortabilityGuardTest {
             "common-core/src/main/java/gov/uddp/core/canonical/CanonicalProcessingSummary.java",
             "common-core/src/main/java/gov/uddp/core/canonical/PostgresCanonicalResidentRepository.java",
             "common-core/src/main/java/gov/uddp/core/validation/ReasonCodes.java",
-            "common-core/src/main/java/gov/uddp/core/validation/ValidationIssue.java");
+            "common-core/src/main/java/gov/uddp/core/validation/ValidationIssue.java",
+            // State fields (2026-11-12): a pack declares typed extensions in extensions/*.yaml; declared Golden ones
+            // are survived to stateFields.<stateCode>.<key> by the same rules, identical for every state.
+            "common-core/src/main/java/gov/uddp/core/statepack/LoadedStatePack.java",
+            "common-core/src/main/java/gov/uddp/core/statepack/StateFieldValues.java",
+            "common-core/src/main/java/gov/uddp/core/golden/SurvivorshipPolicy.java");
     /**
      * The engines moved, unchanged, from common-core to the engine modules, and the rest of common-core to
      * edge-service (MSA); every location is protected and compared under its former common-core path.
