@@ -39,6 +39,29 @@ public class ConnectorController {
         return sources.describe();
     }
 
+    /**
+     * Tests and saves a database connection from the Studio: body host, port, database, user, password (empty keeps
+     * the saved one). The answer is the list entry, never the password.
+     */
+    @PutMapping("/connections/{name}")
+    public Map<String, Object> saveConnection(@PathVariable String name, @RequestBody Map<String, Object> body) {
+        Object port = body.get("port");
+        Integer number;
+        try {
+            number = port instanceof Number n ? Integer.valueOf(n.intValue())
+                    : port == null || port.toString().isBlank() ? null : Integer.valueOf(port.toString().strip());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Port must be a number");
+        }
+        return sources.save(name, text(body, "host"), number, text(body, "database"), text(body, "user"),
+                text(body, "password"));
+    }
+
+    private static String text(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        return value == null ? null : value.toString();
+    }
+
     /** A preview of a database source read with this service's credentials: body connectionRef, table or query, limit. */
     @PostMapping("/sources/rows")
     public Map<String, Object> sourceRows(@RequestBody Map<String, Object> source) {

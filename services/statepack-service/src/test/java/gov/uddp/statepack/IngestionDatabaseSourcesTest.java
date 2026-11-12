@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sun.net.httpserver.HttpServer;
 import gov.uddp.core.setup.LocalSettingsStore;
-import gov.uddp.core.studio.StudioConflictException;
 import gov.uddp.core.studio.StudioModels;
 import gov.uddp.statepack.studio.IngestionDatabaseSources;
 import java.net.InetSocketAddress;
@@ -16,9 +15,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
 
 /**
- * The Studio hosted here keeps no source credentials: it lists the connections ingestion-service has configured and
- * reads preview rows through it by connection name, and refuses to store a password. The stub answers with the
- * examples of the ingestion-service HTTP contract.
+ * The Studio hosted here keeps no source credentials: it lists the connections ingestion-service has, reads preview
+ * rows through it by connection name, and saves a new connection through it (ingestion-service tests it and keeps the
+ * password encrypted). The stub answers with the examples of the ingestion-service HTTP contract.
  */
 class IngestionDatabaseSourcesTest {
 
@@ -30,8 +29,10 @@ class IngestionDatabaseSourcesTest {
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             seen.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " " + body);
             // The answers are the ingestion-service HTTP contract's examples (consumer side of the contract).
+            String path = exchange.getRequestURI().getPath();
             String answer = gov.uddp.contracts.HttpContracts.find("ingestion-service",
-                    exchange.getRequestURI().getPath().endsWith("/connections") ? "list the database connections"
+                    "PUT".equals(exchange.getRequestMethod()) ? "save a database connection"
+                            : path.endsWith("/connections") ? "list the database connections"
                             : "preview a database source").example().toString();
             byte[] bytes = answer.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);
@@ -49,9 +50,14 @@ class IngestionDatabaseSourcesTest {
             assertThat(rows.rows().get(0).get("name")).isEqualTo("Asha");
             assertThat(seen.get(1)).startsWith("POST /api/ingestion/sources/rows")
                     .contains("\"connectionRef\":\"registry-db\"").contains("\"table\":\"citizens\"");
-            assertThatThrownBy(() -> sources.save("registry-db", new StudioModels.SourceConnectionRequest("db", 5432,
-                    "reg", "ro", "secret"))).isInstanceOf(StudioConflictException.class)
-                    .hasMessageContaining("ingestion-service");
+            var saved = sources.save("studio-saved", new StudioModels.SourceConnectionRequest("db", 5432, "reg", "ro",
+                    "secret"));
+            assertThat(saved.name()).isEqualTo("studio-saved");
+            assertThat(saved.passwordSet()).isTrue();
+            assertThat(seen.get(2)).startsWith("PUT /api/ingestion/connections/studio-saved")
+                    .contains("\"host\":\"db\"").contains("\"port\":5432").contains("\"password\":\"secret\"");
+            assertThatThrownBy(() -> sources.save("Not A Name", new StudioModels.SourceConnectionRequest("db", 5432,
+                    "reg", "ro", "secret"))).isInstanceOf(IllegalArgumentException.class);
         } finally {
             ingestion.stop(0);
         }

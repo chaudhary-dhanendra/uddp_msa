@@ -499,7 +499,50 @@ public class OnboardingService {
             changes.evaluate(batch, row.id());
         }
         var result = canonical.processBatch(batch);
+        if (result.recordsFailed() > 0 && result.recordsMapped() == 0 && !hasDqEvaluation(batch)) {
+            // No row reached the data-quality checks: fail here with the rows' own reasons rather than at DQ_CHECKED
+            // with "No persisted DQ evaluation", which hides why.
+            throw new IllegalStateException(rejectedMessage(result.recordsRead(), result.recordsFailed(),
+                    rejectionReasons(batch)));
+        }
         return new StageResult(result.recordsRead(), result.recordsMapped(), batch, null);
+    }
+
+    private boolean hasDqEvaluation(UUID batch) {
+        return count("select count(*) from dq_batch_evaluation where batch_id=?", batch) > 0;
+    }
+
+    /** The batch's most common rejection reasons with their row counts, most frequent first. */
+    private Map<String, Integer> rejectionReasons(UUID batch) {
+        Map<String, Integer> reasons = new java.util.LinkedHashMap<>();
+        try (var c = connections.open();
+                var s = c.prepareStatement("select error_message,count(*) from canonical_processing_error"
+                        + " where batch_id=? group by error_message order by count(*) desc, error_message limit 3")) {
+            s.setObject(1, batch);
+            var r = s.executeQuery();
+            while (r.next()) {
+                reasons.put(r.getString(1), r.getInt(2));
+            }
+        } catch (Exception e) {
+            // The reasons only explain the failure; without them the counts still say what happened.
+        }
+        return reasons;
+    }
+
+    /**
+     * e.g. "No row reached the data-quality checks: 10 of 12 rows were rejected while mapping. Source record key field
+     * is blank: X (10 rows)".
+     */
+    static String rejectedMessage(int read, int failed, Map<String, Integer> reasons) {
+        StringBuilder message = new StringBuilder("No row reached the data-quality checks: ").append(failed)
+                .append(" of ").append(read).append(" rows were rejected while mapping");
+        if (!reasons.isEmpty()) {
+            message.append(". ");
+            message.append(String.join("; ", reasons.entrySet().stream()
+                    .map(e -> e.getKey() + " (" + e.getValue() + (e.getValue() == 1 ? " row)" : " rows)"))
+                    .toList()));
+        }
+        return message.toString();
     }
 
     private StageResult dq(Run row) {

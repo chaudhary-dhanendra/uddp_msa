@@ -11,7 +11,39 @@ merged across three states), with metrics, one trace per call across the service
    database.
 2. Build: `mvn install -DskipTests`.
 
-## Start
+## Start with one command (Windows)
+
+```powershell
+cd D:\projects\uddp_msa
+$env:UDDP_MSA_SERVICE_PASSWORD = '<service roles password>'   # or put it in deploy\local\msa.env
+powershell -ExecutionPolicy Bypass -File scripts\start-all.ps1          # add -Build after a git pull
+```
+
+`scripts/start-all.ps1` starts Kafka (and its topics), then the eight services in the order below as hidden
+background processes, waiting for each to report UP on `/actuator/health` and to register in Eureka before starting
+the next, then checks that the gateway routes `/health` to the edge, then builds (only when `src` changed) and serves
+the UI on http://localhost:5173. No windows are opened. Each process writes `logs/<name>.out.log` and
+`logs/<name>.err.log`, and its JSON log to `logs/<name>.log`; if one fails, the script prints the last lines of its log
+and stops. A service that is already healthy is left alone, so the script can simply be run again.
+
+- Settings: from the window, else from `deploy/local/msa.env` (gitignored; copy `scripts/msa.env.example`).
+  `UDDP_MSA_SERVICE_PASSWORD` is required (used as `UDDP_POSTGRES_PASSWORD`). `UDDP_INTERNAL_TOKEN` is generated for
+  the run when unset. The edge-only variables below are set for the edge alone, and cleared for the others.
+- Switches: `-Build` (mvn install first), `-Observability`, `-DemoUsers` (the edge seeds the demo users and prints
+  their one-time passwords to `logs/edge-service.out.log`), `-SkipKafka`, `-SkipUi`, `-RebuildUi`, `-UiPort`, `-Open`.
+- Stop: `scripts/stop-all.ps1` (UI, services, then `docker compose stop`; `-KeepKafka` leaves Kafka running). It also
+  stops a service started by hand, found by its port.
+- Fresh demo: `scripts/reset-databases.ps1` stops the services, drops `uddp_raw`, `uddp_identity`, `uddp_registry`
+  and `uddp_platform` (no other database), runs the two `deploy/postgres` scripts again, removes Kafka's data volume
+  (`-KeepKafka` keeps it) and clears the landing folder, pack cache and Studio workspace. It asks you to type RESET
+  and for the postgres superuser password (or `PGPASSWORD`). Then `scripts/start-all.ps1 -DemoUsers`.
+
+Why one process per service: each service is its own Spring Boot JVM with its own port and database role, and they
+find each other through Eureka, so discovery-service must be up first and the gateway last. The services' default
+paths (`../../platform`, `hop`, ...) are relative to the service folder, so a hand start must run `java -jar` from
+`services/<name>`, not from the repository root; the script does that.
+
+## Start by hand
 
 1. `docker compose up -d kafka kafka-init` (Kafka and every topic, dead-letter topics included).
 2. `docker compose --profile observability up -d` with `UDDP_LOG_DIR` set to an absolute folder (for example

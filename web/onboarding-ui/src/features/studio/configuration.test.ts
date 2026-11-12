@@ -7,6 +7,7 @@ import type {
 } from "../../api/types";
 import {
   crosswalksFor,
+  currentRecordKey,
   initialConfiguration,
   missingValues,
   ruleFor,
@@ -153,5 +154,39 @@ describe("Studio configuration", () => {
       ["1", null],
       ["2", null],
     ]);
+  });
+});
+
+describe("currentRecordKey", () => {
+  const columns = ["OWNER_NAME", "DOB", "VILLAGE_LGD"];
+
+  it("keeps a record ID and keys that are current columns", () => {
+    expect(currentRecordKey("OWNER_NAME", ["OWNER_NAME", "DOB"], columns)).toEqual({
+      recordIdField: "OWNER_NAME",
+      recordKeyFields: ["OWNER_NAME", "DOB"],
+      dropped: [],
+    });
+  });
+
+  it("drops a saved record ID and key whose header was renamed", () => {
+    expect(
+      currentRecordKey(
+        "Name of Owner",
+        ["Name of Owner", "OWNER_NAME", "DOB", null, "VILLAGE_LGD"],
+        columns,
+      ),
+    ).toEqual({
+      recordIdField: "",
+      recordKeyFields: ["OWNER_NAME", "DOB", "VILLAGE_LGD"],
+      dropped: ["Name of Owner"],
+    });
+  });
+
+  it("treats a missing choice as none", () => {
+    expect(currentRecordKey(null, null, columns)).toEqual({
+      recordIdField: "",
+      recordKeyFields: [],
+      dropped: [],
+    });
   });
 });

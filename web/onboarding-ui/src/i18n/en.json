@@ -214,6 +214,8 @@
       "recordId": "Record ID column",
       "recordKey": "Record key columns",
       "recordKeyHint": "Needed when the record ID is shared by several rows (e.g. a household number)",
+      "chooseRecordId": "Choose a column…",
+      "staleRecordKey": "No longer a column of this source, so removed: {{columns}}. Check the record ID and key columns.",
       "entity": {
         "Resident": "Resident",
         "Family": "Family",

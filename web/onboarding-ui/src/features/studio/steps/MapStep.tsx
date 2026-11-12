@@ -16,6 +16,7 @@ import {
 } from "../../../shared/components";
 import {
   crosswalksFor,
+  currentRecordKey,
   findTarget,
   initialConfiguration,
   ruleFor,
@@ -93,16 +94,20 @@ function MapEditor({
   const [rules, setRules] = useState<StudioMappingRule[]>(
     start?.mappings ?? draft.mappings,
   );
-  const [recordId, setRecordId] = useState(
-    start?.recordIdField ??
-      draft.source?.recordIdField ??
-      suggestions.recordIdField ??
-      "",
-  );
-  const [recordKeys, setRecordKeys] = useState<string[]>(
-    (start?.recordKeyFields ?? draft.source?.recordKeyFields ?? []).filter(
-      (k): k is string => k !== null,
+  const columnNames = profile.columns.map((c) => c.name ?? "");
+  // A saved choice that is no longer a column (renamed header, new file) is dropped, not sent back hidden.
+  const [saved] = useState(() =>
+    currentRecordKey(
+      start?.recordIdField ??
+        draft.source?.recordIdField ??
+        suggestions.recordIdField,
+      start?.recordKeyFields ?? draft.source?.recordKeyFields,
+      columnNames,
     ),
+  );
+  const [recordId, setRecordId] = useState(saved.recordIdField);
+  const [recordKeys, setRecordKeys] = useState<string[]>(
+    saved.recordKeyFields,
   );
   const save = useSaveConfiguration(draft.draftId ?? "");
 
@@ -113,7 +118,6 @@ function MapEditor({
       label: `${t(`studio.map.entity.${target.entity}`)} · ${target.label}`,
     })),
   ];
-  const columnNames = profile.columns.map((c) => c.name ?? "");
 
   const replace = (index: number, key: string) => {
     const column = profile.columns.find(
@@ -320,9 +324,22 @@ function MapEditor({
               id="record-id"
               value={recordId}
               onChange={(e) => setRecordId(e.target.value)}
-              options={columnNames.map((n) => ({ value: n, label: n }))}
+              options={[
+                ...(recordId
+                  ? []
+                  : [{ value: "", label: t("studio.map.chooseRecordId") }]),
+                ...columnNames.map((n) => ({ value: n, label: n })),
+              ]}
+              data-testid="record-id"
             />
           </Field>
+          {saved.dropped.length > 0 && (
+            <p className="muted" role="status" data-testid="stale-record-key">
+              {t("studio.map.staleRecordKey", {
+                columns: saved.dropped.join(", "),
+              })}
+            </p>
+          )}
           <fieldset>
             <legend>{t("studio.map.recordKey")}</legend>
             <p className="muted">{t("studio.map.recordKeyHint")}</p>

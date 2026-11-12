@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.uddp.contracts.ServiceUrls;
 import gov.uddp.core.onboarding.DatabaseSources;
 import gov.uddp.core.setup.LocalSettingsStore;
-import gov.uddp.core.studio.StudioConflictException;
 import gov.uddp.core.studio.StudioModels;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,9 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Database sources for the Studio hosted here: credentials live only in ingestion-service
- * ({@code uddp.ingestion.connections.<name>.*}), so this service lists the connections configured there and reads
- * preview rows through it by connection name. It keeps no source password, and refuses to store one.
+ * Database sources for the Studio hosted here: credentials live only in ingestion-service (configured there as
+ * {@code uddp.ingestion.connections.<name>.*}, or saved through it from the Studio with the password encrypted), so
+ * this service lists the connections ingestion-service has, saves new ones through it, and reads preview rows through
+ * it by connection name. It keeps no source password itself.
  */
 public class IngestionDatabaseSources extends DatabaseSources {
 
@@ -46,8 +46,18 @@ public class IngestionDatabaseSources extends DatabaseSources {
 
     @Override
     public StudioModels.SourceConnection save(String name, StudioModels.SourceConnectionRequest request) {
-        throw new StudioConflictException("Source connections and their passwords are configured in ingestion-service"
-                + " (uddp.ingestion.connections." + name + ".*, password from its environment), not in the Studio");
+        requireName(name);
+        // Passed straight on: ingestion-service tests the connection and stores the password encrypted.
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("host", request.host());
+        body.put("port", request.port());
+        body.put("database", request.database());
+        body.put("user", request.user());
+        body.put("password", request.password());
+        JsonNode c = call("PUT", "/api/ingestion/connections/" + name, body);
+        return new StudioModels.SourceConnection(c.path("name").asText(), c.path("host").asText(),
+                c.path("port").asInt(), c.path("database").asText(), c.path("user").asText(),
+                c.path("passwordSet").asBoolean());
     }
 
     @Override
@@ -81,7 +91,7 @@ public class IngestionDatabaseSources extends DatabaseSources {
                     .timeout(Duration.ofMinutes(2)).header("Content-Type", "application/json");
             request.method(method, body == null ? HttpRequest.BodyPublishers.noBody()
                     : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)));
-            // Both calls only read: safe to repeat.
+            // Reads, and a save that writes the same connection again: all safe to repeat.
             HttpResponse<String> response = gov.uddp.contracts.ServiceCalls.send(http, request.build(), true);
             if (response.statusCode() >= 400) {
                 String message = response.body();

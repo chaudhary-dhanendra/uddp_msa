@@ -28,6 +28,17 @@
         "fields": ["header", "rows"],
         "example": {"header": ["id", "name"], "rows": [{"id": "1", "name": "Asha"}]}
       }
+    },
+    {
+      "name": "save a database connection",
+      "consumers": ["statepack-service: IngestionDatabaseSources.save"],
+      "request": {"method": "PUT", "path": "/api/ingestion/connections/studio-saved", "body": {"host": "{host}", "port": "{port}", "database": "{database}", "user": "{user}", "password": "{password}"}},
+      "response": {
+        "status": 200,
+        "fields": ["name", "host", "port", "database", "user", "passwordSet"],
+        "forbidden": ["password"],
+        "example": {"name": "studio-saved", "host": "db", "port": 5432, "database": "reg", "user": "ro", "passwordSet": true}
+      }
     }
   ]
 }

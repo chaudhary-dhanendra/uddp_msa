@@ -341,6 +341,21 @@ public class StudioService {
         return suggested;
     }
 
+    /**
+     * The record ID and every record key must be columns of the source as it reads now. A key that is not a column
+     * (a header renamed after it was chosen) is blank on every row, so onboarding would reject every row.
+     */
+    static void requireRecordKeyColumns(List<String> columns, String recordId, List<String> keys) {
+        if (recordId != null && !columns.contains(recordId)) {
+            throw new IllegalArgumentException("Unknown record ID column: " + recordId);
+        }
+        for (String key : keys == null ? List.<String>of() : keys) {
+            if (key == null || !columns.contains(key)) {
+                throw new IllegalArgumentException("Unknown record key column: " + key);
+            }
+        }
+    }
+
     public synchronized Draft saveConfiguration(String draftId, DraftConfiguration configuration) {
         Draft draft = draft(draftId);
         requireNotPending(draft);
@@ -357,10 +372,8 @@ public class StudioService {
             }
         }
         String recordId = configuration.recordIdField() == null ? source.recordIdField() : configuration.recordIdField();
-        if (recordId != null && !columns.contains(recordId)) {
-            throw new IllegalArgumentException("Unknown record ID column: " + recordId);
-        }
         List<String> keys = configuration.recordKeyFields() == null ? source.recordKeyFields() : configuration.recordKeyFields();
+        requireRecordKeyColumns(columns, recordId, keys);
         Source updatedSource = source.withRecordKey(recordId, keys);
         List<MappingRule> mappings = normaliseGeographyCrosswalks(configuration.mappings());
         List<Crosswalk> crosswalks = new ArrayList<>(configuration.crosswalks());

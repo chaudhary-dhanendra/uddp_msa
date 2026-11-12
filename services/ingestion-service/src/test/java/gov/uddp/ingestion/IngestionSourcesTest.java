@@ -220,6 +220,61 @@ class IngestionSourcesTest {
         assertThat(rows.path("rows").get(0).path("full_name").asText()).isEqualTo("Asha");
     }
 
+    /**
+     * A connection saved from the Studio: tested first, its password stored encrypted (never in plain text, never
+     * returned), and then usable by name like a configured one. A configured connection cannot be overwritten, and a
+     * wrong password is refused without echoing it.
+     */
+    @Test
+    void aConnectionSavedFromTheStudioIsTestedEncryptedAndUsable() throws Exception {
+        try (var c = DriverManager.getConnection(SOURCE.getJdbcUrl(), SOURCE.getUsername(), SOURCE.getPassword());
+                var s = c.createStatement()) {
+            s.execute("create table if not exists saved_people (person_id text, full_name text)");
+            s.execute("insert into saved_people values ('S1', 'Dolma')");
+        }
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("host", SOURCE.getHost());
+        body.put("port", SOURCE.getMappedPort(5432));
+        body.put("database", SOURCE.getDatabaseName());
+        body.put("user", SOURCE.getUsername());
+        body.put("password", SOURCE.getPassword());
+
+        var saved = http.exchange("/api/ingestion/connections/saved-department", org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(body), String.class);
+        assertThat(saved.getStatusCode().value()).as(saved.getBody()).isEqualTo(200);
+        assertThat(saved.getBody()).contains("\"passwordSet\":true").doesNotContain(SOURCE.getPassword());
+
+        assertThat(jdbc.queryForObject("select ciphertext from connector_secret where name ="
+                + " 'source-connection:saved-department'", String.class)).doesNotContain(SOURCE.getPassword());
+        assertThat(http.getForObject("/api/ingestion/connections", String.class))
+                .contains("\"saved-department\"").doesNotContain(SOURCE.getPassword());
+
+        var rows = json.readTree(http.postForObject("/api/ingestion/sources/rows",
+                Map.of("connectionRef", "saved-department", "table", "saved_people", "limit", 5), String.class));
+        assertThat(rows.path("rows").get(0).path("full_name").asText()).isEqualTo("Dolma");
+
+        // Saved again without a password: the stored one is kept.
+        body.put("password", "");
+        assertThat(http.exchange("/api/ingestion/connections/saved-department", org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(body), String.class).getStatusCode().value()).isEqualTo(200);
+        assertThat(http.postForObject("/api/ingestion/sources/rows",
+                Map.of("connectionRef", "saved-department", "table", "saved_people", "limit", 5), String.class))
+                .contains("Dolma");
+
+        body.put("password", "not-the-password-xyz");
+        var wrong = http.exchange("/api/ingestion/connections/other-department", org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(body), String.class);
+        assertThat(wrong.getStatusCode().value()).isEqualTo(400);
+        assertThat(wrong.getBody()).contains("Cannot connect").doesNotContain("not-the-password-xyz");
+        assertThat(http.getForObject("/api/ingestion/connections", String.class)).doesNotContain("other-department");
+
+        body.put("password", SOURCE.getPassword());
+        var configured = http.exchange("/api/ingestion/connections/department", org.springframework.http.HttpMethod.PUT,
+                new HttpEntity<>(body), String.class);
+        assertThat(configured.getStatusCode().value()).isEqualTo(400);
+        assertThat(configured.getBody()).contains("configured in ingestion-service's settings");
+    }
+
     /** Provider side of the ingestion-service HTTP contract (contracts/http-contracts/ingestion-service.json). */
     @Test
     void everyInteractionOfTheHttpContractIsHonoured() throws Exception {
@@ -228,7 +283,9 @@ class IngestionSourcesTest {
             s.execute("create table if not exists contract_people (person_id text, full_name text)");
             s.execute("insert into contract_people values ('P1', 'Asha'), ('P2', 'Ravi')");
         }
-        Map<String, String> state = Map.of("connection", "department", "table", "contract_people");
+        Map<String, String> state = Map.of("connection", "department", "table", "contract_people",
+                "host", SOURCE.getHost(), "port", Integer.toString(SOURCE.getMappedPort(5432)),
+                "database", SOURCE.getDatabaseName(), "user", SOURCE.getUsername(), "password", SOURCE.getPassword());
         for (var interaction : gov.uddp.contracts.HttpContracts.of("ingestion-service")) {
             var headers = new org.springframework.http.HttpHeaders();
             headers.add("Content-Type", interaction.contentType());

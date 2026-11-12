@@ -143,3 +143,33 @@ export function missingValues(crosswalks: StudioCrosswalk[]): number {
     0,
   );
 }
+
+/**
+ * The record ID and record key columns kept from a saved draft or suggestion, limited to the source's current
+ * columns. A name that is no longer a column (the header was renamed or a new file was uploaded) is dropped and
+ * returned in {@code dropped}, so the page never sends a column the person cannot see.
+ */
+export function currentRecordKey(
+  recordId: string | null | undefined,
+  keys: (string | null)[] | null | undefined,
+  columns: string[],
+): { recordIdField: string; recordKeyFields: string[]; dropped: string[] } {
+  const dropped: string[] = [];
+  let recordIdField = recordId ?? "";
+  if (recordIdField && !columns.includes(recordIdField)) {
+    dropped.push(recordIdField);
+    recordIdField = "";
+  }
+  const recordKeyFields: string[] = [];
+  for (const key of keys ?? []) {
+    if (key === null || recordKeyFields.includes(key)) {
+      continue;
+    }
+    if (columns.includes(key)) {
+      recordKeyFields.push(key);
+    } else if (!dropped.includes(key)) {
+      dropped.push(key);
+    }
+  }
+  return { recordIdField, recordKeyFields, dropped };
+}
