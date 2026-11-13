@@ -79,6 +79,22 @@
   margin-bottom: var(--space-1);
 }
 
+/* A state field's editor wraps inside the Targets column instead of widening the table. */
+.stateFieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  max-width: 36rem;
+}
+
+.stateFieldRow input:not([type="checkbox"]),
+.stateFieldRow select {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
 .confidence {
   font-size: 0.78rem;
   padding: 1px 6px;

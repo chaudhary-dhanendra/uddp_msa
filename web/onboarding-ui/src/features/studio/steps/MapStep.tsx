@@ -276,7 +276,7 @@ function MapEditor({
                           return (
                             <div
                               key={index}
-                              className={styles.targetRow}
+                              className={styles.stateFieldRow}
                               data-testid={`state-field-${name}`}
                             >
                               <span className={styles.basis}>
