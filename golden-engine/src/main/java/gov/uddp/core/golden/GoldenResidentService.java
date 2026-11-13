@@ -47,6 +47,10 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
     private final StatePackLoader packs;
     private final PlatformSurvivorshipPolicyLoader platformPolicy;
     private final SurvivorshipEngine engine = new SurvivorshipEngine();
+    /** Where the declared Golden state fields come from; by default the packs this service's loader knows. */
+    private java.util.function.Supplier<Map<String, List<String>>> stateFieldSource;
+    /** The Golden state fields of the build in progress (read once per build). */
+    private volatile Map<String, List<String>> buildStateFields = Map.of();
     private final GoldenLifecycleStore store;
     private GoldenFamilyBuilder families;
     private StewardshipConstraints stewardship;
@@ -89,6 +93,18 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
         this.dmnSurvivorshipRules = dmnSurvivorshipRules;
     }
 
+    /**
+     * A service whose loader holds no packs (registry-service) supplies the active packs' Golden state fields here:
+     * state code to the keys carried to {@code stateFields.<stateCode>.<key>}.
+     */
+    public void setStateFieldSource(java.util.function.Supplier<Map<String, List<String>>> source) {
+        this.stateFieldSource = source;
+    }
+
+    private Map<String, List<String>> goldenStateFields() {
+        return stateFieldSource != null ? stateFieldSource.get() : SurvivorshipPolicy.goldenStateFields(packs.all());
+    }
+
     /** M9 uses a platform-governed policy rather than State Pack conflict precedence. */
     public SurvivorshipPolicy policy() {
         return platformPolicy == null ? SurvivorshipPolicy.fromStatePacks(packs.all())
@@ -121,6 +137,7 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
 
     private GoldenBuildSummary buildAndCommit(UUID run) {
         var policy = policy();
+        buildStateFields = goldenStateFields();
         try (var c = connections.open()) {
             c.setAutoCommit(false);
             try {
@@ -379,8 +396,7 @@ public class GoldenResidentService implements gov.uddp.core.onboarding.GoldenBui
     /** Survives the group and works out why (if at all) it needs a new version. */
     private Plan plan(UUID id, CurrentIdentity current, UUID splitFrom, List<Participant> members, SurvivorshipPolicy policy) {
         var observations = members.stream().map(Participant::observation).toList();
-        var fields = engine.survive(observations, policy, dmnSurvivorshipRules,
-                SurvivorshipPolicy.goldenStateFields(packs.all()));
+        var fields = engine.survive(observations, policy, dmnSurvivorshipRules, buildStateFields);
         JsonNode payload = engine.payload(fields, observations, json);
         if (current == null) {
             return new Plan(id, null, splitFrom, members, fields, payload, 1, new ArrayList<>(List.of("CREATED")));

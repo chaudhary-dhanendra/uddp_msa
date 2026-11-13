@@ -44,13 +44,16 @@ public class RegistryConfiguration {
     @Bean
     GoldenResidentService goldenResidents(PostgresConnectionFactory registryConnections, PlatformEvents registryEvents,
                                           @Value("${uddp.registry.platform-directory}") String platformDirectory,
-                                          @Value("${uddp.registry.state-pack-directory}") String statePackDirectory) {
+                                          @Value("${uddp.registry.state-pack-directory}") String statePackDirectory,
+                                          @Value("${uddp.registry.statepack-url:lb://statepack-service}") String statePackUrl) {
         var properties = new StatePackProperties();
         properties.setPlatformDirectory(platformDirectory);
         properties.setStatePackDirectory(statePackDirectory);
         var json = new ObjectMapper();
         var golden = new GoldenResidentService(registryConnections, json, new StatePackLoader(properties),
                 new PlatformSurvivorshipPolicyLoader(properties));
+        // The Golden state fields come from the ACTIVE packs that statepack-service serves.
+        golden.setStateFieldSource(new ActivePackStateFields(new gov.uddp.contracts.StatePackClient(statePackUrl)));
         golden.setFamilyBuilder(new GoldenFamilyBuilder(json));
         golden.setStewardship(new ProjectedStewardship());
         golden.setUddpIds(new UddpIdService(registryConnections, new UddpIdService.Format(10,
