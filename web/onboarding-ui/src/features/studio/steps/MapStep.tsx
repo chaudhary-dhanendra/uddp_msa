@@ -38,6 +38,27 @@ import { isFocused, useFocusKey, useScrollToFocused } from "../focus";
 import styles from "../studio.module.css";
 import { GeographyPanel } from "../GeographyPanel";
 
+/**
+ * A saved Resident extensions.<key> rule that is not a listed target (kept under a name of its own) is shown and
+ * saved as a state field with that key, so the Map step never shows it as an unexplained extension.
+ */
+function asStateField(
+  rule: StudioMappingRule,
+  profile: SourceProfile,
+  targets: MappingTarget[],
+): StudioMappingRule {
+  if (
+    rule.stateField ||
+    rule.entity !== "Resident" ||
+    !keyOf(rule) ||
+    targets.some((t) => t.entity === rule.entity && t.target === rule.target)
+  ) {
+    return rule;
+  }
+  const column = profile.columns.find((c) => c.name === rule.sourceField);
+  return withKey(stateFieldRule(column), keyOf(rule));
+}
+
 /** Step 3: one row per source column with its targets, pre-filled with the suggestions and their confidence. */
 export function MapStep({
   draft,
@@ -99,9 +120,9 @@ function MapEditor({
   const columnNames = profile.columns.map((c) => c.name ?? "");
   // After a Shape change, a saved rule whose column is gone is dropped; the new columns get their suggestions below.
   const [rules, setRules] = useState<StudioMappingRule[]>(() =>
-    (start?.mappings ?? draft.mappings).filter((rule) =>
-      columnNames.includes(rule.sourceField ?? ""),
-    ),
+    (start?.mappings ?? draft.mappings)
+      .filter((rule) => columnNames.includes(rule.sourceField ?? ""))
+      .map((rule) => asStateField(rule, profile, targets)),
   );
   // A saved choice that is no longer a column (renamed header, new file) is dropped, not sent back hidden.
   const [saved] = useState(() =>
@@ -150,11 +171,6 @@ function MapEditor({
   const makeStateField = (columnName: string) => {
     const column = profile.columns.find((c) => c.name === columnName);
     setRules((current) => [...current, stateFieldRule(column)]);
-  };
-  /** A plain extensions.<key> rule (no declaration) becomes a state field with the same key. */
-  const declareStateField = (index: number, rule: StudioMappingRule) => {
-    const column = profile.columns.find((c) => c.name === rule.sourceField);
-    updateRule(index, withKey(stateFieldRule(column), keyOf(rule)));
   };
   const updateRule = (index: number, rule: StudioMappingRule) =>
     setRules((current) => current.map((r, i) => (i === index ? rule : r)));
@@ -317,35 +333,6 @@ function MapEditor({
                                 />{" "}
                                 {t("studio.map.stateField.golden")}
                               </label>
-                              <Button
-                                variant="secondary"
-                                onClick={() => removeRule(index)}
-                              >
-                                {t("studio.map.remove")}
-                              </Button>
-                            </div>
-                          );
-                        }
-                        if (
-                          keyOf(rule) &&
-                          !options.some(
-                            (o) => o.value === targetKey(rule.entity, rule.target),
-                          )
-                        ) {
-                          return (
-                            <div
-                              key={index}
-                              className={styles.targetRow}
-                              data-testid={`extension-${name}`}
-                            >
-                              <code className={styles.basis}>{rule.target}</code>
-                              <Button
-                                variant="secondary"
-                                onClick={() => declareStateField(index, rule)}
-                                data-testid={`make-state-field-${name}`}
-                              >
-                                {t("studio.map.stateField.make")}
-                              </Button>
                               <Button
                                 variant="secondary"
                                 onClick={() => removeRule(index)}

@@ -71,7 +71,9 @@ export function stateFieldKey(column: string): string {
     .trim()
     .split(/\s+/)
     .filter(Boolean);
+  // An all-capitals word (SHEEP, DISABILITY_PCT) is a word, not an acronym inside camelCase.
   const camel = words
+    .map((w) => (w === w.toUpperCase() ? w.toLowerCase() : w))
     .map((w, i) =>
       i === 0
         ? w.charAt(0).toLowerCase() + w.slice(1)

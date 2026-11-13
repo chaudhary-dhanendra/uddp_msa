@@ -144,6 +144,8 @@ describe("Studio configuration", () => {
 
   it("keeps a column as a typed state field carried to Golden", () => {
     expect(stateFieldKey("disability_pct")).toBe("disabilityPct");
+    expect(stateFieldKey("SHEEP")).toBe("sheep");
+    expect(stateFieldKey("DISABILITY_PCT")).toBe("disabilityPct");
     expect(stateFieldKey("2nd Phone")).toBe("f2ndPhone");
     expect(stateFieldKey("uddp_flag")).toBe("fuddpFlag");
     const rule = stateFieldRule({
