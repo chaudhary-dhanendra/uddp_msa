@@ -400,7 +400,10 @@
       "reasonLabel": "Reason (needed to reject)",
       "awaiting": "You submitted this version; a different user must approve or reject it.",
       "approve": "Approve",
-      "reject": "Reject"
+      "reject": "Reject",
+      "stateFields": "State fields in this version (kept with their own name; not part of the Common Model):",
+      "stateField": "{{label}}: key {{key}} from column {{column}}, {{type}}",
+      "stateFieldGolden": "· carried to the Golden Resident (masked until revealed)"
     },
     "shape": {
       "title": "Shape (clean-up)",

@@ -3484,6 +3484,11 @@
             "nullable" : true,
             "type" : "string"
           },
+          "label" : {
+            "description" : "Display name of a state field (stateFields.<stateCode>.<key>) as its pack declares it; null for core fields",
+            "nullable" : true,
+            "type" : "string"
+          },
           "rule" : {
             "nullable" : true,
             "type" : "string"
@@ -3522,7 +3527,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "contributors", "fieldPath", "rule", "selectedBatchId", "selectedCanonicalResidentId", "selectedRawRecordId", "selectedSourceSystem", "selectedStateCode", "survivorshipPolicyVersion", "value", "withheld" ],
+        "required" : [ "contributors", "fieldPath", "label", "rule", "selectedBatchId", "selectedCanonicalResidentId", "selectedRawRecordId", "selectedSourceSystem", "selectedStateCode", "survivorshipPolicyVersion", "value", "withheld" ],
         "type" : "object"
       },
       "GoldenMemberView" : {

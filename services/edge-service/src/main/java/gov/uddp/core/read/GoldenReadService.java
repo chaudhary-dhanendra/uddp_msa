@@ -60,7 +60,11 @@ public class GoldenReadService {
     public record GoldenFieldView(String fieldPath, JsonNode value, String rule, String survivorshipPolicyVersion,
                                   UUID selectedCanonicalResidentId, String selectedStateCode, String selectedSourceSystem,
                                   UUID selectedRawRecordId, UUID selectedBatchId, List<ContributorView> contributors,
-                                  boolean withheld) {
+                                  boolean withheld,
+                                  @io.swagger.v3.oas.annotations.media.Schema(nullable = true,
+                                          description = "Display name of a state field (stateFields.<stateCode>.<key>)"
+                                                  + " as its pack declares it; null for core fields")
+                                  String label) {
     }
 
     public record GoldenMemberView(UUID canonicalResidentId, String stateCode, String sourceSystem,
@@ -136,6 +140,42 @@ public class GoldenReadService {
         this.db = db;
         this.batches = batches;
         this.goldens = goldens;
+    }
+
+    private gov.uddp.core.statepack.StatePackLoader packs;
+
+    /** Optional: the packs whose declared state fields name the {@code stateFields.*} rows. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPacks(gov.uddp.core.statepack.StatePackLoader packs) {
+        this.packs = packs;
+    }
+
+    /** "SHEEP (LAAH state field)" for {@code stateFields.LAAH.sheep}; null for a core field or an unknown pack. */
+    String label(String path) {
+        if (packs == null || path == null || !path.startsWith(STATE_FIELDS)) {
+            return null;
+        }
+        String[] parts = path.split("\\.", 3);
+        if (parts.length < 3) {
+            return null;
+        }
+        return packs.all().stream()
+                .filter(pack -> parts[1].equals(pack.manifest().stateCode()))
+                .flatMap(pack -> pack.stateField(parts[2]).stream())
+                .findFirst()
+                .map(field -> field.labelOrKey() + " (" + parts[1] + " state field)")
+                .orElse(parts[2] + " (" + parts[1] + " state field)");
+    }
+
+    private static final String STATE_FIELDS = "stateFields.";
+
+    /** Where a member holds a Golden path's value: a state field is kept in its canonical extensions. */
+    static String canonicalPath(String path) {
+        if (path != null && path.startsWith(STATE_FIELDS)) {
+            String[] parts = path.split("\\.", 3);
+            return parts.length == 3 ? "extensions." + parts[2] : path;
+        }
+        return path;
     }
 
     /**
@@ -410,13 +450,13 @@ public class GoldenReadService {
                 var info = canonicals.get(contributor);
                 return new ContributorView(contributor, info == null ? null : info.stateCode(),
                         info == null ? null : info.sourceSystem(),
-                        info == null ? null : CanonicalReadService.at(info.payload(), row.path()),
+                        info == null ? null : CanonicalReadService.at(info.payload(), canonicalPath(row.path())),
                         contributor.equals(row.selected()));
             }).toList();
             out.add(new GoldenFieldView(row.path(), row.value(), row.rule(), row.policy(), row.selected(),
                     winner == null ? null : winner.stateCode(), winner == null ? null : winner.sourceSystem(),
                     winner == null ? null : winner.rawRecordId(), winner == null ? null : winner.batchId(),
-                    contributors, false));
+                    contributors, false, label(row.path())));
         }
         return out;
     }
@@ -437,10 +477,10 @@ public class GoldenReadService {
                 return new GoldenFieldView(field.fieldPath(), field.value(), field.rule(),
                         field.survivorshipPolicyVersion(), field.selectedCanonicalResidentId(), field.selectedStateCode(),
                         field.selectedSourceSystem(), field.selectedRawRecordId(), field.selectedBatchId(), contributors,
-                        false);
+                        false, field.label());
             }
             return new GoldenFieldView(field.fieldPath(), null, field.rule(), field.survivorshipPolicyVersion(), null,
-                    null, null, null, null, contributors, true);
+                    null, null, null, null, contributors, true, field.label());
         }).toList();
     }
 

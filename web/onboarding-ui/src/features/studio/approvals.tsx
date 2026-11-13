@@ -15,10 +15,47 @@ import {
 } from "../../shared/components";
 import { useSession } from "../auth";
 import { StewardshipProposalsPanel } from "../stewardship";
-import { refreshDraft } from "./hooks";
+import { refreshDraft, useDraft } from "./hooks";
 import styles from "./studio.module.css";
 
 export const APPROVALS_KEY = ["studio", "approvals"];
+
+/**
+ * The state fields a pending version declares (source values kept under a name of their own, typed, and possibly
+ * carried to the Golden Resident), so the checker sees them before approving.
+ */
+export function StateFieldsSummary({ draftId }: { draftId: string }) {
+  const { t } = useI18n();
+  const draft = useDraft(draftId);
+  const fields = (draft.data?.mappings ?? []).filter(
+    (rule) => rule.stateField && (rule.target ?? "").startsWith("extensions."),
+  );
+  if (fields.length === 0) {
+    return null;
+  }
+  return (
+    <div data-testid={`state-fields-${draftId}`}>
+      <p>
+        <strong>{t("studio.approval.stateFields")}</strong>
+      </p>
+      <ul>
+        {fields.map((rule) => (
+          <li key={rule.target}>
+            {t("studio.approval.stateField", {
+              label: rule.stateField?.label ?? "",
+              key: (rule.target ?? "").slice("extensions.".length),
+              column: rule.sourceField ?? "",
+              type: t(`studio.map.stateField.types.${rule.stateField?.type ?? "text"}`),
+            })}
+            {rule.stateField?.golden
+              ? ` ${t("studio.approval.stateFieldGolden")}`
+              : ""}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 /**
  * A submitted State Pack version: its status, who submitted and decided it, and — for a different user holding
@@ -69,6 +106,9 @@ export function ApprovalActions({ approval }: { approval: StudioApproval }) {
         <p className="muted">
           {t("studio.approval.reason", { reason: approval.decisionReason })}
         </p>
+      )}
+      {pending && approval.draftId && (
+        <StateFieldsSummary draftId={approval.draftId} />
       )}
       {pending && ownSubmission && (
         <p className={styles.notice} data-testid="awaiting-other-approver">

@@ -5230,6 +5230,8 @@ export interface components {
         GoldenFieldView: {
             contributors: components["schemas"]["ContributorView"][];
             fieldPath: string | null;
+            /** @description Display name of a state field (stateFields.<stateCode>.<key>) as its pack declares it; null for core fields */
+            label: string | null;
             rule: string | null;
             /** Format: uuid */
             selectedBatchId: string | null;

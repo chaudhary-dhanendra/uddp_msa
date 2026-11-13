@@ -199,7 +199,12 @@ export function Resident360Page() {
                     {
                       key: "field",
                       header: "Field",
-                      render: (field: any) => field.fieldPath,
+                      render: (field: any) =>
+                        field.label ? (
+                          <span title={field.fieldPath}>{field.label}</span>
+                        ) : (
+                          field.fieldPath
+                        ),
                     },
                     {
                       key: "value",
